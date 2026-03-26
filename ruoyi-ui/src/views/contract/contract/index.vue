@@ -1870,57 +1870,68 @@
   title="合同归档"
   :visible.sync="open"
   direction="rtl"
-  size="520px"
+  size="560px"
   :before-close="handleCloseArchiveDrawer"
   custom-class="archive-drawer"
 >
-  <div class="archive-drawer-content">
-    <el-form ref="form" :model="formData" :rules="rules" label-width="100px">
-      <el-form-item label="盖章文件" prop="file">
-        <el-upload
-          ref="upload"
-          :auto-upload="false"
-          :show-file-list="false"
-          :on-change="handleFileChange"
-          accept=".pdf,.doc,.docx"
-        >
-          <el-button slot="trigger" size="small" type="primary">选择文件</el-button>
-          <span v-if="fileName" style="margin-left: 10px; color: #606266">{{ fileName }}</span>
-        </el-upload>
-        <div style="color: #909399; font-size: 12px; margin-top: 5px;">
-          支持 PDF、Word 格式，文件大小不超过 50MB
-        </div>
-      </el-form-item>
+  <div class="archive-drawer-shell">
+    <div class="archive-drawer-header-card">
+      <div class="archive-drawer-header-card__icon"><i class="el-icon-folder-checked"></i></div>
+      <div class="archive-drawer-header-card__content">
+        <div class="archive-drawer-header-card__title">归档信息填写</div>
+        <div class="archive-drawer-header-card__desc">请补充盖章文件、期限类型和归档备注，确认后完成合同归档。</div>
+      </div>
+    </div>
 
-      <el-form-item label="期限类型" prop="periodType">
-        <el-select v-model="formData.periodType" placeholder="请选择" style="width: 100%;">
-          <el-option label="无固定期限" value="无固定期限" />
-          <el-option label="固定期限（如3年）" value="固定期限" />
-        </el-select>
-      </el-form-item>
+    <div class="archive-drawer-content">
+      <el-form ref="form" :model="formData" :rules="rules" label-width="100px" class="archive-form">
+        <el-form-item label="盖章文件" prop="file">
+          <div class="upload-panel">
+            <el-upload
+              ref="upload"
+              :auto-upload="false"
+              :show-file-list="false"
+              :on-change="handleFileChange"
+              accept=".pdf,.doc,.docx"
+            >
+              <el-button slot="trigger" size="small" type="primary" icon="el-icon-upload2">选择文件</el-button>
+            </el-upload>
+            <div class="upload-file-name" v-if="fileName">{{ fileName }}</div>
+            <div class="upload-file-placeholder" v-else>暂未选择文件</div>
+            <div class="upload-tips">支持 PDF、Word 格式，文件大小不超过 50MB</div>
+          </div>
+        </el-form-item>
 
-      <el-form-item label="所在分类" prop="category">
-        <el-input v-model="formData.category" placeholder="默认为财务" />
-      </el-form-item>
+        <el-form-item label="期限类型" prop="periodType">
+          <el-select v-model="formData.periodType" placeholder="请选择" style="width: 100%;">
+            <el-option label="无固定期限" value="无固定期限" />
+            <el-option label="固定期限（如3年）" value="固定期限" />
+          </el-select>
+        </el-form-item>
 
-      <el-form-item label="归档编号">
-        <el-input v-model="formData.archiveNumber" placeholder="可不填" />
-      </el-form-item>
+        <el-form-item label="所在分类" prop="category">
+          <el-input v-model="formData.category" placeholder="默认为财务" />
+        </el-form-item>
 
-      <el-form-item label="备注">
-        <el-input
-          v-model="formData.remark"
-          type="textarea"
-          :rows="4"
-          placeholder="请输入备注信息"
-        />
-      </el-form-item>
-    </el-form>
-  </div>
+        <el-form-item label="归档编号">
+          <el-input v-model="formData.archiveNumber" placeholder="可不填" />
+        </el-form-item>
 
-  <div slot="footer" class="archive-drawer-footer">
-    <el-button @click="open = false">取消</el-button>
-    <el-button type="primary" @click="submitForm">确定归档</el-button>
+        <el-form-item label="备注">
+          <el-input
+            v-model="formData.remark"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入备注信息"
+          />
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <div class="archive-drawer-footer">
+      <el-button @click="handleClose">取消</el-button>
+      <el-button type="primary" icon="el-icon-check" @click="submitForm">确定归档</el-button>
+    </div>
   </div>
 </el-drawer>
   </div>
@@ -3233,8 +3244,9 @@ export default {
     },
 
     handleClose() {
-      this.open = false;
-      this.resetArchiveForm();
+      this.handleCloseArchiveDrawer(() => {
+        this.open = false;
+      });
     },
 
     handleFinish(row) {
@@ -4456,35 +4468,115 @@ export default {
 .archive-drawer {
   ::v-deep .el-drawer__header {
     margin-bottom: 0;
-    padding: 18px 20px;
+    padding: 20px 24px;
     border-bottom: 1px solid #ebeef5;
+    background: #fff;
 
     span {
       font-size: 18px;
       font-weight: 700;
+      color: #1f2d3d;
     }
   }
 
   ::v-deep .el-drawer__body {
-    background: #f7f9fc;
+    background: linear-gradient(180deg, #f7f9fc 0%, #f3f6fb 100%);
     padding: 0;
-    display: flex;
-    flex-direction: column;
     height: 100%;
+    overflow: hidden;
   }
+}
+
+.archive-drawer-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.archive-drawer-header-card {
+  margin: 20px 20px 0;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #eef6ff 0%, #f7fbff 100%);
+  border: 1px solid #dceafd;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.archive-drawer-header-card__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: #409eff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.archive-drawer-header-card__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2d3d;
+  margin-bottom: 4px;
+}
+
+.archive-drawer-header-card__desc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.7;
 }
 
 .archive-drawer-content {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 18px 20px;
+}
+
+.archive-form {
+  padding: 18px 18px 4px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.upload-panel {
+  padding: 14px 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+
+.upload-file-name {
+  margin-top: 10px;
+  color: #303133;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.upload-file-placeholder {
+  margin-top: 10px;
+  color: #909399;
+}
+
+.upload-tips {
+  margin-top: 8px;
+  color: #909399;
+  font-size: 12px;
 }
 
 .archive-drawer-footer {
   border-top: 1px solid #ebeef5;
-  background: #fff;
-  padding: 14px 20px;
-  text-align: right;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 16px 20px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.04);
 }
 
 /* ===== 完结抽屉 ===== */
