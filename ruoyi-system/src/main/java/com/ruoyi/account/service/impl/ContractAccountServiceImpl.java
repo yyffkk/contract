@@ -30,6 +30,8 @@ import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.contract.domain.BizContractContent;
 import com.ruoyi.contract.mapper.BizContractContentMapper;
+import com.ruoyi.system.domain.SysUser;
+import com.ruoyi.system.service.ISysUserService;
 
 /**
  * 账款信息Service业务层处理
@@ -57,6 +59,9 @@ public class ContractAccountServiceImpl implements IContractAccountService
 
     @Autowired
     private BizContractContentMapper bizContractContentMapper;
+
+    @Autowired
+    private ISysUserService sysUserService;
 
     @Override
     public ContractAccount selectContractAccountById(Long id)
@@ -94,6 +99,64 @@ public class ContractAccountServiceImpl implements IContractAccountService
     public int deleteContractAccountById(Long id)
     {
         return contractAccountMapper.deleteContractAccountById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int submitApproval(Long id, String applyType, String remark)
+    {
+        ContractAccount entity = contractAccountMapper.selectContractAccountById(id);
+        if (entity == null)
+        {
+            throw new ServiceException("账款记录不存在");
+        }
+        validateApplyType(entity, applyType);
+        if ("approving".equals(entity.getStatus()))
+        {
+            throw new ServiceException("该账款已提交审批，请勿重复提交");
+        }
+        if ("approved".equals(entity.getStatus()))
+        {
+            throw new ServiceException("该账款已审批通过，无需重复提交");
+        }
+        entity.setStatus("approving");
+        entity.setRemark(mergeRemark(entity.getRemark(), "审批申请", buildApplyRemark(applyType, remark)));
+        entity.setUpdateBy(SecurityUtils.getUsername());
+        entity.setUpdateTime(DateUtils.getNowDate());
+        return contractAccountMapper.updateContractAccount(entity);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int handleApproval(Long id, String action, String remark)
+    {
+        ContractAccount entity = contractAccountMapper.selectContractAccountById(id);
+        if (entity == null)
+        {
+            throw new ServiceException("账款记录不存在");
+        }
+        if (!"approving".equals(entity.getStatus()))
+        {
+            throw new ServiceException("当前账款不在审批中，无法执行审批操作");
+        }
+        String nextStatus;
+        if ("agree".equals(action))
+        {
+            nextStatus = "approved";
+        }
+        else if ("reject".equals(action))
+        {
+            nextStatus = "rejected";
+        }
+        else
+        {
+            throw new ServiceException("无效的审批动作");
+        }
+        entity.setStatus(nextStatus);
+        entity.setRemark(mergeRemark(entity.getRemark(), "审批结果", buildApprovalRemark(action, remark)));
+        entity.setUpdateBy(SecurityUtils.getUsername());
+        entity.setUpdateTime(DateUtils.getNowDate());
+        return contractAccountMapper.updateContractAccount(entity);
     }
 
     @Override
@@ -378,5 +441,61 @@ public class ContractAccountServiceImpl implements IContractAccountService
             }
         }
         return true;
+    }
+
+    private void validateApplyType(ContractAccount entity, String applyType)
+    {
+        if (StringUtils.isBlank(applyType))
+        {
+            throw new ServiceException("申请类型不能为空");
+        }
+        if ("receive".equals(applyType) && !"income".equals(entity.getAmountType()))
+        {
+            throw new ServiceException("当前选中记录不是收款类型，不能申请收款");
+        }
+        if ("pay".equals(applyType) && !"expense".equals(entity.getAmountType()))
+        {
+            throw new ServiceException("当前选中记录不是付款类型，不能申请付款");
+        }
+    }
+
+    private String buildApplyRemark(String applyType, String remark)
+    {
+        String currentUser = SecurityUtils.getUsername();
+        SysUser user = sysUserService.selectUserByUserName(currentUser);
+        String applicantName = user != null ? user.getNickName() : currentUser;
+        String typeName = "pay".equals(applyType) ? "付款" : "收款";
+        if (StringUtils.isNotBlank(remark))
+        {
+            return String.format("%s申请，申请人：%s，说明：%s", typeName, applicantName, remark.trim());
+        }
+        return String.format("%s申请，申请人：%s", typeName, applicantName);
+    }
+
+    private String buildApprovalRemark(String action, String remark)
+    {
+        String currentUser = SecurityUtils.getUsername();
+        SysUser user = sysUserService.selectUserByUserName(currentUser);
+        String approverName = user != null ? user.getNickName() : currentUser;
+        String actionName = "agree".equals(action) ? "审批通过" : "审批驳回";
+        if (StringUtils.isNotBlank(remark))
+        {
+            return String.format("%s，审批人：%s，意见：%s", actionName, approverName, remark.trim());
+        }
+        return String.format("%s，审批人：%s", actionName, approverName);
+    }
+
+    private String mergeRemark(String oldRemark, String prefix, String content)
+    {
+        if (StringUtils.isBlank(content))
+        {
+            return oldRemark;
+        }
+        String piece = String.format("[%s] %s", prefix, content);
+        if (StringUtils.isBlank(oldRemark))
+        {
+            return piece;
+        }
+        return oldRemark + "；" + piece;
     }
 }

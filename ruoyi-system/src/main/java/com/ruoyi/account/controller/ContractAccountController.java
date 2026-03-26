@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import java.util.Map;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -140,6 +141,34 @@ public class ContractAccountController extends BaseController
     public AjaxResult edit(@RequestBody ContractAccount contractAccount)
     {
         return toAjax(contractAccountService.updateContractAccount(contractAccount));
+    }
+
+    /**
+     * 提交收付款审批
+     */
+    @PreAuthorize("@ss.hasPermi('account:account:edit')")
+    @Log(title = "账款审批申请", businessType = BusinessType.UPDATE)
+    @PostMapping("/submitApproval")
+    public AjaxResult submitApproval(@RequestBody Map<String, Object> payload)
+    {
+        Long id = Long.valueOf(payload.get("id").toString());
+        String applyType = payload.get("applyType") == null ? null : payload.get("applyType").toString();
+        String remark = payload.get("remark") == null ? null : payload.get("remark").toString();
+        return toAjax(contractAccountService.submitApproval(id, applyType, remark));
+    }
+
+    /**
+     * 执行账款审批
+     */
+    @PreAuthorize("@ss.hasPermi('account:account:edit')")
+    @Log(title = "账款审批", businessType = BusinessType.UPDATE)
+    @PostMapping("/approve")
+    public AjaxResult approve(@RequestBody Map<String, Object> payload)
+    {
+        Long id = Long.valueOf(payload.get("id").toString());
+        String action = payload.get("action") == null ? null : payload.get("action").toString();
+        String remark = payload.get("remark") == null ? null : payload.get("remark").toString();
+        return toAjax(contractAccountService.handleApproval(id, action, remark));
     }
 
     /**

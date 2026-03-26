@@ -96,8 +96,8 @@
       <div class="toolbar">
         <div class="toolbar-left">
           <template v-if="currentNav === 'account'">
-            <el-button type="primary" icon="el-icon-plus" @click="handleApplyReceive" v-if="activeTab !== 'pay'">申请收款</el-button>
-            <el-button type="success" icon="el-icon-plus" @click="handleApplyPay" v-if="activeTab !== 'receive'">申请付款</el-button>
+            <el-button type="primary" icon="el-icon-s-promotion" @click="handleApplyReceive" v-if="activeTab !== 'pay'">申请收款</el-button>
+            <el-button type="success" icon="el-icon-s-promotion" @click="handleApplyPay" v-if="activeTab !== 'receive'">申请付款</el-button>
             <el-button type="warning" plain icon="el-icon-edit-outline" @click="handleRecordMoney">录账款</el-button>
             <el-button type="info" plain icon="el-icon-download" :loading="downloadLoading" @click="handleDownloadTemplate">下载模板</el-button>
             <el-button type="primary" plain icon="el-icon-upload2" :loading="importLoading" @click="handleImport">导入</el-button>
@@ -106,6 +106,9 @@
           <template v-else>
             <el-button type="primary" icon="el-icon-plus" @click="handleAddPlan">添加账款计划</el-button>
           </template>
+        </div>
+        <div v-if="currentNav === 'account'" class="toolbar-tip">
+          <el-alert title="申请收款/付款前，请先在下方列表勾选一条账款记录。" type="info" :closable="false" show-icon />
         </div>
       </div>
 
@@ -118,12 +121,15 @@
         <el-table-column label="金额类型" width="100" align="center"><template slot-scope="scope"><el-tag :type="scope.row.amountType === 'income' ? 'success' : 'danger'" size="small">{{ scope.row.amountType === 'income' ? '收入' : '支出' }}</el-tag></template></el-table-column>
         <el-table-column label="单据号" prop="orderNo" width="140"/>
         <el-table-column label="关联合同编号" prop="relatedContractNumber" width="160"/>
-        <el-table-column label="状态" width="100" align="center"><template slot-scope="scope"><el-tag :type="getAccountStatusType(scope.row.status)" size="small">{{ getAccountStatusLabel(scope.row.status) }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" width="220" fixed="right" align="center">
+        <el-table-column label="状态" width="120" align="center"><template slot-scope="scope"><el-tag :type="getAccountStatusType(scope.row.status)" size="small">{{ getAccountStatusLabel(scope.row.status) }}</el-tag></template></el-table-column>
+        <el-table-column label="操作" width="320" fixed="right" align="center">
           <template slot-scope="scope">
             <el-button size="mini" type="text" @click="handleDetail(scope.row)">详情</el-button>
             <el-button size="mini" type="text" @click="handleRecordMoney(scope.row)">录账款</el-button>
-            <el-button size="mini" type="text" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button v-if="scope.row.status !== 'approving'" size="mini" type="text" @click="openApprovalDialog(scope.row, scope.row.amountType === 'expense' ? 'pay' : 'receive')">发起审批</el-button>
+            <el-button v-if="scope.row.status === 'approving'" size="mini" type="text" @click="openApproveActionDialog(scope.row, 'agree')">通过</el-button>
+            <el-button v-if="scope.row.status === 'approving'" size="mini" type="text" class="danger-text" @click="openApproveActionDialog(scope.row, 'reject')">驳回</el-button>
+            <el-button size="mini" type="text" class="danger-text" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -138,30 +144,6 @@
       <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" class="page-pagination" />
     </div>
 
-    <el-dialog title="选择合同" :visible.sync="contractDialogVisible" width="980px" append-to-body custom-class="beauty-dialog large-dialog">
-      <el-form :model="contractQueryParams" ref="contractQueryForm" class="contract-query-form">
-        <div class="form-grid">
-          <el-form-item label="合同名称"><el-input v-model="contractQueryParams.contractName" clearable /></el-form-item>
-          <el-form-item label="合同编号"><el-input v-model="contractQueryParams.contractNumber" clearable /></el-form-item>
-          <el-form-item label="对方主体"><el-input v-model="contractQueryParams.otherPartyName" clearable /></el-form-item>
-          <el-form-item label="我方主体"><el-input v-model="contractQueryParams.myPartyName" clearable /></el-form-item>
-        </div>
-        <div class="search-actions"><el-button type="primary" @click="loadContractList">查询</el-button><el-button @click="resetContractQuery">重置</el-button></div>
-      </el-form>
-      <div class="dialog-table-wrap">
-        <el-table v-loading="contractLoading" :data="contractList" border stripe highlight-current-row>
-          <el-table-column width="60" align="center"><template slot-scope="scope"><el-radio v-model="selectedContractId" :label="scope.row.id" @change="selectContractRow(scope.row)"><span style="display:none">{{ scope.row.id }}</span></el-radio></template></el-table-column>
-          <el-table-column label="合同名称" prop="contractName" min-width="200" show-overflow-tooltip/>
-          <el-table-column label="合同编号" prop="contractNumber" width="160"/>
-          <el-table-column label="对方主体" prop="otherPartyName" min-width="160" show-overflow-tooltip/>
-          <el-table-column label="我方主体" prop="myPartyName" min-width="160" show-overflow-tooltip/>
-          <el-table-column label="合同金额" prop="totalAmount" width="130"><template slot-scope="scope">¥ {{ formatAmount(scope.row.totalAmount) }}</template></el-table-column>
-          <el-table-column label="归属人" prop="owner" width="100"/>
-        </el-table>
-      </div>
-      <div slot="footer" class="dialog-footer"><el-button @click="contractDialogVisible = false">取消</el-button><el-button type="primary" :disabled="!selectedContractId" @click="confirmContractSelection">确认并继续</el-button></div>
-    </el-dialog>
-
     <el-dialog :title="recordDialogTitle" :visible.sync="recordDialogVisible" width="860px" append-to-body custom-class="beauty-dialog invoice-dialog">
       <div class="invoice-layout">
         <div class="invoice-side-card" v-if="selectedContract">
@@ -173,7 +155,7 @@
           <div class="side-info-item"><span>合同总额</span><strong>¥ {{ formatAmount(selectedContract.totalAmount) }}</strong></div>
         </div>
         <div class="invoice-form-panel">
-          <div class="invoice-panel-header"><div class="panel-title">录账款</div><div class="panel-desc">先选合同，再录入对应账款信息</div></div>
+          <div class="invoice-panel-header"><div class="panel-title">录账款</div><div class="panel-desc">从合同发起或补录账款信息</div></div>
           <el-form :model="recordForm" ref="recordForm" :rules="recordRules" label-width="110px" class="dialog-form">
             <div class="dialog-grid">
               <el-form-item label="账款名称" prop="accountName"><el-input v-model="recordForm.accountName" /></el-form-item>
@@ -181,7 +163,7 @@
               <el-form-item label="账款金额" prop="amount"><el-input v-model="recordForm.amount"><template slot="prepend">¥</template></el-input></el-form-item>
               <el-form-item label="金额类型" prop="amountType"><el-select v-model="recordForm.amountType" style="width:100%"><el-option label="收入" value="income"/><el-option label="支出" value="expense"/></el-select></el-form-item>
               <el-form-item label="单据号" prop="orderNo"><el-input v-model="recordForm.orderNo" /></el-form-item>
-              <el-form-item label="状态" prop="status"><el-select v-model="recordForm.status" style="width:100%"><el-option label="待处理" value="pending"/><el-option label="部分完成" value="partial"/><el-option label="已完成" value="done"/></el-select></el-form-item>
+              <el-form-item label="状态" prop="status"><el-select v-model="recordForm.status" style="width:100%"><el-option label="待处理" value="pending"/><el-option label="审批中" value="approving"/><el-option label="审批通过" value="approved"/><el-option label="审批驳回" value="rejected"/><el-option label="部分完成" value="partial"/><el-option label="已完成" value="done"/></el-select></el-form-item>
             </div>
             <el-form-item label="备注"><el-input v-model="recordForm.remark" type="textarea" :rows="4"/></el-form-item>
           </el-form>
@@ -189,26 +171,61 @@
       </div>
       <div slot="footer" class="dialog-footer"><el-button @click="recordDialogVisible = false">取消</el-button><el-button type="primary" :loading="submitLoading" @click="submitRecordForm">提交账款</el-button></div>
     </el-dialog>
+
+    <el-dialog :title="approvalDialogTitle" :visible.sync="approvalDialogVisible" width="620px" append-to-body custom-class="beauty-dialog">
+      <div class="approval-summary" v-if="selectedRow">
+        <div class="summary-item"><span>合同</span><strong>{{ selectedRow.relatedContractName || '-' }}</strong></div>
+        <div class="summary-item"><span>合同编号</span><strong>{{ selectedRow.relatedContractNumber || '-' }}</strong></div>
+        <div class="summary-item"><span>金额</span><strong>¥ {{ formatAmount(selectedRow.amount) }}</strong></div>
+        <div class="summary-item"><span>类型</span><strong>{{ selectedApplyType === 'pay' ? '付款申请' : '收款申请' }}</strong></div>
+      </div>
+      <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="100px">
+        <el-form-item label="审批说明" prop="remark">
+          <el-input v-model="approvalForm.remark" type="textarea" :rows="4" placeholder="请输入申请说明、付款依据或收款说明" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer"><el-button @click="approvalDialogVisible = false">取消</el-button><el-button type="primary" :loading="submitLoading" @click="submitApprovalFlow">提交审批</el-button></div>
+    </el-dialog>
+
+    <el-dialog :title="approveActionTitle" :visible.sync="approveActionDialogVisible" width="620px" append-to-body custom-class="beauty-dialog">
+      <div class="approval-summary" v-if="selectedRow">
+        <div class="summary-item"><span>合同</span><strong>{{ selectedRow.relatedContractName || '-' }}</strong></div>
+        <div class="summary-item"><span>单据号</span><strong>{{ selectedRow.orderNo || '-' }}</strong></div>
+        <div class="summary-item"><span>金额</span><strong>¥ {{ formatAmount(selectedRow.amount) }}</strong></div>
+        <div class="summary-item"><span>当前状态</span><strong>{{ getAccountStatusLabel(selectedRow.status) }}</strong></div>
+      </div>
+      <el-form :model="approveActionForm" ref="approveActionForm" label-width="100px">
+        <el-form-item :label="selectedApproveAction === 'agree' ? '通过意见' : '驳回意见'">
+          <el-input v-model="approveActionForm.remark" type="textarea" :rows="4" :placeholder="selectedApproveAction === 'agree' ? '请输入审批通过意见（可选）' : '请输入驳回原因（建议填写）'" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer"><el-button @click="approveActionDialogVisible = false">取消</el-button><el-button :type="selectedApproveAction === 'agree' ? 'primary' : 'danger'" :loading="submitLoading" @click="submitApproveAction">确认</el-button></div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { listAccount, delAccount, addAccount, importAccount, downloadAccountTemplate } from '@/api/account/account'
-import { listContractContent } from '@/api/contract/contract'
+import { listAccount, delAccount, addAccount, updateAccount, importAccount, downloadAccountTemplate, submitAccountApproval, approveAccount } from '@/api/account/account'
 
 export default {
   name: 'Account',
   data() {
     return {
       currentNav: 'account', scopeFilter: 'mine', activeTab: 'all', warningType: 'all', showSearch: true, loading: false, total: 0,
-      ids: [], accountList: [], planList: [{ id: 1, planName: '示例收款计划', planNo: 'PLAN001', planType: 'receive', planAmount: 100000 }],
+      ids: [], selectedRows: [], selectedRow: null, selectedApplyType: 'receive', selectedApproveAction: 'agree',
+      accountList: [], planList: [{ id: 1, planName: '示例收款计划', planNo: 'PLAN001', planType: 'receive', planAmount: 100000 }],
       queryParams: { pageNum: 1, pageSize: 10, contractId: null, orderNo: null, amountType: null, partyName: null, warningType: 'all', planName: null, planNo: null, scope: 'mine' },
-      contractDialogVisible: false, contractLoading: false, contractList: [], selectedContractId: null, selectedContract: null,
-      contractQueryParams: { contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' },
-      pendingAction: 'record', recordDialogVisible: false, recordDialogTitle: '录账款', submitLoading: false,
+      selectedContract: null,
+      recordDialogVisible: false, recordDialogTitle: '录账款', submitLoading: false,
+      approvalDialogVisible: false, approvalDialogTitle: '提交审批申请',
+      approveActionDialogVisible: false, approveActionTitle: '审批操作',
       importLoading: false, downloadLoading: false,
-      recordForm: { contractId: null, accountName: '', accountDate: '', amount: '', amountType: 'income', orderNo: '', ourParty: '', otherParty: '', relatedContractName: '', relatedContractNumber: '', remark: '', status: 'pending' },
-      recordRules: { accountName: [{ required: true, message: '请输入账款名称', trigger: 'blur' }], accountDate: [{ required: true, message: '请选择账款日期', trigger: 'change' }], amount: [{ required: true, message: '请输入账款金额', trigger: 'blur' }], amountType: [{ required: true, message: '请选择金额类型', trigger: 'change' }] }
+      approvalForm: { remark: '' },
+      approveActionForm: { remark: '' },
+      approvalRules: { remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }] },
+      recordForm: { id: null, contractId: null, accountName: '', accountDate: '', amount: '', amountType: 'income', orderNo: '', ourParty: '', otherParty: '', relatedContractName: '', relatedContractNumber: '', remark: '', status: 'pending' },
+      recordRules: { accountName: [{ required: true, message: '请输入账款名称', trigger: 'blur' }], accountDate: [{ required: true, message: '请选择账款日期', trigger: 'change' }], amount: [{ required: true, message: '请输入账款金额', trigger: 'blur' }], amountType: [{ required: true, message: '请选择金额类型', trigger: 'change' }] },
+      contractList: []
     }
   },
   computed: {
@@ -216,7 +233,7 @@ export default {
     warningTypeLabel() { return { all: '全部', receive_overdue: '收款已逾期', receive_overdue_3d: '收款逾期1-3天', receive_overdue_7d: '收款逾期4-7天', receive_overdue_30d: '收款逾期8-30天', receive_overdue_30p: '收款逾期30天以上', pay_overdue: '付款已逾期', pay_overdue_3d: '付款逾期1-3天', pay_overdue_7d: '付款逾期4-7天', pay_overdue_30d: '付款逾期8-30天', pay_overdue_30p: '付款逾期30天以上', receive_due_today: '收款今日到期', receive_due_1d: '收款明日到期', receive_due_3d: '收款2-3天内到期', receive_due_7d: '收款4-7天内到期', receive_due_15d: '收款8-15天内到期', receive_due_30d: '收款16-30天内到期', pay_due_today: '付款今日到期', pay_due_1d: '付款明日到期', pay_due_3d: '付款2-3天内到期', pay_due_7d: '付款4-7天内到期', pay_due_15d: '付款8-15天内到期', pay_due_30d: '付款16-30天内到期', normal: '正常' }[this.warningType] }
   },
   created() { this.applyRouteQuery(); this.getList() },
-  watch: { '$route.query': { deep: true, handler() { this.applyRouteQuery(); } } },
+  watch: { '$route.query': { deep: true, handler() { this.applyRouteQuery() } } },
   methods: {
     applyRouteQuery() {
       const query = (this.$route && this.$route.query) || {}
@@ -252,7 +269,7 @@ export default {
     },
     handleQuery() { this.queryParams.pageNum = 1; this.queryParams.warningType = this.warningType; this.getList() },
     resetQuery() { this.queryParams = { pageNum: 1, pageSize: 10, contractId: null, orderNo: null, amountType: null, partyName: null, warningType: 'all', planName: null, planNo: null, scope: this.scopeFilter }; this.warningType = 'all'; this.activeTab = 'all'; this.getList() },
-    handleSelectionChange(selection) { this.ids = selection.map(item => item.id) },
+    handleSelectionChange(selection) { this.selectedRows = selection; this.ids = selection.map(item => item.id); this.selectedRow = selection.length === 1 ? selection[0] : null },
     getList() {
       if (this.currentNav !== 'account') { this.total = this.planList.length; return }
       this.loading = true
@@ -265,16 +282,83 @@ export default {
         this.total = res.total !== undefined ? res.total : rows.length
       }).finally(() => { this.loading = false })
     },
-    handleApplyReceive() { this.openContractSelectDialog('receive') },
-    handleApplyPay() { this.openContractSelectDialog('pay') },
+    getSingleSelectedRow() {
+      if (this.selectedRows.length !== 1) {
+        this.$message.warning('请先在下方列表中勾选一条账款记录')
+        return null
+      }
+      return this.selectedRows[0]
+    },
+    handleApplyReceive() {
+      const row = this.getSingleSelectedRow()
+      if (!row) return
+      if (row.amountType !== 'income') return this.$message.warning('当前选中记录不是收入类型，不能申请收款')
+      this.openApprovalDialog(row, 'receive')
+    },
+    handleApplyPay() {
+      const row = this.getSingleSelectedRow()
+      if (!row) return
+      if (row.amountType !== 'expense') return this.$message.warning('当前选中记录不是支出类型，不能申请付款')
+      this.openApprovalDialog(row, 'pay')
+    },
+    openApprovalDialog(row, applyType) {
+      this.selectedRow = row
+      this.selectedApplyType = applyType
+      this.approvalDialogTitle = applyType === 'pay' ? '提交付款审批' : '提交收款审批'
+      this.approvalForm = { remark: '' }
+      this.approvalDialogVisible = true
+      this.$nextTick(() => { this.$refs.approvalForm && this.$refs.approvalForm.clearValidate() })
+    },
+    submitApprovalFlow() {
+      this.$refs.approvalForm.validate(valid => {
+        if (!valid || !this.selectedRow) return
+        this.submitLoading = true
+        submitAccountApproval({ id: this.selectedRow.id, applyType: this.selectedApplyType, remark: this.approvalForm.remark }).then(() => {
+          this.$message.success(this.selectedApplyType === 'pay' ? '付款审批已提交' : '收款审批已提交')
+          this.approvalDialogVisible = false
+          this.getList()
+        }).finally(() => { this.submitLoading = false })
+      })
+    },
+    openApproveActionDialog(row, action) {
+      this.selectedRow = row
+      this.selectedApproveAction = action
+      this.approveActionTitle = action === 'agree' ? '审批通过' : '审批驳回'
+      this.approveActionForm = { remark: '' }
+      this.approveActionDialogVisible = true
+    },
+    submitApproveAction() {
+      if (!this.selectedRow) return
+      this.submitLoading = true
+      approveAccount({ id: this.selectedRow.id, action: this.selectedApproveAction, remark: this.approveActionForm.remark }).then(() => {
+        this.$message.success(this.selectedApproveAction === 'agree' ? '审批已通过' : '审批已驳回')
+        this.approveActionDialogVisible = false
+        this.getList()
+      }).finally(() => { this.submitLoading = false })
+    },
     handleRecordMoney(row) {
-      this.pendingAction = 'record'
       if (row && row.contractId) {
         this.selectedContract = { id: row.contractId, contractName: row.relatedContractName, contractNumber: row.relatedContractNumber, myPartyName: row.ourParty, otherPartyName: row.otherParty }
-        this.openRecordDialog(row.amountType)
+        this.openRecordDialogByRow(row)
         return
       }
-      this.openContractSelectDialog('record')
+      const selected = this.getSingleSelectedRow()
+      if (!selected) return
+      this.selectedContract = { id: selected.contractId, contractName: selected.relatedContractName, contractNumber: selected.relatedContractNumber, myPartyName: selected.ourParty, otherPartyName: selected.otherParty }
+      this.openRecordDialogByRow(selected)
+    },
+    openRecordDialogByRow(row) {
+      this.recordForm = {
+        id: row.id || null,
+        contractId: row.contractId,
+        accountName: row.accountName || `${row.relatedContractName || ''}${row.amountType === 'expense' ? '-付款账款' : '-收款账款'}`,
+        accountDate: row.accountDate || '', amount: row.amount || '', amountType: row.amountType || 'income', orderNo: row.orderNo || '',
+        ourParty: row.ourParty || '', otherParty: row.otherParty || '',
+        relatedContractName: row.relatedContractName || '', relatedContractNumber: row.relatedContractNumber || '',
+        remark: row.remark || '', status: row.status || 'pending'
+      }
+      this.recordDialogVisible = true
+      this.$nextTick(() => { this.$refs.recordForm && this.$refs.recordForm.clearValidate() })
     },
     handleAddPlan() { this.$message.info('账款计划新增保留') },
     handleImport() {
@@ -325,37 +409,15 @@ export default {
         this.downloadLoading = false
       })
     },
-    handleDetail(row) { this.$alert(`${row.relatedContractName || '-'}\n${this.getWarningMeta(row).label}`, '账款详情') },
+    handleDetail(row) { this.$alert(`${row.relatedContractName || '-'}\n${this.getWarningMeta(row).label}\n当前状态：${this.getAccountStatusLabel(row.status)}`, '账款详情') },
     handleDelete(row) { const id = row && row.id ? row.id : this.ids[0]; if (!id) return this.$message.warning('请选择数据'); delAccount(id).then(() => { this.$message.success('删除成功'); this.getList() }) },
-    openContractSelectDialog(action) { this.pendingAction = action; this.contractDialogVisible = true; this.selectedContract = null; this.selectedContractId = null; this.loadContractList() },
-    loadContractList() { this.contractLoading = true; listContractContent(this.contractQueryParams).then(res => { this.contractList = res.rows || [] }).finally(() => { this.contractLoading = false }) },
-    resetContractQuery() { this.contractQueryParams = { contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' }; this.loadContractList() },
-    selectContractRow(row) { this.selectedContract = row },
-    confirmContractSelection() {
-      if (!this.selectedContract) return this.$message.warning('请先选择一个合同')
-      this.contractDialogVisible = false
-      if (this.pendingAction === 'record' || this.pendingAction === 'receive' || this.pendingAction === 'pay') {
-        this.openRecordDialog(this.pendingAction === 'pay' ? 'expense' : 'income')
-      }
-    },
-    openRecordDialog(defaultAmountType) {
-      this.recordForm = {
-        contractId: this.selectedContract.id,
-        accountName: `${this.selectedContract.contractName || ''}${defaultAmountType === 'expense' ? '-付款账款' : '-收款账款'}`,
-        accountDate: '', amount: '', amountType: defaultAmountType || 'income', orderNo: '',
-        ourParty: this.selectedContract.myPartyName || '', otherParty: this.selectedContract.otherPartyName || '',
-        relatedContractName: this.selectedContract.contractName || '', relatedContractNumber: this.selectedContract.contractNumber || '',
-        remark: '', status: 'pending'
-      }
-      this.recordDialogVisible = true
-      this.$nextTick(() => { this.$refs.recordForm && this.$refs.recordForm.clearValidate() })
-    },
     submitRecordForm() {
       this.$refs.recordForm.validate(valid => {
         if (!valid) return
         this.submitLoading = true
-        addAccount(this.recordForm).then(() => {
-          this.$message.success('账款新增成功')
+        const request = this.recordForm.id ? updateAccount(this.recordForm) : addAccount(this.recordForm)
+        request.then(() => {
+          this.$message.success('账款提交成功')
           this.recordDialogVisible = false
           this.getList()
         }).finally(() => { this.submitLoading = false })
@@ -387,8 +449,8 @@ export default {
     },
     formatAmount(v) { if (v === null || v === undefined || v === '') return '0.00'; const n = Number(v); return isNaN(n) ? v : n.toFixed(2) },
     parseTime(v) { if (!v) return '-'; const d = new Date(v); if (isNaN(d.getTime())) return v; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` },
-    getAccountStatusType(status) { return ({ pending: 'info', partial: 'warning', done: 'success' })[status] || 'info' },
-    getAccountStatusLabel(status) { return ({ pending: '待处理', partial: '部分完成', done: '已完成' })[status] || '待处理' }
+    getAccountStatusType(status) { return ({ pending: 'info', approving: 'warning', approved: 'success', rejected: 'danger', partial: 'warning', done: 'success' })[status] || 'info' },
+    getAccountStatusLabel(status) { return ({ pending: '待处理', approving: '审批中', approved: '审批通过', rejected: '审批驳回', partial: '部分完成', done: '已完成' })[status] || '待处理' }
   }
 }
 </script>
@@ -568,6 +630,11 @@ export default {
   flex-wrap: wrap;
 }
 
+.toolbar-tip {
+  flex: 1;
+  min-width: 260px;
+}
+
 .main-content > .el-table::v-deep .el-table__body-wrapper {
   border-radius: 0 0 16px 16px;
 }
@@ -604,11 +671,6 @@ export default {
 .search-actions {
   display: flex;
   gap: 10px;
-}
-
-.dialog-table-wrap {
-  max-height: 460px;
-  overflow: auto;
 }
 
 .invoice-layout {
@@ -675,10 +737,40 @@ export default {
   margin-top: 4px;
 }
 
+.approval-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 16px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f8fbff;
+  border: 1px solid #e3eefc;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-item span {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 4px;
+}
+
+.summary-item strong {
+  color: #303133;
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.danger-text {
+  color: #f56c6c;
 }
 
 ::v-deep .beauty-dialog {
@@ -723,7 +815,8 @@ export default {
 @media (max-width: 1000px) {
   .nav-panel,
   .form-grid,
-  .dialog-grid {
+  .dialog-grid,
+  .approval-summary {
     grid-template-columns: 1fr;
   }
 

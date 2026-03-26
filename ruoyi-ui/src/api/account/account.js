@@ -37,6 +37,24 @@ export function updateAccount(data) {
   })
 }
 
+// 提交收付款审批
+export function submitAccountApproval(data) {
+  return request({
+    url: '/account/account/submitApproval',
+    method: 'post',
+    data
+  })
+}
+
+// 审批收付款申请
+export function approveAccount(data) {
+  return request({
+    url: '/account/account/approve',
+    method: 'post',
+    data
+  })
+}
+
 // 删除账款信息
 export function delAccount(id) {
   return request({
