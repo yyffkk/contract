@@ -52,8 +52,10 @@
 
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-button type="primary" icon="el-icon-plus" @click="handleAddInput" v-if="activeTab !== 'output'">录进项发票</el-button>
-        <el-button type="success" icon="el-icon-plus" @click="handleAddOutput" v-if="activeTab !== 'input'">录销项发票</el-button>
+        <el-button type="primary" icon="el-icon-plus" @click="handleAddInvoice">录发票</el-button>
+      </div>
+      <div class="toolbar-tip">
+        <el-alert title="录发票时先选择合同，再进入发票明细填写页面。" type="info" :closable="false" show-icon />
       </div>
     </div>
 
@@ -140,6 +142,14 @@
           <el-table-column label="归属人" prop="owner" width="100"/>
         </el-table>
       </div>
+      <pagination
+        v-show="contractTotal > 0"
+        :total="contractTotal"
+        :page.sync="contractQueryParams.pageNum"
+        :limit.sync="contractQueryParams.pageSize"
+        @pagination="loadContractList"
+        class="page-pagination contract-pagination"
+      />
       <div slot="footer" class="dialog-footer"><el-button @click="contractDialogVisible = false">取消</el-button><el-button type="primary" :disabled="!selectedContractId" @click="confirmContractSelection">确认并继续</el-button></div>
     </el-dialog>
 
@@ -278,10 +288,11 @@ export default {
       contractDialogVisible: false,
       contractLoading: false,
       contractList: [],
+      contractTotal: 0,
       selectedContractId: null,
       selectedContract: null,
-      contractQueryParams: { contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' },
-      pendingDirection: '支出'
+      contractQueryParams: { pageNum: 1, pageSize: 10, contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' },
+      pendingDirection: null
     }
   },
   computed: {
@@ -322,29 +333,29 @@ export default {
     handleSelectionChange(selection) {
       this.ids = selection.map(item => item.id)
     },
-    handleAddInput() {
-      this.openContractDialog('支出')
+    handleAddInvoice() {
+      const defaultDirection = this.activeTab === 'input' ? '支出' : this.activeTab === 'output' ? '收入' : null
+      this.openContractDialog(defaultDirection)
     },
-    handleAddOutput() {
-      this.openContractDialog('收入')
-    },
-    openContractDialog(direction) {
+    openContractDialog(direction = null) {
       this.pendingDirection = direction
       this.contractDialogVisible = true
       this.selectedContract = null
       this.selectedContractId = null
+      this.contractQueryParams.pageNum = 1
       this.loadContractList()
     },
     loadContractList() {
       this.contractLoading = true
       listContractContent(this.contractQueryParams).then(res => {
         this.contractList = res.rows || []
+        this.contractTotal = res.total || 0
       }).finally(() => {
         this.contractLoading = false
       })
     },
     resetContractQuery() {
-      this.contractQueryParams = { contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' }
+      this.contractQueryParams = { pageNum: 1, pageSize: 10, contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' }
       this.loadContractList()
     },
     selectContractRow(row) {
@@ -355,16 +366,17 @@ export default {
         this.$message.warning('请先选择一个合同')
         return
       }
+      const direction = this.pendingDirection || '收入'
       this.contractDialogVisible = false
-      this.dialogTitle = this.pendingDirection === '支出' ? '录进项发票' : '录销项发票'
+      this.dialogTitle = direction === '支出' ? '录进项发票' : direction === '收入' ? '录销项发票' : '录发票'
       this.form = {
         ...createForm(),
         contractId: this.selectedContract.id,
-        amountType: this.pendingDirection,
+        amountType: direction,
         relatedContractName: this.selectedContract.contractName || '',
         relatedContractNumber: this.selectedContract.contractNumber || '',
-        purchaserName: this.pendingDirection === '收入' ? (this.selectedContract.otherPartyName || '') : (this.selectedContract.myPartyName || ''),
-        sellerName: this.pendingDirection === '收入' ? (this.selectedContract.myPartyName || '') : (this.selectedContract.otherPartyName || ''),
+        purchaserName: direction === '收入' ? (this.selectedContract.otherPartyName || '') : (this.selectedContract.myPartyName || ''),
+        sellerName: direction === '收入' ? (this.selectedContract.myPartyName || '') : (this.selectedContract.otherPartyName || ''),
         counterpartyName: this.selectedContract.otherPartyName || '',
         project: this.selectedContract.project || ''
       }
@@ -571,6 +583,11 @@ export default {
   flex-wrap: wrap;
 }
 
+.toolbar-tip {
+  flex: 1;
+  min-width: 260px;
+}
+
 .modern-table {
   width: 100%;
   background: #fff;
@@ -609,6 +626,11 @@ export default {
   padding: 0 16px 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+.contract-pagination {
+  margin-top: 12px;
+  padding-bottom: 0;
 }
 
 .dialog-table-wrap {
