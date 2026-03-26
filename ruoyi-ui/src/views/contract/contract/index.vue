@@ -1431,7 +1431,7 @@
                     <div class="log-action">{{ log.action }}</div>
                   </div>
                 </div>
-                <div class="log-time">{{ log.time }}</div>
+                <div class="log-time">{{ log.operateTime || log.time }}</div>
               </div>
             </div>
             <div v-else class="empty-panel small">

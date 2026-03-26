@@ -1,10 +1,12 @@
 package com.ruoyi.contract.service.impl;
 
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.contract.domain.BizContractOperateLog;
 import com.ruoyi.contract.mapper.BizContractOperateLogMapper;
 import com.ruoyi.contract.service.IBizContractOperateLogService;
+import com.ruoyi.system.service.ISysUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +17,9 @@ public class BizContractOperateLogServiceImpl implements IBizContractOperateLogS
 
     @Autowired
     private BizContractOperateLogMapper operateLogMapper;
+
+    @Autowired
+    private ISysUserService sysUserService;
 
     @Override
     public List<BizContractOperateLog> selectByContract(Long contractId, String contractType) {
@@ -27,7 +32,9 @@ public class BizContractOperateLogServiceImpl implements IBizContractOperateLogS
             log.setOperateTime(DateUtils.getNowDate());
         }
         if (log.getOperator() == null || log.getOperator().trim().isEmpty()) {
-            log.setOperator(SecurityUtils.getUsername());
+            log.setOperator(resolveNickName(SecurityUtils.getUsername()));
+        } else {
+            log.setOperator(resolveNickName(log.getOperator()));
         }
         log.setCreateBy(log.getOperator());
         log.setUpdateBy(log.getOperator());
@@ -41,7 +48,18 @@ public class BizContractOperateLogServiceImpl implements IBizContractOperateLogS
         log.setContractType(contractType);
         log.setAction(action);
         log.setDetail(detail);
-        log.setOperator(SecurityUtils.getUsername());
+        log.setOperator(resolveNickName(SecurityUtils.getUsername()));
         insert(log);
+    }
+
+    private String resolveNickName(String userName) {
+        if (userName == null || userName.trim().isEmpty()) {
+            return userName;
+        }
+        SysUser user = sysUserService.selectUserByUserName(userName);
+        if (user != null && user.getNickName() != null && !user.getNickName().trim().isEmpty()) {
+            return user.getNickName();
+        }
+        return userName;
     }
 }
