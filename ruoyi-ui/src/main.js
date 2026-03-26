@@ -19,6 +19,7 @@ import './permission' // permission control
 import { getDicts } from "@/api/system/dict/data"
 import { getConfigKey } from "@/api/system/config"
 import { parseTime, resetForm, addDateRange, selectDictLabel, selectDictLabels, handleTree } from "@/utils/ruoyi"
+
 // 分页组件
 import Pagination from "@/components/Pagination"
 // 自定义表格工具组件
@@ -55,6 +56,16 @@ Vue.component('Editor', Editor)
 Vue.component('FileUpload', FileUpload)
 Vue.component('ImageUpload', ImageUpload)
 Vue.component('ImagePreview', ImagePreview)
+
+// ================== 新增：全局 currency 过滤器 ==================
+Vue.filter('currency', function(value) {
+  if (value == null || value === '') return '¥0.00'
+  const num = parseFloat(value)
+  if (isNaN(num)) return '¥0.00'
+  // 格式化为带千分位的人民币格式，如 ¥1,234.56
+  return '¥' + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+})
+// =============================================================
 
 Vue.use(directive)
 Vue.use(plugins)

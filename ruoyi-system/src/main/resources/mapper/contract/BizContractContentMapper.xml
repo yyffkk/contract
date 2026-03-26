@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.contract.mapper.BizContractContentMapper">
+    
+    <resultMap type="BizContractContent" id="BizContractContentResult">
+        <result property="id"    column="id"    />
+        <result property="contractName"    column="contract_name"    />
+        <result property="contractNumber"    column="contract_number"    />
+        <result property="category"    column="category"    />
+        <result property="numberMode"    column="number_mode"    />
+        <result property="amountType"    column="amount_type"    />
+        <result property="totalAmount"    column="total_amount"    />
+        <result property="termType"    column="term_type"    />
+        <result property="archiver"    column="archiver"    />
+        <result property="cooperators"    column="cooperators"    />
+        <result property="description"    column="description"    />
+        <result property="myPartyName"    column="my_party_name"    />
+        <result property="myContact"    column="my_contact"    />
+        <result property="otherPartyName"    column="other_party_name"    />
+        <result property="otherContact"    column="other_contact"    />
+        <result property="signMethod"    column="sign_method"    />
+        <result property="signDate"    column="sign_date"    />
+        <result property="sealType"    column="seal_type"    />
+        <result property="approver"    column="approver"    />
+        <result property="cc"    column="cc"    />
+        <result property="file"    column="file"    />
+        <result property="attachments"    column="attachments"    />
+        <result property="owner"    column="owner"    />
+        <result property="content"    column="content"    />
+        <result property="signStatus"    column="sign_status"    />
+        <result property="performanceStatus"    column="performance_status"    />
+        <result property="startDate"    column="start_date"    />
+        <result property="endDate"    column="end_date"    />
+        <result property="applyTime"    column="apply_time"    />
+        <result property="submitter"    column="submitter"    />
+        <result property="paymentProgress"    column="payment_progress"    />
+        <result property="receivedPaid"    column="received_paid"    />
+        <result property="pendingReceivedPaid"    column="pending_received_paid"    />
+        <result property="invoicingProgress"    column="invoicing_progress"    />
+        <result property="issuedReceived"    column="issued_received"    />
+        <result property="pendingIssuedReceived"    column="pending_issued_received"    />
+        <result property="controlGroup"    column="control_group"    />
+        <result property="source"    column="source"    />
+        <result property="signRemarks"    column="sign_remarks"    />
+        <result property="archiveRemarks"    column="archive_remarks"    />
+        <result property="proxySubmitter"    column="proxy_submitter"    />
+        <result property="department"    column="department"    />
+        <result property="archiveFile"    column="archive_file"    />
+        <result property="archiveTime"    column="archive_time"    />
+        <result property="accountStatus"    column="account_status"    />
+        <result property="invoiceStatus"    column="invoice_status"    />
+        <result property="approvalNumber"    column="approval_number"    />
+        <result property="project"    column="project"    />
+        <result property="approvePassTime"    column="approve_pass_time"    />
+        <result property="borrowStatus"    column="borrow_status"    />
+        <result property="archiveId"    column="archive_id"    />
+        <result property="archiveApprovalNumber"    column="archive_approval_number"    />
+        <result property="commentMentioned"    column="comment_mentioned"    />
+        <result property="commentCount"    column="comment_count"    />
+        <result property="otherPaymentAmount"    column="other_payment_amount"    />
+        <result property="otherReceiptAmount"    column="other_receipt_amount"    />
+        <result property="totalAmountCalculationMethod"    column="total_amount_calculation_method"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="delFlag"    column="del_flag"    />
+    </resultMap>
+
+    <sql id="selectBizContractContentVo">
+        select id, contract_name, contract_number, category, number_mode, amount_type, total_amount, term_type, archiver, cooperators, description, my_party_name, my_contact, other_party_name, other_contact, sign_method, sign_date, seal_type, approver, cc, file, attachments, owner, content, sign_status, performance_status, start_date, end_date, apply_time, submitter, payment_progress, received_paid, pending_received_paid, invoicing_progress, issued_received, pending_issued_received, control_group, source, sign_remarks, archive_remarks, proxy_submitter, department, archive_file, archive_time, account_status, invoice_status, approval_number, project, approve_pass_time, borrow_status, archive_id, archive_approval_number, comment_mentioned, comment_count, other_payment_amount, other_receipt_amount, total_amount_calculation_method, create_time, update_time, del_flag from biz_contract_content
+    </sql>
+
+    <select id="selectBizContractContentList" parameterType="BizContractContent" resultMap="BizContractContentResult">
+        <include refid="selectBizContractContentVo"/>
+        <where>  
+            <if test="contractName != null  and contractName != ''"> and contract_name like concat('%', #{contractName}, '%')</if>
+            <if test="contractNumber != null  and contractNumber != ''"> and contract_number = #{contractNumber}</if>
+            <if test="category != null  and category != ''"> and category = #{category}</if>
+            <if test="numberMode != null  and numberMode != ''"> and number_mode = #{numberMode}</if>
+            <if test="amountType != null  and amountType != ''"> and amount_type = #{amountType}</if>
+            <if test="totalAmount != null "> and total_amount = #{totalAmount}</if>
+            <if test="termType != null  and termType != ''"> and term_type = #{termType}</if>
+            <if test="archiver != null  and archiver != ''"> and archiver = #{archiver}</if>
+            <if test="cooperators != null  and cooperators != ''"> and cooperators = #{cooperators}</if>
+            <if test="description != null  and description != ''"> and description = #{description}</if>
+            <if test="myPartyName != null  and myPartyName != ''"> and my_party_name like concat('%', #{myPartyName}, '%')</if>
+            <if test="myContact != null  and myContact != ''"> and my_contact = #{myContact}</if>
+            <if test="otherPartyName != null  and otherPartyName != ''"> and other_party_name like concat('%', #{otherPartyName}, '%')</if>
+            <if test="otherContact != null  and otherContact != ''"> and other_contact = #{otherContact}</if>
+            <if test="signMethod != null  and signMethod != ''"> and sign_method = #{signMethod}</if>
+            <if test="signDate != null "> and sign_date = #{signDate}</if>
+            <if test="sealType != null  and sealType != ''"> and seal_type = #{sealType}</if>
+            <if test="approver != null  and approver != ''"> and approver = #{approver}</if>
+            <if test="cc != null  and cc != ''"> and cc = #{cc}</if>
+            <if test="file != null  and file != ''"> and file = #{file}</if>
+            <if test="attachments != null  and attachments != ''"> and attachments = #{attachments}</if>
+            <if test="owner != null  and owner != ''"> and owner = #{owner}</if>
+            <if test="content != null  and content != ''"> and content = #{content}</if>
+            <if test="signStatus != null  and signStatus != ''"> and sign_status = #{signStatus}</if>
+            <if test="performanceStatus != null  and performanceStatus != ''"> and performance_status = #{performanceStatus}</if>
+            <if test="startDate != null "> and start_date = #{startDate}</if>
+            <if test="endDate != null "> and end_date = #{endDate}</if>
+            <if test="applyTime != null "> and apply_time = #{applyTime}</if>
+            <if test="submitter != null  and submitter != ''"> and submitter = #{submitter}</if>
+            <if test="paymentProgress != null  and paymentProgress != ''"> and payment_progress = #{paymentProgress}</if>
+            <if test="receivedPaid != null "> and received_paid = #{receivedPaid}</if>
+            <if test="pendingReceivedPaid != null "> and pending_received_paid = #{pendingReceivedPaid}</if>
+            <if test="invoicingProgress != null  and invoicingProgress != ''"> and invoicing_progress = #{invoicingProgress}</if>
+            <if test="issuedReceived != null "> and issued_received = #{issuedReceived}</if>
+            <if test="pendingIssuedReceived != null "> and pending_issued_received = #{pendingIssuedReceived}</if>
+            <if test="controlGroup != null  and controlGroup != ''"> and control_group = #{controlGroup}</if>
+            <if test="source != null  and source != ''"> and source = #{source}</if>
+            <if test="signRemarks != null  and signRemarks != ''"> and sign_remarks = #{signRemarks}</if>
+            <if test="archiveRemarks != null  and archiveRemarks != ''"> and archive_remarks = #{archiveRemarks}</if>
+            <if test="proxySubmitter != null  and proxySubmitter != ''"> and proxy_submitter = #{proxySubmitter}</if>
+            <if test="department != null  and department != ''"> and department = #{department}</if>
+            <if test="archiveFile != null  and archiveFile != ''"> and archive_file = #{archiveFile}</if>
+            <if test="archiveTime != null "> and archive_time = #{archiveTime}</if>
+            <if test="accountStatus != null  and accountStatus != ''"> and account_status = #{accountStatus}</if>
+            <if test="invoiceStatus != null  and invoiceStatus != ''"> and invoice_status = #{invoiceStatus}</if>
+            <if test="approvalNumber != null  and approvalNumber != ''"> and approval_number = #{approvalNumber}</if>
+            <if test="project != null  and project != ''"> and project = #{project}</if>
+            <if test="approvePassTime != null "> and approve_pass_time = #{approvePassTime}</if>
+            <if test="borrowStatus != null  and borrowStatus != ''"> and borrow_status = #{borrowStatus}</if>
+            <if test="archiveId != null  and archiveId != ''"> and archive_id = #{archiveId}</if>
+            <if test="archiveApprovalNumber != null  and archiveApprovalNumber != ''"> and archive_approval_number = #{archiveApprovalNumber}</if>
+            <if test="commentMentioned != null  and commentMentioned != ''"> and comment_mentioned = #{commentMentioned}</if>
+            <if test="commentCount != null "> and comment_count = #{commentCount}</if>
+            <if test="otherPaymentAmount != null "> and other_payment_amount = #{otherPaymentAmount}</if>
+            <if test="otherReceiptAmount != null "> and other_receipt_amount = #{otherReceiptAmount}</if>
+            <if test="totalAmountCalculationMethod != null  and totalAmountCalculationMethod != ''"> and total_amount_calculation_method = #{totalAmountCalculationMethod}</if>
+        </where>
+    </select>
+
+
+
+    <!-- 获取指定日期的最大流水号 -->
+    <select id="selectMaxSerialNumber" resultType="Integer">
+        SELECT IFNULL(MAX(CAST(SUBSTRING_INDEX(contract_number, '-', -1) AS UNSIGNED)), 0)
+        FROM biz_contract_content
+        WHERE contract_number LIKE CONCAT('HT-', #{date}, '-%')
+          AND del_flag = 0
+    </select>
+
+    <select id="selectBizContractContentById" parameterType="Long" resultMap="BizContractContentResult">
+        <include refid="selectBizContractContentVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertBizContractContent" parameterType="BizContractContent" useGeneratedKeys="true" keyProperty="id">
+        insert into biz_contract_content
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="contractName != null">contract_name,</if>
+            <if test="contractNumber != null">contract_number,</if>
+            <if test="category != null">category,</if>
+            <if test="numberMode != null">number_mode,</if>
+            <if test="amountType != null">amount_type,</if>
+            <if test="totalAmount != null">total_amount,</if>
+            <if test="termType != null">term_type,</if>
+            <if test="archiver != null">archiver,</if>
+            <if test="cooperators != null">cooperators,</if>
+            <if test="description != null">description,</if>
+            <if test="myPartyName != null">my_party_name,</if>
+            <if test="myContact != null">my_contact,</if>
+            <if test="otherPartyName != null">other_party_name,</if>
+            <if test="otherContact != null">other_contact,</if>
+            <if test="signMethod != null">sign_method,</if>
+            <if test="signDate != null">sign_date,</if>
+            <if test="sealType != null">seal_type,</if>
+            <if test="approver != null">approver,</if>
+            <if test="cc != null">cc,</if>
+            <if test="file != null">file,</if>
+            <if test="attachments != null">attachments,</if>
+            <if test="owner != null">owner,</if>
+            <if test="content != null">content,</if>
+            <if test="signStatus != null">sign_status,</if>
+            <if test="performanceStatus != null">performance_status,</if>
+            <if test="startDate != null">start_date,</if>
+            <if test="endDate != null">end_date,</if>
+            <if test="applyTime != null">apply_time,</if>
+            <if test="submitter != null">submitter,</if>
+            <if test="paymentProgress != null">payment_progress,</if>
+            <if test="receivedPaid != null">received_paid,</if>
+            <if test="pendingReceivedPaid != null">pending_received_paid,</if>
+            <if test="invoicingProgress != null">invoicing_progress,</if>
+            <if test="issuedReceived != null">issued_received,</if>
+            <if test="pendingIssuedReceived != null">pending_issued_received,</if>
+            <if test="controlGroup != null">control_group,</if>
+            <if test="source != null">source,</if>
+            <if test="signRemarks != null">sign_remarks,</if>
+            <if test="archiveRemarks != null">archive_remarks,</if>
+            <if test="proxySubmitter != null">proxy_submitter,</if>
+            <if test="department != null">department,</if>
+            <if test="archiveFile != null">archive_file,</if>
+            <if test="archiveTime != null">archive_time,</if>
+            <if test="accountStatus != null">account_status,</if>
+            <if test="invoiceStatus != null">invoice_status,</if>
+            <if test="approvalNumber != null">approval_number,</if>
+            <if test="project != null">project,</if>
+            <if test="approvePassTime != null">approve_pass_time,</if>
+            <if test="borrowStatus != null">borrow_status,</if>
+            <if test="archiveId != null">archive_id,</if>
+            <if test="archiveApprovalNumber != null">archive_approval_number,</if>
+            <if test="commentMentioned != null">comment_mentioned,</if>
+            <if test="commentCount != null">comment_count,</if>
+            <if test="otherPaymentAmount != null">other_payment_amount,</if>
+            <if test="otherReceiptAmount != null">other_receipt_amount,</if>
+            <if test="totalAmountCalculationMethod != null">total_amount_calculation_method,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="delFlag != null">del_flag,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="contractName != null">#{contractName},</if>
+            <if test="contractNumber != null">#{contractNumber},</if>
+            <if test="category != null">#{category},</if>
+            <if test="numberMode != null">#{numberMode},</if>
+            <if test="amountType != null">#{amountType},</if>
+            <if test="totalAmount != null">#{totalAmount},</if>
+            <if test="termType != null">#{termType},</if>
+            <if test="archiver != null">#{archiver},</if>
+            <if test="cooperators != null">#{cooperators},</if>
+            <if test="description != null">#{description},</if>
+            <if test="myPartyName != null">#{myPartyName},</if>
+            <if test="myContact != null">#{myContact},</if>
+            <if test="otherPartyName != null">#{otherPartyName},</if>
+            <if test="otherContact != null">#{otherContact},</if>
+            <if test="signMethod != null">#{signMethod},</if>
+            <if test="signDate != null">#{signDate},</if>
+            <if test="sealType != null">#{sealType},</if>
+            <if test="approver != null">#{approver},</if>
+            <if test="cc != null">#{cc},</if>
+            <if test="file != null">#{file},</if>
+            <if test="attachments != null">#{attachments},</if>
+            <if test="owner != null">#{owner},</if>
+            <if test="content != null">#{content},</if>
+            <if test="signStatus != null">#{signStatus},</if>
+            <if test="performanceStatus != null">#{performanceStatus},</if>
+            <if test="startDate != null">#{startDate},</if>
+            <if test="endDate != null">#{endDate},</if>
+            <if test="applyTime != null">#{applyTime},</if>
+            <if test="submitter != null">#{submitter},</if>
+            <if test="paymentProgress != null">#{paymentProgress},</if>
+            <if test="receivedPaid != null">#{receivedPaid},</if>
+            <if test="pendingReceivedPaid != null">#{pendingReceivedPaid},</if>
+            <if test="invoicingProgress != null">#{invoicingProgress},</if>
+            <if test="issuedReceived != null">#{issuedReceived},</if>
+            <if test="pendingIssuedReceived != null">#{pendingIssuedReceived},</if>
+            <if test="controlGroup != null">#{controlGroup},</if>
+            <if test="source != null">#{source},</if>
+            <if test="signRemarks != null">#{signRemarks},</if>
+            <if test="archiveRemarks != null">#{archiveRemarks},</if>
+            <if test="proxySubmitter != null">#{proxySubmitter},</if>
+            <if test="department != null">#{department},</if>
+            <if test="archiveFile != null">#{archiveFile},</if>
+            <if test="archiveTime != null">#{archiveTime},</if>
+            <if test="accountStatus != null">#{accountStatus},</if>
+            <if test="invoiceStatus != null">#{invoiceStatus},</if>
+            <if test="approvalNumber != null">#{approvalNumber},</if>
+            <if test="project != null">#{project},</if>
+            <if test="approvePassTime != null">#{approvePassTime},</if>
+            <if test="borrowStatus != null">#{borrowStatus},</if>
+            <if test="archiveId != null">#{archiveId},</if>
+            <if test="archiveApprovalNumber != null">#{archiveApprovalNumber},</if>
+            <if test="commentMentioned != null">#{commentMentioned},</if>
+            <if test="commentCount != null">#{commentCount},</if>
+            <if test="otherPaymentAmount != null">#{otherPaymentAmount},</if>
+            <if test="otherReceiptAmount != null">#{otherReceiptAmount},</if>
+            <if test="totalAmountCalculationMethod != null">#{totalAmountCalculationMethod},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+         </trim>
+    </insert>
+
+    <update id="updateBizContractContent" parameterType="BizContractContent">
+        update biz_contract_content
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="contractName != null">contract_name = #{contractName},</if>
+            <if test="contractNumber != null">contract_number = #{contractNumber},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="numberMode != null">number_mode = #{numberMode},</if>
+            <if test="amountType != null">amount_type = #{amountType},</if>
+            <if test="totalAmount != null">total_amount = #{totalAmount},</if>
+            <if test="termType != null">term_type = #{termType},</if>
+            <if test="archiver != null">archiver = #{archiver},</if>
+            <if test="cooperators != null">cooperators = #{cooperators},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="myPartyName != null">my_party_name = #{myPartyName},</if>
+            <if test="myContact != null">my_contact = #{myContact},</if>
+            <if test="otherPartyName != null">other_party_name = #{otherPartyName},</if>
+            <if test="otherContact != null">other_contact = #{otherContact},</if>
+            <if test="signMethod != null">sign_method = #{signMethod},</if>
+            <if test="signDate != null">sign_date = #{signDate},</if>
+            <if test="sealType != null">seal_type = #{sealType},</if>
+            <if test="approver != null">approver = #{approver},</if>
+            <if test="cc != null">cc = #{cc},</if>
+            <if test="file != null">file = #{file},</if>
+            <if test="attachments != null">attachments = #{attachments},</if>
+            <if test="owner != null">owner = #{owner},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="signStatus != null">sign_status = #{signStatus},</if>
+            <if test="performanceStatus != null">performance_status = #{performanceStatus},</if>
+            <if test="startDate != null">start_date = #{startDate},</if>
+            <if test="endDate != null">end_date = #{endDate},</if>
+            <if test="applyTime != null">apply_time = #{applyTime},</if>
+            <if test="submitter != null">submitter = #{submitter},</if>
+            <if test="paymentProgress != null">payment_progress = #{paymentProgress},</if>
+            <if test="receivedPaid != null">received_paid = #{receivedPaid},</if>
+            <if test="pendingReceivedPaid != null">pending_received_paid = #{pendingReceivedPaid},</if>
+            <if test="invoicingProgress != null">invoicing_progress = #{invoicingProgress},</if>
+            <if test="issuedReceived != null">issued_received = #{issuedReceived},</if>
+            <if test="pendingIssuedReceived != null">pending_issued_received = #{pendingIssuedReceived},</if>
+            <if test="controlGroup != null">control_group = #{controlGroup},</if>
+            <if test="source != null">source = #{source},</if>
+            <if test="signRemarks != null">sign_remarks = #{signRemarks},</if>
+            <if test="archiveRemarks != null">archive_remarks = #{archiveRemarks},</if>
+            <if test="proxySubmitter != null">proxy_submitter = #{proxySubmitter},</if>
+            <if test="department != null">department = #{department},</if>
+            <if test="archiveFile != null">archive_file = #{archiveFile},</if>
+            <if test="archiveTime != null">archive_time = #{archiveTime},</if>
+            <if test="accountStatus != null">account_status = #{accountStatus},</if>
+            <if test="invoiceStatus != null">invoice_status = #{invoiceStatus},</if>
+            <if test="approvalNumber != null">approval_number = #{approvalNumber},</if>
+            <if test="project != null">project = #{project},</if>
+            <if test="approvePassTime != null">approve_pass_time = #{approvePassTime},</if>
+            <if test="borrowStatus != null">borrow_status = #{borrowStatus},</if>
+            <if test="archiveId != null">archive_id = #{archiveId},</if>
+            <if test="archiveApprovalNumber != null">archive_approval_number = #{archiveApprovalNumber},</if>
+            <if test="commentMentioned != null">comment_mentioned = #{commentMentioned},</if>
+            <if test="commentCount != null">comment_count = #{commentCount},</if>
+            <if test="otherPaymentAmount != null">other_payment_amount = #{otherPaymentAmount},</if>
+            <if test="otherReceiptAmount != null">other_receipt_amount = #{otherReceiptAmount},</if>
+            <if test="totalAmountCalculationMethod != null">total_amount_calculation_method = #{totalAmountCalculationMethod},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteBizContractContentById" parameterType="Long">
+        delete from biz_contract_content where id = #{id}
+    </delete>
+
+    <delete id="deleteBizContractContentByIds" parameterType="String">
+        delete from biz_contract_content where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

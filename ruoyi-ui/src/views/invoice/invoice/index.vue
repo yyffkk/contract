@@ -1,0 +1,765 @@
+<template>
+  <div class="app-container invoice-manage-page">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">发票管理</h2>
+        <p class="page-desc">统一管理进销项发票，支持先选合同再录入发票明细</p>
+      </div>
+    </div>
+
+    <el-card shadow="never" class="scope-card tab-card">
+      <div class="scope-wrap">
+        <div class="scope-left">
+          <span class="scope-label">发票分类</span>
+          <el-tabs v-model="activeTab" @tab-click="handleTabClick">
+            <el-tab-pane label="全部" name="all"></el-tab-pane>
+            <el-tab-pane label="进项" name="input"></el-tab-pane>
+            <el-tab-pane label="销项" name="output"></el-tab-pane>
+          </el-tabs>
+        </div>
+        <div class="scope-right">
+          <el-tag size="small" type="primary">{{ activeTabLabel }}</el-tag>
+          <el-tag size="small" effect="plain">共 {{ total }} 条</el-tag>
+        </div>
+      </div>
+    </el-card>
+
+    <el-card shadow="never" class="search-card">
+      <div class="search-header">
+        <div class="search-title"><i class="el-icon-search"></i><span>筛选条件</span></div>
+        <el-button type="text" @click="showSearch = !showSearch">{{ showSearch ? '收起' : '展开' }}<i :class="showSearch ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></el-button>
+      </div>
+      <el-form v-show="showSearch" :model="queryParams" ref="queryForm" size="small" label-width="90px" class="query-form">
+        <div class="form-grid">
+          <el-form-item label="相对方名称" prop="counterpartyName"><el-input v-model="queryParams.counterpartyName" placeholder="请输入相对方名称" clearable /></el-form-item>
+          <el-form-item label="发起人" prop="initiator"><el-input v-model="queryParams.initiator" placeholder="请输入发起人" clearable /></el-form-item>
+          <el-form-item label="申请时间" prop="applyTime"><el-date-picker v-model="queryParams.applyTime" type="datetime" value-format="yyyy-MM-dd HH:mm:ss" placeholder="请选择申请时间" style="width:100%" /></el-form-item>
+          <el-form-item label="所属部门" prop="department"><el-input v-model="queryParams.department" placeholder="请输入所属部门" clearable /></el-form-item>
+          <el-form-item label="发票日期" prop="invoiceDate"><el-date-picker v-model="queryParams.invoiceDate" type="date" value-format="yyyy-MM-dd" placeholder="请选择发票日期" style="width:100%" /></el-form-item>
+          <el-form-item label="发票抬头" prop="purchaserName"><el-input v-model="queryParams.purchaserName" placeholder="请输入发票抬头" clearable /></el-form-item>
+          <el-form-item label="纳税人识别号" prop="purchaserTaxNo"><el-input v-model="queryParams.purchaserTaxNo" placeholder="请输入纳税人识别号" clearable /></el-form-item>
+          <el-form-item label="开票内容" prop="invoiceContent"><el-input v-model="queryParams.invoiceContent" placeholder="请输入开票内容" clearable /></el-form-item>
+          <el-form-item label="发票金额" prop="invoiceAmount"><el-input v-model="queryParams.invoiceAmount" placeholder="请输入发票金额" clearable /></el-form-item>
+          <el-form-item label="不含税金额" prop="untaxedAmount"><el-input v-model="queryParams.untaxedAmount" placeholder="请输入不含税金额" clearable /></el-form-item>
+          <el-form-item label="税率" prop="taxRate"><el-input v-model="queryParams.taxRate" placeholder="请输入税率，如13" clearable /></el-form-item>
+          <el-form-item label="税额" prop="taxAmount"><el-input v-model="queryParams.taxAmount" placeholder="请输入税额" clearable /></el-form-item>
+          <el-form-item label="所属项目" prop="project"><el-input v-model="queryParams.project" placeholder="请输入所属项目" clearable /></el-form-item>
+          <el-form-item label="关联合同" prop="relatedContractName"><el-input v-model="queryParams.relatedContractName" placeholder="请输入关联合同" clearable /></el-form-item>
+        </div>
+        <div class="search-actions"><el-button type="primary" icon="el-icon-search" @click="handleQuery">查询</el-button><el-button icon="el-icon-refresh" @click="resetQuery">重置</el-button></div>
+      </el-form>
+    </el-card>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <el-button type="primary" icon="el-icon-plus" @click="handleAddInput" v-if="activeTab !== 'output'">录进项发票</el-button>
+        <el-button type="success" icon="el-icon-plus" @click="handleAddOutput" v-if="activeTab !== 'input'">录销项发票</el-button>
+      </div>
+    </div>
+
+    <el-table
+      v-loading="loading"
+      :data="invoiceList"
+      @selection-change="handleSelectionChange"
+      border
+      stripe
+      class="modern-table"
+      header-cell-class-name="table-header-gray"
+    >
+      <el-table-column type="selection" width="55" align="center" />
+      <el-table-column label="发票分类" align="center" width="100">
+        <template slot-scope="scope">
+          <el-tag :type="scope.row.amountType === '支出' ? 'warning' : 'success'" size="small">{{ scope.row.amountType === '支出' ? '进项' : '销项' }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="相对方名称" align="center" prop="counterpartyName" min-width="180" show-overflow-tooltip />
+      <el-table-column label="发起人" align="center" prop="initiator" width="120" show-overflow-tooltip />
+      <el-table-column label="申请时间" align="center" prop="applyTime" width="170">
+        <template slot-scope="scope"><span>{{ parseTime(scope.row.applyTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span></template>
+      </el-table-column>
+      <el-table-column label="所属部门" align="center" prop="department" min-width="120" show-overflow-tooltip />
+      <el-table-column label="发票日期" align="center" prop="invoiceDate" width="120">
+        <template slot-scope="scope"><span>{{ parseTime(scope.row.invoiceDate) }}</span></template>
+      </el-table-column>
+      <el-table-column label="发票抬头" align="center" prop="purchaserName" min-width="180" show-overflow-tooltip />
+      <el-table-column label="纳税人识别号" align="center" prop="purchaserTaxNo" min-width="180" show-overflow-tooltip />
+      <el-table-column label="开票内容" align="center" prop="invoiceContent" min-width="160" show-overflow-tooltip />
+      <el-table-column label="发票金额" align="center" prop="invoiceAmount" width="120">
+        <template slot-scope="scope"><span class="money-text">¥ {{ formatMoney(scope.row.invoiceAmount) }}</span></template>
+      </el-table-column>
+      <el-table-column label="不含税金额" align="center" prop="untaxedAmount" width="120">
+        <template slot-scope="scope"><span>¥ {{ formatMoney(scope.row.untaxedAmount) }}</span></template>
+      </el-table-column>
+      <el-table-column label="税率" align="center" prop="taxRate" width="90">
+        <template slot-scope="scope"><span>{{ formatTaxRate(scope.row.taxRate) }}</span></template>
+      </el-table-column>
+      <el-table-column label="税额" align="center" prop="taxAmount" width="120">
+        <template slot-scope="scope"><span>¥ {{ formatMoney(scope.row.taxAmount) }}</span></template>
+      </el-table-column>
+      <el-table-column label="所属项目" align="center" prop="project" min-width="140" show-overflow-tooltip />
+      <el-table-column label="关联合同" align="center" prop="relatedContractName" min-width="200" show-overflow-tooltip />
+      <el-table-column label="操作" align="center" fixed="right" width="160">
+        <template slot-scope="scope">
+          <el-button size="mini" type="text" @click="handleUpdate(scope.row)">修改</el-button>
+          <el-button size="mini" type="text" class="danger-text" @click="handleDelete(scope.row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <pagination
+      v-show="total > 0"
+      :total="total"
+      :page.sync="queryParams.pageNum"
+      :limit.sync="queryParams.pageSize"
+      @pagination="getList"
+      class="page-pagination"
+    />
+
+    <el-dialog title="选择合同" :visible.sync="contractDialogVisible" width="980px" append-to-body custom-class="beauty-dialog large-dialog">
+      <el-form :model="contractQueryParams" ref="contractQueryForm" class="contract-query-form">
+        <div class="form-grid contract-grid">
+          <el-form-item label="合同名称"><el-input v-model="contractQueryParams.contractName" clearable /></el-form-item>
+          <el-form-item label="合同编号"><el-input v-model="contractQueryParams.contractNumber" clearable /></el-form-item>
+          <el-form-item label="对方主体"><el-input v-model="contractQueryParams.otherPartyName" clearable /></el-form-item>
+          <el-form-item label="我方主体"><el-input v-model="contractQueryParams.myPartyName" clearable /></el-form-item>
+        </div>
+        <div class="search-actions"><el-button type="primary" @click="loadContractList">查询</el-button><el-button @click="resetContractQuery">重置</el-button></div>
+      </el-form>
+      <div class="dialog-table-wrap">
+        <el-table v-loading="contractLoading" :data="contractList" border stripe highlight-current-row>
+          <el-table-column width="60" align="center">
+            <template slot-scope="scope">
+              <el-radio v-model="selectedContractId" :label="scope.row.id" @change="selectContractRow(scope.row)"><span style="display:none">{{ scope.row.id }}</span></el-radio>
+            </template>
+          </el-table-column>
+          <el-table-column label="合同名称" prop="contractName" min-width="200" show-overflow-tooltip/>
+          <el-table-column label="合同编号" prop="contractNumber" width="160"/>
+          <el-table-column label="对方主体" prop="otherPartyName" min-width="160" show-overflow-tooltip/>
+          <el-table-column label="我方主体" prop="myPartyName" min-width="160" show-overflow-tooltip/>
+          <el-table-column label="合同金额" prop="totalAmount" width="130"><template slot-scope="scope">¥ {{ formatMoney(scope.row.totalAmount) }}</template></el-table-column>
+          <el-table-column label="归属人" prop="owner" width="100"/>
+        </el-table>
+      </div>
+      <div slot="footer" class="dialog-footer"><el-button @click="contractDialogVisible = false">取消</el-button><el-button type="primary" :disabled="!selectedContractId" @click="confirmContractSelection">确认并继续</el-button></div>
+    </el-dialog>
+
+    <el-dialog :title="dialogTitle" :visible.sync="open" width="920px" append-to-body custom-class="beauty-dialog invoice-dialog">
+      <div class="invoice-layout">
+        <div class="invoice-side-card" v-if="selectedContract || form.relatedContractName">
+          <div class="side-card-title">合同信息</div>
+          <div class="side-info-item"><span>合同名称</span><strong>{{ (selectedContract && selectedContract.contractName) || form.relatedContractName || '-' }}</strong></div>
+          <div class="side-info-item"><span>合同编号</span><strong>{{ (selectedContract && selectedContract.contractNumber) || form.relatedContractNumber || '-' }}</strong></div>
+          <div class="side-info-item"><span>对方主体</span><strong>{{ (selectedContract && selectedContract.otherPartyName) || form.counterpartyName || '-' }}</strong></div>
+          <div class="side-info-item"><span>我方主体</span><strong>{{ (selectedContract && selectedContract.myPartyName) || form.sellerName || '-' }}</strong></div>
+          <div class="side-info-item"><span>合同总额</span><strong>¥ {{ formatMoney((selectedContract && selectedContract.totalAmount) || '') }}</strong></div>
+        </div>
+        <div class="invoice-form-panel">
+          <div class="invoice-panel-header">
+            <div class="panel-title">{{ dialogTitle }}</div>
+            <div class="panel-desc">先选择合同，再填写发票代码、号码、金额、税额等详细信息</div>
+          </div>
+          <el-form :model="form" ref="form" :rules="rules" label-width="110px" class="dialog-form">
+            <div class="dialog-grid">
+              <el-form-item label="发票分类" prop="amountType">
+                <el-select v-model="form.amountType" style="width:100%">
+                  <el-option label="进项" value="支出" />
+                  <el-option label="销项" value="收入" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="发票类型" prop="invoiceType">
+                <el-select v-model="form.invoiceType" style="width:100%" clearable>
+                  <el-option label="增值税专用发票" value="vat" />
+                  <el-option label="普通发票" value="normal" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="发票代码" prop="invoiceCode"><el-input v-model="form.invoiceCode" /></el-form-item>
+              <el-form-item label="发票号码" prop="invoiceNumber"><el-input v-model="form.invoiceNumber" /></el-form-item>
+              <el-form-item label="开票日期" prop="invoiceDate"><el-date-picker v-model="form.invoiceDate" type="date" value-format="yyyy-MM-dd" style="width:100%" /></el-form-item>
+              <el-form-item label="发票状态" prop="invoiceStatus">
+                <el-select v-model="form.invoiceStatus" style="width:100%">
+                  <el-option label="未开票" value="no_invoice" />
+                  <el-option label="已开票" value="invoiced" />
+                  <el-option label="已作废" value="voided" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="发票金额" prop="invoiceAmount"><el-input v-model="form.invoiceAmount"><template slot="prepend">¥</template></el-input></el-form-item>
+              <el-form-item label="税率" prop="taxRate"><el-input v-model="form.taxRate"><template slot="append">%</template></el-input></el-form-item>
+              <el-form-item label="税额" prop="taxAmount"><el-input v-model="form.taxAmount"><template slot="prepend">¥</template></el-input></el-form-item>
+              <el-form-item label="不含税金额" prop="untaxedAmount"><el-input v-model="form.untaxedAmount"><template slot="prepend">¥</template></el-input></el-form-item>
+              <el-form-item label="发票抬头" prop="purchaserName"><el-input v-model="form.purchaserName" /></el-form-item>
+              <el-form-item label="纳税人识别号" prop="purchaserTaxNo"><el-input v-model="form.purchaserTaxNo" /></el-form-item>
+              <el-form-item label="销售方名称" prop="sellerName"><el-input v-model="form.sellerName" /></el-form-item>
+              <el-form-item label="销售方税号" prop="sellerTaxNo"><el-input v-model="form.sellerTaxNo" /></el-form-item>
+              <el-form-item label="所属项目" prop="project"><el-input v-model="form.project" /></el-form-item>
+              <el-form-item label="相对方名称" prop="counterpartyName"><el-input v-model="form.counterpartyName" /></el-form-item>
+            </div>
+            <el-form-item label="开票内容" prop="invoiceContent"><el-input v-model="form.invoiceContent" type="textarea" :rows="3" /></el-form-item>
+            <el-form-item label="备注" prop="remark"><el-input v-model="form.remark" type="textarea" :rows="3" /></el-form-item>
+          </el-form>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer"><el-button @click="open = false">取消</el-button><el-button type="primary" :loading="submitLoading" @click="submitForm">保存发票</el-button></div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { listInvoice, getInvoice, delInvoice, addInvoice, updateInvoice } from '@/api/invoice/invoice'
+import { listContractContent } from '@/api/contract/contract'
+
+const createQueryParams = () => ({
+  pageNum: 1,
+  pageSize: 10,
+  counterpartyName: null,
+  initiator: null,
+  applyTime: null,
+  department: null,
+  invoiceDate: null,
+  purchaserName: null,
+  purchaserTaxNo: null,
+  invoiceContent: null,
+  invoiceAmount: null,
+  untaxedAmount: null,
+  taxRate: null,
+  taxAmount: null,
+  project: null,
+  relatedContractName: null,
+  amountType: null
+})
+
+const createForm = () => ({
+  id: null,
+  contractId: null,
+  invoiceCode: '',
+  invoiceNumber: '',
+  invoiceDate: '',
+  invoiceAmount: '',
+  invoiceType: 'normal',
+  invoiceStatus: 'invoiced',
+  taxRate: '',
+  taxAmount: '',
+  purchaserName: '',
+  purchaserTaxNo: '',
+  sellerName: '',
+  sellerTaxNo: '',
+  counterpartyName: '',
+  invoiceContent: '',
+  untaxedAmount: '',
+  project: '',
+  amountType: '支出',
+  relatedContractName: '',
+  relatedContractNumber: '',
+  remark: ''
+})
+
+export default {
+  name: 'Invoice',
+  data() {
+    return {
+      loading: false,
+      ids: [],
+      total: 0,
+      invoiceList: [],
+      activeTab: 'all',
+      showSearch: true,
+      queryParams: createQueryParams(),
+      open: false,
+      dialogTitle: '录发票',
+      submitLoading: false,
+      form: createForm(),
+      rules: {
+        contractId: [{ required: true, message: '请选择合同', trigger: 'change' }],
+        amountType: [{ required: true, message: '请选择发票分类', trigger: 'change' }],
+        invoiceDate: [{ required: true, message: '请选择开票日期', trigger: 'change' }],
+        invoiceAmount: [{ required: true, message: '请输入发票金额', trigger: 'blur' }],
+        purchaserName: [{ required: true, message: '请输入发票抬头', trigger: 'blur' }],
+        invoiceContent: [{ required: true, message: '请输入开票内容', trigger: 'blur' }]
+      },
+      contractDialogVisible: false,
+      contractLoading: false,
+      contractList: [],
+      selectedContractId: null,
+      selectedContract: null,
+      contractQueryParams: { contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' },
+      pendingDirection: '支出'
+    }
+  },
+  computed: {
+    activeTabLabel() {
+      return { all: '全部', input: '进项', output: '销项' }[this.activeTab]
+    }
+  },
+  created() {
+    this.getList()
+  },
+  methods: {
+    handleTabClick(tab) {
+      this.activeTab = tab.name
+      const typeMap = { all: null, input: '支出', output: '收入' }
+      this.queryParams.amountType = typeMap[this.activeTab]
+      this.queryParams.pageNum = 1
+      this.getList()
+    },
+    getList() {
+      this.loading = true
+      listInvoice(this.queryParams).then(response => {
+        this.invoiceList = response.rows || []
+        this.total = response.total || 0
+      }).finally(() => {
+        this.loading = false
+      })
+    },
+    handleQuery() {
+      this.queryParams.pageNum = 1
+      this.getList()
+    },
+    resetQuery() {
+      this.$refs.queryForm && this.$refs.queryForm.resetFields()
+      this.queryParams = createQueryParams()
+      this.queryParams.amountType = this.activeTab === 'input' ? '支出' : this.activeTab === 'output' ? '收入' : null
+      this.handleQuery()
+    },
+    handleSelectionChange(selection) {
+      this.ids = selection.map(item => item.id)
+    },
+    handleAddInput() {
+      this.openContractDialog('支出')
+    },
+    handleAddOutput() {
+      this.openContractDialog('收入')
+    },
+    openContractDialog(direction) {
+      this.pendingDirection = direction
+      this.contractDialogVisible = true
+      this.selectedContract = null
+      this.selectedContractId = null
+      this.loadContractList()
+    },
+    loadContractList() {
+      this.contractLoading = true
+      listContractContent(this.contractQueryParams).then(res => {
+        this.contractList = res.rows || []
+      }).finally(() => {
+        this.contractLoading = false
+      })
+    },
+    resetContractQuery() {
+      this.contractQueryParams = { contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' }
+      this.loadContractList()
+    },
+    selectContractRow(row) {
+      this.selectedContract = row
+    },
+    confirmContractSelection() {
+      if (!this.selectedContract) {
+        this.$message.warning('请先选择一个合同')
+        return
+      }
+      this.contractDialogVisible = false
+      this.dialogTitle = this.pendingDirection === '支出' ? '录进项发票' : '录销项发票'
+      this.form = {
+        ...createForm(),
+        contractId: this.selectedContract.id,
+        amountType: this.pendingDirection,
+        relatedContractName: this.selectedContract.contractName || '',
+        relatedContractNumber: this.selectedContract.contractNumber || '',
+        purchaserName: this.pendingDirection === '收入' ? (this.selectedContract.otherPartyName || '') : (this.selectedContract.myPartyName || ''),
+        sellerName: this.pendingDirection === '收入' ? (this.selectedContract.myPartyName || '') : (this.selectedContract.otherPartyName || ''),
+        counterpartyName: this.selectedContract.otherPartyName || '',
+        project: this.selectedContract.project || ''
+      }
+      this.open = true
+      this.$nextTick(() => { this.$refs.form && this.$refs.form.clearValidate() })
+    },
+    handleUpdate(row) {
+      const id = row && row.id ? row.id : this.ids[0]
+      if (!id) {
+        this.$message.warning('请先选择一条数据')
+        return
+      }
+      getInvoice(id).then(response => {
+        const data = response.data || {}
+        this.form = { ...createForm(), ...data }
+        this.selectedContract = {
+          id: data.contractId,
+          contractName: data.relatedContractName,
+          contractNumber: data.relatedContractNumber,
+          otherPartyName: data.counterpartyName,
+          myPartyName: data.sellerName
+        }
+        this.dialogTitle = '修改发票信息'
+        this.open = true
+        this.$nextTick(() => { this.$refs.form && this.$refs.form.clearValidate() })
+      })
+    },
+    submitForm() {
+      this.$refs.form.validate(valid => {
+        if (!valid) return
+        this.submitLoading = true
+        const request = this.form.id ? updateInvoice(this.form) : addInvoice(this.form)
+        request.then(() => {
+          this.$modal.msgSuccess(this.form.id ? '修改成功' : '新增成功')
+          this.open = false
+          this.getList()
+        }).finally(() => {
+          this.submitLoading = false
+        })
+      })
+    },
+    handleDelete(row) {
+      const ids = row && row.id ? row.id : this.ids
+      if (!ids || (Array.isArray(ids) && ids.length === 0)) {
+        this.$message.warning('请选择要删除的数据')
+        return
+      }
+      this.$modal.confirm('是否确认删除选中的发票信息？').then(() => {
+        return delInvoice(Array.isArray(ids) ? ids.join(',') : ids)
+      }).then(() => {
+        this.getList()
+        this.$modal.msgSuccess('删除成功')
+      }).catch(() => {})
+    },
+    parseTime(time, format = '{y}-{m}-{d}') {
+      if (!time) return '-'
+      const date = new Date(time)
+      if (isNaN(date.getTime())) return time
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      const h = String(date.getHours()).padStart(2, '0')
+      const i = String(date.getMinutes()).padStart(2, '0')
+      const s = String(date.getSeconds()).padStart(2, '0')
+      return format.replace('{y}', y).replace('{m}', m).replace('{d}', d).replace('{h}', h).replace('{i}', i).replace('{s}', s)
+    },
+    formatMoney(value) {
+      if (value === null || value === undefined || value === '') return '0.00'
+      const num = Number(value)
+      if (isNaN(num)) return value
+      return num.toFixed(2)
+    },
+    formatTaxRate(value) {
+      if (value === null || value === undefined || value === '') return '-'
+      return `${value}%`
+    }
+  }
+}
+</script>
+
+<style scoped lang="scss">
+.invoice-manage-page {
+  padding: 20px;
+  background: linear-gradient(180deg, #f6f8fb 0%, #f4f6fa 100%);
+  min-height: 100vh;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: #1f2d3d;
+}
+
+.page-desc {
+  margin: 0;
+  color: #909399;
+  font-size: 13px;
+}
+
+.scope-card,
+.search-card,
+.main-content-card,
+.tab-card {
+  border: 1px solid #ebeef5;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+  margin-bottom: 18px;
+}
+
+.scope-wrap,
+.scope-left,
+.scope-right,
+.search-header,
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.scope-wrap,
+.search-header {
+  justify-content: space-between;
+}
+
+.scope-left {
+  flex: 1;
+}
+
+.scope-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.tab-card {
+  ::v-deep .el-card__body {
+    padding-bottom: 10px;
+  }
+
+  ::v-deep .el-tabs__header {
+    margin: 0;
+  }
+
+  ::v-deep .el-tabs__nav-wrap::after {
+    height: 1px;
+    background-color: #eef1f5;
+  }
+
+  ::v-deep .el-tabs__item.is-active {
+    font-weight: 700;
+    color: #409eff;
+  }
+}
+
+.search-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #303133;
+  font-weight: 600;
+}
+
+.search-title i {
+  color: #409eff;
+}
+
+.query-form {
+  margin-top: 10px;
+}
+
+.form-grid,
+.dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 16px;
+}
+
+.query-form .form-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.query-form ::v-deep .el-form-item {
+  margin-bottom: 16px;
+}
+
+.search-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar {
+  margin-bottom: 18px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.modern-table {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+}
+
+.table-header-gray {
+  background: #f8fafc !important;
+  color: #606266;
+  font-weight: 700;
+}
+
+.money-text {
+  color: #00b96b;
+  font-weight: 700;
+}
+
+.danger-text {
+  color: #f56c6c;
+}
+
+.modern-table ::v-deep .el-table__row:hover > td {
+  background-color: #f5faff !important;
+}
+
+.modern-table ::v-deep td,
+.modern-table ::v-deep th {
+  padding: 12px 0;
+}
+
+.page-pagination {
+  margin-top: 20px;
+  padding: 0 16px 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dialog-table-wrap {
+  max-height: 460px;
+  overflow: auto;
+}
+
+.invoice-layout {
+  display: flex;
+  gap: 18px;
+}
+
+.invoice-side-card {
+  width: 280px;
+  padding: 18px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f5f7fa 100%);
+  border: 1px solid #e8eef6;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.side-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: #303133;
+}
+
+.side-info-item {
+  padding: 10px 0;
+  border-bottom: 1px dashed #dfe6ee;
+  display: flex;
+  flex-direction: column;
+}
+
+.side-info-item:last-child {
+  border-bottom: none;
+}
+
+.side-info-item span {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 4px;
+}
+
+.side-info-item strong {
+  font-size: 14px;
+  color: #303133;
+  word-break: break-all;
+}
+
+.invoice-form-panel {
+  flex: 1;
+}
+
+.invoice-panel-header {
+  margin-bottom: 18px;
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #303133;
+}
+
+.panel-desc {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+::v-deep .beauty-dialog {
+  .el-dialog {
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .el-dialog__header {
+    padding: 20px 24px 10px;
+    border-bottom: 1px solid #f0f2f5;
+  }
+
+  .el-dialog__title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #303133;
+  }
+
+  .el-dialog__body {
+    padding: 20px 24px;
+    background: #f7f9fc;
+  }
+
+  .el-dialog__footer {
+    padding: 14px 24px 20px;
+    border-top: 1px solid #f0f2f5;
+    background: #fff;
+  }
+}
+
+::v-deep .el-card__body {
+  padding: 18px 20px;
+}
+
+::v-deep .el-input__inner,
+::v-deep .el-textarea__inner,
+::v-deep .el-button {
+  border-radius: 10px;
+}
+
+@media screen and (max-width: 1200px) {
+  .query-form .form-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1000px) {
+  .dialog-grid,
+  .contract-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-layout {
+    flex-direction: column;
+  }
+
+  .invoice-side-card {
+    width: 100%;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .invoice-manage-page {
+    padding: 12px;
+  }
+
+  .query-form .form-grid,
+  .scope-wrap,
+  .search-header {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+</style>

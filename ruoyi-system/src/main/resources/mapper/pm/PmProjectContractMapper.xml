@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.pm.mapper.PmProjectContractMapper">
+    
+    <resultMap type="PmProjectContract" id="PmProjectContractResult">
+        <result property="id"    column="id"    />
+        <result property="projectId"    column="project_id"    />
+        <result property="contractId"    column="contract_id"    />
+        <result property="contractName"    column="contract_name"    />
+        <result property="contractCode"    column="contract_code"    />
+        <result property="contractAmount"    column="contract_amount"    />
+        <result property="contractType"    column="contract_type"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="createBy"    column="create_by"    />
+    </resultMap>
+
+    <sql id="selectPmProjectContractVo">
+        select id, project_id, contract_id, contract_name, contract_code, contract_amount, contract_type, create_time, create_by from pm_project_contract
+    </sql>
+
+    <select id="selectPmProjectContractList" parameterType="PmProjectContract" resultMap="PmProjectContractResult">
+        <include refid="selectPmProjectContractVo"/>
+        <where>  
+            <if test="projectId != null "> and project_id = #{projectId}</if>
+            <if test="contractId != null "> and contract_id = #{contractId}</if>
+            <if test="contractName != null  and contractName != ''"> and contract_name like concat('%', #{contractName}, '%')</if>
+            <if test="contractCode != null  and contractCode != ''"> and contract_code = #{contractCode}</if>
+            <if test="contractAmount != null "> and contract_amount = #{contractAmount}</if>
+            <if test="contractType != null  and contractType != ''"> and contract_type = #{contractType}</if>
+        </where>
+    </select>
+    
+    <select id="selectPmProjectContractById" parameterType="Long" resultMap="PmProjectContractResult">
+        <include refid="selectPmProjectContractVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertPmProjectContract" parameterType="PmProjectContract" useGeneratedKeys="true" keyProperty="id">
+        insert into pm_project_contract
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="projectId != null">project_id,</if>
+            <if test="contractId != null">contract_id,</if>
+            <if test="contractName != null">contract_name,</if>
+            <if test="contractCode != null">contract_code,</if>
+            <if test="contractAmount != null">contract_amount,</if>
+            <if test="contractType != null">contract_type,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="createBy != null">create_by,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="projectId != null">#{projectId},</if>
+            <if test="contractId != null">#{contractId},</if>
+            <if test="contractName != null">#{contractName},</if>
+            <if test="contractCode != null">#{contractCode},</if>
+            <if test="contractAmount != null">#{contractAmount},</if>
+            <if test="contractType != null">#{contractType},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="createBy != null">#{createBy},</if>
+         </trim>
+    </insert>
+
+    <update id="updatePmProjectContract" parameterType="PmProjectContract">
+        update pm_project_contract
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="projectId != null">project_id = #{projectId},</if>
+            <if test="contractId != null">contract_id = #{contractId},</if>
+            <if test="contractName != null">contract_name = #{contractName},</if>
+            <if test="contractCode != null">contract_code = #{contractCode},</if>
+            <if test="contractAmount != null">contract_amount = #{contractAmount},</if>
+            <if test="contractType != null">contract_type = #{contractType},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deletePmProjectContractById" parameterType="Long">
+        delete from pm_project_contract where id = #{id}
+    </delete>
+
+    <delete id="deletePmProjectContractByIds" parameterType="String">
+        delete from pm_project_contract where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deletePmProjectContractByProjectId" parameterType="Long">
+        delete from pm_project_contract where project_id = #{projectId}
+    </delete>
+</mapper>

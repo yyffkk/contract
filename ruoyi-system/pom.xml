@@ -23,6 +23,12 @@
             <artifactId>ruoyi-common</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>10.2.3.jre8</version>
+        </dependency>
+
     </dependencies>
 
 </project>

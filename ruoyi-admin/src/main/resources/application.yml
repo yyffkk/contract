@@ -74,7 +74,7 @@ spring:
     # 数据库索引
     database: 0
     # 密码
-    password:
+    password: 123456
     # 连接超时时间
     timeout: 10s
     lettuce:
@@ -134,3 +134,9 @@ xss:
   excludes: /system/notice
   # 匹配链接
   urlPatterns: /system/*,/monitor/*,/tool/*
+
+sampleReport:
+  sqlserver:
+    url: jdbc:sqlserver://192.168.0.2:1433;databaseName=UFDATA_328_2020;encrypt=false;trustServerCertificate=true
+    username: Sa
+    password: Sa123

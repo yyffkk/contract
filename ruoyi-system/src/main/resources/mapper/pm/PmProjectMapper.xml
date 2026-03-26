@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.pm.mapper.PmProjectMapper">
+    
+    <resultMap type="PmProject" id="PmProjectResult">
+        <result property="projectId"    column="project_id"    />
+        <result property="projectName"    column="project_name"    />
+        <result property="projectCode"    column="project_code"    />
+        <result property="personInCharge"    column="person_in_charge"    />
+        <result property="personInChargeNames"    column="person_in_charge_names"    />
+        <result property="startDate"    column="start_date"    />
+        <result property="endDate"    column="end_date"    />
+        <result property="status"    column="status"    />
+        <result property="visibleScope"    column="visible_scope"    />
+        <result property="visibleUsers"    column="visible_users"    />
+        <result property="incomeContractTotal"    column="income_contract_total"    />
+        <result property="expenseContractTotal"    column="expense_contract_total"    />
+        <result property="profit"    column="profit"    />
+        <result property="receiveTotal"    column="receive_total"    />
+        <result property="payTotal"    column="pay_total"    />
+        <result property="cashFlow"    column="cash_flow"    />
+        <result property="invoiceIssueTotal"    column="invoice_issue_total"    />
+        <result property="invoiceReceiveTotal"    column="invoice_receive_total"    />
+        <result property="remark"    column="remark"    />
+        <result property="source"    column="source"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="delFlag"    column="del_flag"    />
+    </resultMap>
+
+    <resultMap id="PmProjectPmProjectAttachmentResult" type="PmProject" extends="PmProjectResult">
+        <collection property="pmProjectAttachmentList" ofType="PmProjectAttachment" column="project_id" select="selectPmProjectAttachmentList" />
+    </resultMap>
+
+    <resultMap type="PmProjectAttachment" id="PmProjectAttachmentResult">
+        <result property="attachmentId"    column="attachment_id"    />
+        <result property="projectId"    column="project_id"    />
+        <result property="fileName"    column="file_name"    />
+        <result property="filePath"    column="file_path"    />
+        <result property="fileSize"    column="file_size"    />
+        <result property="fileType"    column="file_type"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+    </resultMap>
+
+    <sql id="selectPmProjectVo">
+        select project_id, project_name, project_code, person_in_charge, person_in_charge_names, start_date, end_date, status, visible_scope, visible_users, income_contract_total, expense_contract_total, profit, receive_total, pay_total, cash_flow, invoice_issue_total, invoice_receive_total, remark, source, create_by, create_time, update_by, update_time, del_flag from pm_project
+    </sql>
+
+    <select id="selectPmProjectList" parameterType="PmProject" resultMap="PmProjectResult">
+        <include refid="selectPmProjectVo"/>
+        <where>  
+            <if test="projectName != null  and projectName != ''"> and project_name like concat('%', #{projectName}, '%')</if>
+            <if test="projectCode != null  and projectCode != ''"> and project_code = #{projectCode}</if>
+            <if test="personInCharge != null  and personInCharge != ''"> and person_in_charge = #{personInCharge}</if>
+            <if test="personInChargeNames != null  and personInChargeNames != ''"> and person_in_charge_names = #{personInChargeNames}</if>
+            <if test="startDate != null "> and start_date = #{startDate}</if>
+            <if test="endDate != null "> and end_date = #{endDate}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="visibleScope != null  and visibleScope != ''"> and visible_scope = #{visibleScope}</if>
+            <if test="visibleUsers != null  and visibleUsers != ''"> and visible_users = #{visibleUsers}</if>
+            <if test="incomeContractTotal != null "> and income_contract_total = #{incomeContractTotal}</if>
+            <if test="expenseContractTotal != null "> and expense_contract_total = #{expenseContractTotal}</if>
+            <if test="profit != null "> and profit = #{profit}</if>
+            <if test="receiveTotal != null "> and receive_total = #{receiveTotal}</if>
+            <if test="payTotal != null "> and pay_total = #{payTotal}</if>
+            <if test="cashFlow != null "> and cash_flow = #{cashFlow}</if>
+            <if test="invoiceIssueTotal != null "> and invoice_issue_total = #{invoiceIssueTotal}</if>
+            <if test="invoiceReceiveTotal != null "> and invoice_receive_total = #{invoiceReceiveTotal}</if>
+            <if test="source != null  and source != ''"> and source = #{source}</if>
+        </where>
+    </select>
+    
+    <select id="selectPmProjectByProjectId" parameterType="Long" resultMap="PmProjectPmProjectAttachmentResult">
+        select project_id, project_name, project_code, person_in_charge, person_in_charge_names, start_date, end_date, status, visible_scope, visible_users, income_contract_total, expense_contract_total, profit, receive_total, pay_total, cash_flow, invoice_issue_total, invoice_receive_total, remark, source, create_by, create_time, update_by, update_time, del_flag
+        from pm_project
+        where project_id = #{projectId}
+    </select>
+
+    <select id="selectPmProjectAttachmentList" resultMap="PmProjectAttachmentResult">
+        select attachment_id, project_id, file_name, file_path, file_size, file_type, create_by, create_time
+        from pm_project_attachment
+        where attachment_id = #{attachment_id}
+    </select>
+
+    <insert id="insertPmProject" parameterType="PmProject" useGeneratedKeys="true" keyProperty="projectId">
+        insert into pm_project
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="projectName != null">project_name,</if>
+            <if test="projectCode != null">project_code,</if>
+            <if test="personInCharge != null">person_in_charge,</if>
+            <if test="personInChargeNames != null">person_in_charge_names,</if>
+            <if test="startDate != null">start_date,</if>
+            <if test="endDate != null">end_date,</if>
+            <if test="status != null">status,</if>
+            <if test="visibleScope != null">visible_scope,</if>
+            <if test="visibleUsers != null">visible_users,</if>
+            <if test="incomeContractTotal != null">income_contract_total,</if>
+            <if test="expenseContractTotal != null">expense_contract_total,</if>
+            <if test="profit != null">profit,</if>
+            <if test="receiveTotal != null">receive_total,</if>
+            <if test="payTotal != null">pay_total,</if>
+            <if test="cashFlow != null">cash_flow,</if>
+            <if test="invoiceIssueTotal != null">invoice_issue_total,</if>
+            <if test="invoiceReceiveTotal != null">invoice_receive_total,</if>
+            <if test="remark != null">remark,</if>
+            <if test="source != null">source,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="delFlag != null">del_flag,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="projectName != null">#{projectName},</if>
+            <if test="projectCode != null">#{projectCode},</if>
+            <if test="personInCharge != null">#{personInCharge},</if>
+            <if test="personInChargeNames != null">#{personInChargeNames},</if>
+            <if test="startDate != null">#{startDate},</if>
+            <if test="endDate != null">#{endDate},</if>
+            <if test="status != null">#{status},</if>
+            <if test="visibleScope != null">#{visibleScope},</if>
+            <if test="visibleUsers != null">#{visibleUsers},</if>
+            <if test="incomeContractTotal != null">#{incomeContractTotal},</if>
+            <if test="expenseContractTotal != null">#{expenseContractTotal},</if>
+            <if test="profit != null">#{profit},</if>
+            <if test="receiveTotal != null">#{receiveTotal},</if>
+            <if test="payTotal != null">#{payTotal},</if>
+            <if test="cashFlow != null">#{cashFlow},</if>
+            <if test="invoiceIssueTotal != null">#{invoiceIssueTotal},</if>
+            <if test="invoiceReceiveTotal != null">#{invoiceReceiveTotal},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="source != null">#{source},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+         </trim>
+    </insert>
+
+    <update id="updatePmProject" parameterType="PmProject">
+        update pm_project
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="projectName != null">project_name = #{projectName},</if>
+            <if test="projectCode != null">project_code = #{projectCode},</if>
+            <if test="personInCharge != null">person_in_charge = #{personInCharge},</if>
+            <if test="personInChargeNames != null">person_in_charge_names = #{personInChargeNames},</if>
+            <if test="startDate != null">start_date = #{startDate},</if>
+            <if test="endDate != null">end_date = #{endDate},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="visibleScope != null">visible_scope = #{visibleScope},</if>
+            <if test="visibleUsers != null">visible_users = #{visibleUsers},</if>
+            <if test="incomeContractTotal != null">income_contract_total = #{incomeContractTotal},</if>
+            <if test="expenseContractTotal != null">expense_contract_total = #{expenseContractTotal},</if>
+            <if test="profit != null">profit = #{profit},</if>
+            <if test="receiveTotal != null">receive_total = #{receiveTotal},</if>
+            <if test="payTotal != null">pay_total = #{payTotal},</if>
+            <if test="cashFlow != null">cash_flow = #{cashFlow},</if>
+            <if test="invoiceIssueTotal != null">invoice_issue_total = #{invoiceIssueTotal},</if>
+            <if test="invoiceReceiveTotal != null">invoice_receive_total = #{invoiceReceiveTotal},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="source != null">source = #{source},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+        </trim>
+        where project_id = #{projectId}
+    </update>
+
+    <delete id="deletePmProjectByProjectId" parameterType="Long">
+        delete from pm_project where project_id = #{projectId}
+    </delete>
+
+    <delete id="deletePmProjectByProjectIds" parameterType="String">
+        delete from pm_project where project_id in 
+        <foreach item="projectId" collection="array" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+    </delete>
+    
+    <delete id="deletePmProjectAttachmentByAttachmentIds" parameterType="String">
+        delete from pm_project_attachment where attachment_id in 
+        <foreach item="attachmentId" collection="array" open="(" separator="," close=")">
+            #{attachmentId}
+        </foreach>
+    </delete>
+
+    <delete id="deletePmProjectAttachmentByAttachmentId" parameterType="Long">
+        delete from pm_project_attachment where attachment_id = #{attachmentId}
+    </delete>
+
+    <insert id="batchPmProjectAttachment">
+        insert into pm_project_attachment( attachment_id, project_id, file_name, file_path, file_size, file_type, create_by, create_time) values
+        <foreach item="item" index="index" collection="list" separator=",">
+            ( #{item.attachmentId}, #{item.projectId}, #{item.fileName}, #{item.filePath}, #{item.fileSize}, #{item.fileType}, #{item.createBy}, #{item.createTime})
+        </foreach>
+    </insert>
+</mapper>

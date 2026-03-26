@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.account.mapper.ContractAccountMapper">
+    
+    <resultMap type="ContractAccount" id="ContractAccountResult">
+        <result property="id"    column="id"    />
+        <result property="contractId"    column="contract_id"    />
+        <result property="accountName"    column="account_name"    />
+        <result property="accountDate"    column="account_date"    />
+        <result property="amount"    column="amount"    />
+        <result property="amountType"    column="amount_type"    />
+        <result property="orderNo"    column="order_no"    />
+        <result property="ourParty"    column="our_party"    />
+        <result property="otherParty"    column="other_party"    />
+        <result property="relatedContractName"    column="related_contract_name"    />
+        <result property="relatedContractNumber"    column="related_contract_number"    />
+        <result property="remark"    column="remark"    />
+        <result property="status"    column="status"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="delFlag"    column="del_flag"    />
+    </resultMap>
+
+    <sql id="selectContractAccountVo">
+        select id, contract_id, account_name, account_date, amount, amount_type, order_no, our_party, other_party, related_contract_name, related_contract_number, remark, status, create_by, create_time, update_by, update_time, del_flag from contract_account
+    </sql>
+
+    <select id="selectContractAccountList" parameterType="ContractAccount" resultMap="ContractAccountResult">
+        <include refid="selectContractAccountVo"/>
+        <where>  
+            <if test="contractId != null "> and contract_id = #{contractId}</if>
+            <if test="accountName != null  and accountName != ''"> and account_name like concat('%', #{accountName}, '%')</if>
+            <if test="accountDate != null "> and account_date = #{accountDate}</if>
+            <if test="amount != null "> and amount = #{amount}</if>
+            <if test="amountType != null  and amountType != ''"> and amount_type = #{amountType}</if>
+            <if test="orderNo != null  and orderNo != ''"> and order_no = #{orderNo}</if>
+            <if test="ourParty != null  and ourParty != ''"> and our_party = #{ourParty}</if>
+            <if test="otherParty != null  and otherParty != ''"> and other_party = #{otherParty}</if>
+            <if test="partyName != null and partyName != ''"> and (our_party like concat('%', #{partyName}, '%') or other_party like concat('%', #{partyName}, '%'))</if>
+            <if test="relatedContractName != null  and relatedContractName != ''"> and related_contract_name like concat('%', #{relatedContractName}, '%')</if>
+            <if test="relatedContractNumber != null  and relatedContractNumber != ''"> and related_contract_number = #{relatedContractNumber}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="warningType != null and warningType != '' and warningType != 'all'">
+                <choose>
+                    <when test="warningType == 'receive_overdue'">and amount_type = 'income' and (status is null or status != 'done') and account_date &lt; CURDATE()</when>
+                    <when test="warningType == 'pay_overdue'">and amount_type = 'expense' and (status is null or status != 'done') and account_date &lt; CURDATE()</when>
+                    <when test="warningType == 'receive_overdue_3d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 1 and 3</when>
+                    <when test="warningType == 'pay_overdue_3d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 1 and 3</when>
+                    <when test="warningType == 'receive_overdue_7d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 4 and 7</when>
+                    <when test="warningType == 'pay_overdue_7d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 4 and 7</when>
+                    <when test="warningType == 'receive_overdue_30d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 8 and 30</when>
+                    <when test="warningType == 'pay_overdue_30d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 8 and 30</when>
+                    <when test="warningType == 'receive_overdue_30p'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) &gt; 30</when>
+                    <when test="warningType == 'pay_overdue_30p'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) &gt; 30</when>
+                    <when test="warningType == 'receive_due_today'">and amount_type = 'income' and (status is null or status != 'done') and account_date = CURDATE()</when>
+                    <when test="warningType == 'pay_due_today'">and amount_type = 'expense' and (status is null or status != 'done') and account_date = CURDATE()</when>
+                    <when test="warningType == 'receive_due_1d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) = 1</when>
+                    <when test="warningType == 'pay_due_1d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) = 1</when>
+                    <when test="warningType == 'receive_due_3d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 2 and 3</when>
+                    <when test="warningType == 'pay_due_3d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 2 and 3</when>
+                    <when test="warningType == 'receive_due_7d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 4 and 7</when>
+                    <when test="warningType == 'pay_due_7d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 4 and 7</when>
+                    <when test="warningType == 'receive_due_15d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 8 and 15</when>
+                    <when test="warningType == 'pay_due_15d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 8 and 15</when>
+                    <when test="warningType == 'receive_due_30d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 16 and 30</when>
+                    <when test="warningType == 'pay_due_30d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 16 and 30</when>
+                    <when test="warningType == 'normal'">and ((status = 'done') or account_date is null or DATEDIFF(account_date, CURDATE()) &gt; 30)</when>
+                </choose>
+            </if>
+        </where>
+    </select>
+    
+    <select id="selectContractAccountById" parameterType="Long" resultMap="ContractAccountResult">
+        <include refid="selectContractAccountVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertContractAccount" parameterType="ContractAccount" useGeneratedKeys="true" keyProperty="id">
+        insert into contract_account
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="contractId != null">contract_id,</if>
+            <if test="accountName != null">account_name,</if>
+            <if test="accountDate != null">account_date,</if>
+            <if test="amount != null">amount,</if>
+            <if test="amountType != null">amount_type,</if>
+            <if test="orderNo != null">order_no,</if>
+            <if test="ourParty != null">our_party,</if>
+            <if test="otherParty != null">other_party,</if>
+            <if test="relatedContractName != null">related_contract_name,</if>
+            <if test="relatedContractNumber != null">related_contract_number,</if>
+            <if test="remark != null">remark,</if>
+            <if test="status != null">status,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="delFlag != null">del_flag,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="contractId != null">#{contractId},</if>
+            <if test="accountName != null">#{accountName},</if>
+            <if test="accountDate != null">#{accountDate},</if>
+            <if test="amount != null">#{amount},</if>
+            <if test="amountType != null">#{amountType},</if>
+            <if test="orderNo != null">#{orderNo},</if>
+            <if test="ourParty != null">#{ourParty},</if>
+            <if test="otherParty != null">#{otherParty},</if>
+            <if test="relatedContractName != null">#{relatedContractName},</if>
+            <if test="relatedContractNumber != null">#{relatedContractNumber},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+         </trim>
+    </insert>
+
+    <update id="updateContractAccount" parameterType="ContractAccount">
+        update contract_account
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="contractId != null">contract_id = #{contractId},</if>
+            <if test="accountName != null">account_name = #{accountName},</if>
+            <if test="accountDate != null">account_date = #{accountDate},</if>
+            <if test="amount != null">amount = #{amount},</if>
+            <if test="amountType != null">amount_type = #{amountType},</if>
+            <if test="orderNo != null">order_no = #{orderNo},</if>
+            <if test="ourParty != null">our_party = #{ourParty},</if>
+            <if test="otherParty != null">other_party = #{otherParty},</if>
+            <if test="relatedContractName != null">related_contract_name = #{relatedContractName},</if>
+            <if test="relatedContractNumber != null">related_contract_number = #{relatedContractNumber},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteContractAccountById" parameterType="Long">
+        delete from contract_account where id = #{id}
+    </delete>
+
+    <delete id="deleteContractAccountByIds" parameterType="String">
+        delete from contract_account where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <insert id="batchInsertContractAccount">
+        insert into contract_account
+        (contract_id, account_name, account_date, amount, amount_type, order_no, our_party, other_party, related_contract_name, related_contract_number, remark, status, create_by, create_time, update_by, update_time, del_flag)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.contractId}, #{item.accountName}, #{item.accountDate}, #{item.amount}, #{item.amountType}, #{item.orderNo}, #{item.ourParty}, #{item.otherParty}, #{item.relatedContractName}, #{item.relatedContractNumber}, #{item.remark}, #{item.status}, #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime}, #{item.delFlag})
+        </foreach>
+    </insert>
+</mapper>
