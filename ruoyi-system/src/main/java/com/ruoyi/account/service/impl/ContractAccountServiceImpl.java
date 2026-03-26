@@ -30,7 +30,7 @@ import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.contract.domain.BizContractContent;
 import com.ruoyi.contract.mapper.BizContractContentMapper;
-import com.ruoyi.system.domain.SysUser;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.system.service.ISysUserService;
 
 /**
