@@ -1855,7 +1855,7 @@
             @change="handleUserChange"
             style="width: 100%;"
           >
-            <el-option v-for="user in userList" :key="user.id" :label="user.name" :value="user.id" />
+            <el-option v-for="user in userList" :key="user.userId || user.id" :label="user.nickName || user.userName || user.name" :value="user.userId || user.id" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -1946,8 +1946,6 @@ import {
   delContractContent,
   importContractBatch,
   approveContract,
-  transferContract,
-  getUserList,
   getSealApplyDetail,
   updateSealApply,
   delContract,
@@ -1958,6 +1956,7 @@ import {
   uploadContractDetailFiles
 } from "@/api/contract/contract";
 import { addAccount } from "@/api/account/account";
+import { listUser } from "@/api/system/user";
 import ContractDialog from "@/components/Dialog/dialog.vue";
 
 export default {
@@ -2614,8 +2613,8 @@ export default {
 
     async loadUserList() {
       try {
-        const res = await getUserList({ status: "0" });
-        this.userList = res.data || [];
+        const res = await listUser({ status: "0", pageNum: 1, pageSize: 1000 });
+        this.userList = res.rows || [];
       } catch (err) {
         console.error("获取用户列表失败:", err);
         this.$message.error("加载人员失败");
@@ -2623,8 +2622,8 @@ export default {
     },
 
     handleUserChange(value) {
-      const user = this.userList.find(u => u.id === value);
-      this.transferForm.userName = user ? user.name : "";
+      const user = this.userList.find(u => (u.userId || u.id) === value);
+      this.transferForm.userName = user ? (user.nickName || user.userName || user.name) : "";
     },
 
     submitTransfer() {
@@ -2640,9 +2639,9 @@ export default {
             }
           )
             .then(() => {
-              return transferContract({
-                contractId: this.currentRow.id || this.currentRow.contractId,
-                newOwnerId: this.transferForm.userId
+              return updateContractContent({
+                id: this.currentRow.id || this.currentRow.contractId,
+                owner: this.transferForm.userName
               });
             })
             .then(() => {
