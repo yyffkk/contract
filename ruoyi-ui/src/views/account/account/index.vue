@@ -3,14 +3,14 @@
     <div class="page-header">
       <div>
         <h2 class="page-title">账款管理</h2>
-        <p class="page-desc">统一管理账款记录、账款计划、收付款申请与录账流程</p>
+        <p class="page-desc">统一管理账款记录、账款计划、收付款申请与审批流转</p>
       </div>
     </div>
 
     <div class="nav-panel">
       <div class="nav-card" :class="{ active: currentNav === 'account' }" @click="handleNavClick('account')">
         <div class="nav-card-icon account"><i class="el-icon-document"></i></div>
-        <div class="nav-card-content"><div class="nav-card-title">账款记录</div><div class="nav-card-desc">收付款申请、录账、到账状态跟踪</div></div>
+        <div class="nav-card-content"><div class="nav-card-title">账款记录</div><div class="nav-card-desc">收付款申请、审批跟踪、到账状态管理</div></div>
       </div>
       <div class="nav-card" :class="{ active: currentNav === 'plan' }" @click="handleNavClick('plan')">
         <div class="nav-card-icon plan"><i class="el-icon-date"></i></div>
@@ -98,7 +98,6 @@
           <template v-if="currentNav === 'account'">
             <el-button type="primary" icon="el-icon-s-promotion" @click="handleApplyReceive" v-if="activeTab !== 'pay'">申请收款</el-button>
             <el-button type="success" icon="el-icon-s-promotion" @click="handleApplyPay" v-if="activeTab !== 'receive'">申请付款</el-button>
-            <el-button type="warning" plain icon="el-icon-edit-outline" @click="handleRecordMoney">录账款</el-button>
             <el-button type="info" plain icon="el-icon-download" :loading="downloadLoading" @click="handleDownloadTemplate">下载模板</el-button>
             <el-button type="primary" plain icon="el-icon-upload2" :loading="importLoading" @click="handleImport">导入</el-button>
             <input ref="importInput" type="file" accept=".xls,.xlsx" style="display:none" @change="handleImportFileChange" />
@@ -112,7 +111,7 @@
         </div>
       </div>
 
-      <el-table v-if="currentNav === 'account'" v-loading="loading" :data="accountList" @selection-change="handleSelectionChange" border header-cell-class-name="table-header-gray">
+      <el-table v-if="currentNav === 'account'" v-loading="loading" :data="accountList" @selection-change="handleSelectionChange" border header-cell-class-name="table-header-gray" class="account-table">
         <el-table-column type="selection" width="55" align="center"/>
         <el-table-column label="关联合同名称" prop="relatedContractName" min-width="180" show-overflow-tooltip />
         <el-table-column label="账款日期" width="120" align="center"><template slot-scope="scope">{{ parseTime(scope.row.accountDate) }}</template></el-table-column>
@@ -122,14 +121,13 @@
         <el-table-column label="单据号" prop="orderNo" width="140"/>
         <el-table-column label="关联合同编号" prop="relatedContractNumber" width="160"/>
         <el-table-column label="状态" width="120" align="center"><template slot-scope="scope"><el-tag :type="getAccountStatusType(scope.row.status)" size="small">{{ getAccountStatusLabel(scope.row.status) }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" width="320" fixed="right" align="center">
+        <el-table-column label="操作" width="360" fixed="right" align="center" class-name="action-column">
           <template slot-scope="scope">
-            <el-button size="mini" type="text" @click="handleDetail(scope.row)">详情</el-button>
-            <el-button size="mini" type="text" @click="handleRecordMoney(scope.row)">录账款</el-button>
-            <el-button v-if="scope.row.status !== 'approving'" size="mini" type="text" @click="openApprovalDialog(scope.row, scope.row.amountType === 'expense' ? 'pay' : 'receive')">发起审批</el-button>
-            <el-button v-if="scope.row.status === 'approving'" size="mini" type="text" @click="openApproveActionDialog(scope.row, 'agree')">通过</el-button>
-            <el-button v-if="scope.row.status === 'approving'" size="mini" type="text" class="danger-text" @click="openApproveActionDialog(scope.row, 'reject')">驳回</el-button>
-            <el-button size="mini" type="text" class="danger-text" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button size="mini" type="text" class="action-btn" @click="handleDetail(scope.row)">详情</el-button>
+            <el-button v-if="scope.row.status !== 'approving'" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row, scope.row.amountType === 'expense' ? 'pay' : 'receive')">发起审批</el-button>
+            <el-button v-if="scope.row.status === 'approving'" size="mini" type="text" class="action-btn" @click="openApproveActionDialog(scope.row, 'agree')">通过</el-button>
+            <el-button v-if="scope.row.status === 'approving'" size="mini" type="text" class="action-btn danger-text" @click="openApproveActionDialog(scope.row, 'reject')">驳回</el-button>
+            <el-button size="mini" type="text" class="action-btn danger-text" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -144,48 +142,53 @@
       <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" class="page-pagination" />
     </div>
 
-    <el-dialog :title="recordDialogTitle" :visible.sync="recordDialogVisible" width="860px" append-to-body custom-class="beauty-dialog invoice-dialog">
-      <div class="invoice-layout">
-        <div class="invoice-side-card" v-if="selectedContract">
-          <div class="side-card-title">合同信息</div>
-          <div class="side-info-item"><span>合同名称</span><strong>{{ selectedContract.contractName || '-' }}</strong></div>
-          <div class="side-info-item"><span>合同编号</span><strong>{{ selectedContract.contractNumber || '-' }}</strong></div>
-          <div class="side-info-item"><span>对方主体</span><strong>{{ selectedContract.otherPartyName || '-' }}</strong></div>
-          <div class="side-info-item"><span>我方主体</span><strong>{{ selectedContract.myPartyName || '-' }}</strong></div>
-          <div class="side-info-item"><span>合同总额</span><strong>¥ {{ formatAmount(selectedContract.totalAmount) }}</strong></div>
+    <el-drawer title="账款详情" :visible.sync="detailDrawerVisible" direction="rtl" size="520px" custom-class="detail-drawer">
+      <div class="detail-drawer-body">
+        <div class="detail-summary-card" v-if="detailData">
+          <div class="detail-summary-title">{{ detailData.relatedContractName || '账款信息' }}</div>
+          <div class="detail-summary-desc">关联合同编号：{{ detailData.relatedContractNumber || '-' }}</div>
+          <el-tag :type="getAccountStatusType(detailData.status)" size="small">{{ getAccountStatusLabel(detailData.status) }}</el-tag>
         </div>
-        <div class="invoice-form-panel">
-          <div class="invoice-panel-header"><div class="panel-title">录账款</div><div class="panel-desc">从合同发起或补录账款信息</div></div>
-          <el-form :model="recordForm" ref="recordForm" :rules="recordRules" label-width="110px" class="dialog-form">
-            <div class="dialog-grid">
-              <el-form-item label="账款名称" prop="accountName"><el-input v-model="recordForm.accountName" /></el-form-item>
-              <el-form-item label="账款日期" prop="accountDate"><el-date-picker v-model="recordForm.accountDate" type="date" value-format="yyyy-MM-dd" style="width:100%"/></el-form-item>
-              <el-form-item label="账款金额" prop="amount"><el-input v-model="recordForm.amount"><template slot="prepend">¥</template></el-input></el-form-item>
-              <el-form-item label="金额类型" prop="amountType"><el-select v-model="recordForm.amountType" style="width:100%"><el-option label="收入" value="income"/><el-option label="支出" value="expense"/></el-select></el-form-item>
-              <el-form-item label="单据号" prop="orderNo"><el-input v-model="recordForm.orderNo" /></el-form-item>
-              <el-form-item label="状态" prop="status"><el-select v-model="recordForm.status" style="width:100%"><el-option label="待处理" value="pending"/><el-option label="审批中" value="approving"/><el-option label="审批通过" value="approved"/><el-option label="审批驳回" value="rejected"/><el-option label="部分完成" value="partial"/><el-option label="已完成" value="done"/></el-select></el-form-item>
-            </div>
-            <el-form-item label="备注"><el-input v-model="recordForm.remark" type="textarea" :rows="4"/></el-form-item>
-          </el-form>
+        <div class="detail-grid" v-if="detailData">
+          <div class="detail-item"><span>账款名称</span><strong>{{ detailData.accountName || '-' }}</strong></div>
+          <div class="detail-item"><span>账款日期</span><strong>{{ parseTime(detailData.accountDate) }}</strong></div>
+          <div class="detail-item"><span>账款金额</span><strong>¥ {{ formatAmount(detailData.amount) }}</strong></div>
+          <div class="detail-item"><span>金额类型</span><strong>{{ detailData.amountType === 'income' ? '收入' : '支出' }}</strong></div>
+          <div class="detail-item"><span>单据号</span><strong>{{ detailData.orderNo || '-' }}</strong></div>
+          <div class="detail-item"><span>我方主体</span><strong>{{ detailData.ourParty || '-' }}</strong></div>
+          <div class="detail-item"><span>对方主体</span><strong>{{ detailData.otherParty || '-' }}</strong></div>
+          <div class="detail-item"><span>预警状态</span><strong>{{ getWarningMeta(detailData).label }}</strong></div>
         </div>
+        <el-card shadow="never" class="detail-remark-card" v-if="detailData">
+          <div slot="header">备注 / 审批记录</div>
+          <div class="detail-remark-content">{{ detailData.remark || '暂无备注' }}</div>
+        </el-card>
       </div>
-      <div slot="footer" class="dialog-footer"><el-button @click="recordDialogVisible = false">取消</el-button><el-button type="primary" :loading="submitLoading" @click="submitRecordForm">提交账款</el-button></div>
-    </el-dialog>
+    </el-drawer>
 
-    <el-dialog :title="approvalDialogTitle" :visible.sync="approvalDialogVisible" width="620px" append-to-body custom-class="beauty-dialog">
-      <div class="approval-summary" v-if="selectedRow">
-        <div class="summary-item"><span>合同</span><strong>{{ selectedRow.relatedContractName || '-' }}</strong></div>
-        <div class="summary-item"><span>合同编号</span><strong>{{ selectedRow.relatedContractNumber || '-' }}</strong></div>
-        <div class="summary-item"><span>金额</span><strong>¥ {{ formatAmount(selectedRow.amount) }}</strong></div>
-        <div class="summary-item"><span>类型</span><strong>{{ selectedApplyType === 'pay' ? '付款申请' : '收款申请' }}</strong></div>
+    <el-drawer :title="approvalDrawerTitle" :visible.sync="approvalDrawerVisible" direction="rtl" size="520px" custom-class="approval-drawer">
+      <div class="approval-drawer-body" v-if="selectedRow">
+        <div class="approval-header-card">
+          <div class="approval-header-title">{{ selectedApplyType === 'pay' ? '付款审批流程' : '收款审批流程' }}</div>
+          <div class="approval-header-desc">提交后状态将流转为“审批中”，审批人可继续通过或驳回。</div>
+        </div>
+        <div class="approval-summary">
+          <div class="summary-item"><span>合同</span><strong>{{ selectedRow.relatedContractName || '-' }}</strong></div>
+          <div class="summary-item"><span>合同编号</span><strong>{{ selectedRow.relatedContractNumber || '-' }}</strong></div>
+          <div class="summary-item"><span>金额</span><strong>¥ {{ formatAmount(selectedRow.amount) }}</strong></div>
+          <div class="summary-item"><span>类型</span><strong>{{ selectedApplyType === 'pay' ? '付款申请' : '收款申请' }}</strong></div>
+        </div>
+        <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="90px" class="approval-form-card">
+          <el-form-item label="审批说明" prop="remark">
+            <el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="请输入审批说明、付款依据或收款说明" />
+          </el-form-item>
+        </el-form>
       </div>
-      <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="100px">
-        <el-form-item label="审批说明" prop="remark">
-          <el-input v-model="approvalForm.remark" type="textarea" :rows="4" placeholder="请输入申请说明、付款依据或收款说明" />
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer"><el-button @click="approvalDialogVisible = false">取消</el-button><el-button type="primary" :loading="submitLoading" @click="submitApprovalFlow">提交审批</el-button></div>
-    </el-dialog>
+      <div class="drawer-footer">
+        <el-button @click="approvalDrawerVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="submitApprovalFlow">提交审批</el-button>
+      </div>
+    </el-drawer>
 
     <el-dialog :title="approveActionTitle" :visible.sync="approveActionDialogVisible" width="620px" append-to-body custom-class="beauty-dialog">
       <div class="approval-summary" v-if="selectedRow">
@@ -205,7 +208,7 @@
 </template>
 
 <script>
-import { listAccount, delAccount, addAccount, updateAccount, importAccount, downloadAccountTemplate, submitAccountApproval, approveAccount } from '@/api/account/account'
+import { listAccount, delAccount, importAccount, downloadAccountTemplate, submitAccountApproval, approveAccount } from '@/api/account/account'
 
 export default {
   name: 'Account',
@@ -215,17 +218,13 @@ export default {
       ids: [], selectedRows: [], selectedRow: null, selectedApplyType: 'receive', selectedApproveAction: 'agree',
       accountList: [], planList: [{ id: 1, planName: '示例收款计划', planNo: 'PLAN001', planType: 'receive', planAmount: 100000 }],
       queryParams: { pageNum: 1, pageSize: 10, contractId: null, orderNo: null, amountType: null, partyName: null, warningType: 'all', planName: null, planNo: null, scope: 'mine' },
-      selectedContract: null,
-      recordDialogVisible: false, recordDialogTitle: '录账款', submitLoading: false,
-      approvalDialogVisible: false, approvalDialogTitle: '提交审批申请',
+      detailDrawerVisible: false, detailData: null,
+      approvalDrawerVisible: false, approvalDrawerTitle: '提交审批申请',
       approveActionDialogVisible: false, approveActionTitle: '审批操作',
-      importLoading: false, downloadLoading: false,
+      importLoading: false, downloadLoading: false, submitLoading: false,
       approvalForm: { remark: '' },
       approveActionForm: { remark: '' },
-      approvalRules: { remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }] },
-      recordForm: { id: null, contractId: null, accountName: '', accountDate: '', amount: '', amountType: 'income', orderNo: '', ourParty: '', otherParty: '', relatedContractName: '', relatedContractNumber: '', remark: '', status: 'pending' },
-      recordRules: { accountName: [{ required: true, message: '请输入账款名称', trigger: 'blur' }], accountDate: [{ required: true, message: '请选择账款日期', trigger: 'change' }], amount: [{ required: true, message: '请输入账款金额', trigger: 'blur' }], amountType: [{ required: true, message: '请选择金额类型', trigger: 'change' }] },
-      contractList: []
+      approvalRules: { remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }] }
     }
   },
   computed: {
@@ -243,16 +242,6 @@ export default {
         this.warningType = query.warningType
         this.queryParams.warningType = query.warningType
       }
-      if (query.contractId) {
-        this.recordForm.contractId = query.contractId
-        this.recordForm.relatedContractName = query.contractName || ''
-        this.recordForm.relatedContractNumber = query.contractNumber || ''
-        this.recordForm.amountType = query.amountType || 'income'
-      }
-      if (query.action === 'record' && query.contractId) {
-        this.selectedContract = { id: query.contractId, contractName: query.contractName, contractNumber: query.contractNumber, totalAmount: '', otherPartyName: '', myPartyName: '' }
-        this.recordDialogVisible = true
-      }
       if (this.warningType !== 'all') this.activeTab = this.warningType.indexOf('receive') > -1 ? 'receive' : 'pay'
     },
     handleNavClick(nav) { this.currentNav = nav; this.activeTab = 'all'; this.getList() },
@@ -260,11 +249,8 @@ export default {
     handleTabClick(tab) { this.activeTab = tab.name; this.getList() },
     handleWarningTypeChange(val) {
       this.queryParams.warningType = val
-      if (val === 'all' || val === 'normal') {
-        this.activeTab = 'all'
-      } else {
-        this.activeTab = val.indexOf('receive') > -1 ? 'receive' : 'pay'
-      }
+      if (val === 'all' || val === 'normal') this.activeTab = 'all'
+      else this.activeTab = val.indexOf('receive') > -1 ? 'receive' : 'pay'
       this.getList()
     },
     handleQuery() { this.queryParams.pageNum = 1; this.queryParams.warningType = this.warningType; this.getList() },
@@ -293,20 +279,24 @@ export default {
       const row = this.getSingleSelectedRow()
       if (!row) return
       if (row.amountType !== 'income') return this.$message.warning('当前选中记录不是收入类型，不能申请收款')
-      this.openApprovalDialog(row, 'receive')
+      this.openApprovalDrawer(row, 'receive')
     },
     handleApplyPay() {
       const row = this.getSingleSelectedRow()
       if (!row) return
       if (row.amountType !== 'expense') return this.$message.warning('当前选中记录不是支出类型，不能申请付款')
-      this.openApprovalDialog(row, 'pay')
+      this.openApprovalDrawer(row, 'pay')
     },
-    openApprovalDialog(row, applyType) {
+    handleDetail(row) {
+      this.detailData = { ...row }
+      this.detailDrawerVisible = true
+    },
+    openApprovalDrawer(row, applyType) {
       this.selectedRow = row
       this.selectedApplyType = applyType
-      this.approvalDialogTitle = applyType === 'pay' ? '提交付款审批' : '提交收款审批'
+      this.approvalDrawerTitle = applyType === 'pay' ? '提交付款审批' : '提交收款审批'
       this.approvalForm = { remark: '' }
-      this.approvalDialogVisible = true
+      this.approvalDrawerVisible = true
       this.$nextTick(() => { this.$refs.approvalForm && this.$refs.approvalForm.clearValidate() })
     },
     submitApprovalFlow() {
@@ -315,7 +305,7 @@ export default {
         this.submitLoading = true
         submitAccountApproval({ id: this.selectedRow.id, applyType: this.selectedApplyType, remark: this.approvalForm.remark }).then(() => {
           this.$message.success(this.selectedApplyType === 'pay' ? '付款审批已提交' : '收款审批已提交')
-          this.approvalDialogVisible = false
+          this.approvalDrawerVisible = false
           this.getList()
         }).finally(() => { this.submitLoading = false })
       })
@@ -335,30 +325,6 @@ export default {
         this.approveActionDialogVisible = false
         this.getList()
       }).finally(() => { this.submitLoading = false })
-    },
-    handleRecordMoney(row) {
-      if (row && row.contractId) {
-        this.selectedContract = { id: row.contractId, contractName: row.relatedContractName, contractNumber: row.relatedContractNumber, myPartyName: row.ourParty, otherPartyName: row.otherParty }
-        this.openRecordDialogByRow(row)
-        return
-      }
-      const selected = this.getSingleSelectedRow()
-      if (!selected) return
-      this.selectedContract = { id: selected.contractId, contractName: selected.relatedContractName, contractNumber: selected.relatedContractNumber, myPartyName: selected.ourParty, otherPartyName: selected.otherParty }
-      this.openRecordDialogByRow(selected)
-    },
-    openRecordDialogByRow(row) {
-      this.recordForm = {
-        id: row.id || null,
-        contractId: row.contractId,
-        accountName: row.accountName || `${row.relatedContractName || ''}${row.amountType === 'expense' ? '-付款账款' : '-收款账款'}`,
-        accountDate: row.accountDate || '', amount: row.amount || '', amountType: row.amountType || 'income', orderNo: row.orderNo || '',
-        ourParty: row.ourParty || '', otherParty: row.otherParty || '',
-        relatedContractName: row.relatedContractName || '', relatedContractNumber: row.relatedContractNumber || '',
-        remark: row.remark || '', status: row.status || 'pending'
-      }
-      this.recordDialogVisible = true
-      this.$nextTick(() => { this.$refs.recordForm && this.$refs.recordForm.clearValidate() })
     },
     handleAddPlan() { this.$message.info('账款计划新增保留') },
     handleImport() {
@@ -409,19 +375,10 @@ export default {
         this.downloadLoading = false
       })
     },
-    handleDetail(row) { this.$alert(`${row.relatedContractName || '-'}\n${this.getWarningMeta(row).label}\n当前状态：${this.getAccountStatusLabel(row.status)}`, '账款详情') },
-    handleDelete(row) { const id = row && row.id ? row.id : this.ids[0]; if (!id) return this.$message.warning('请选择数据'); delAccount(id).then(() => { this.$message.success('删除成功'); this.getList() }) },
-    submitRecordForm() {
-      this.$refs.recordForm.validate(valid => {
-        if (!valid) return
-        this.submitLoading = true
-        const request = this.recordForm.id ? updateAccount(this.recordForm) : addAccount(this.recordForm)
-        request.then(() => {
-          this.$message.success('账款提交成功')
-          this.recordDialogVisible = false
-          this.getList()
-        }).finally(() => { this.submitLoading = false })
-      })
+    handleDelete(row) {
+      const id = row && row.id ? row.id : this.ids[0]
+      if (!id) return this.$message.warning('请选择数据')
+      delAccount(id).then(() => { this.$message.success('删除成功'); this.getList() })
     },
     getWarningMeta(row) {
       if (!row || !row.accountDate || row.status === 'done') return { key: 'all', type: 'normal', label: '正常', tagType: 'info' }
@@ -456,388 +413,54 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.account-manage-page {
-  padding: 20px;
-  background: linear-gradient(180deg, #f6f8fb 0%, #f4f6fa 100%);
-  min-height: 100vh;
-}
-
-.page-header {
-  margin-bottom: 20px;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 6px;
-  color: #1f2d3d;
-}
-
-.page-desc {
-  margin: 0;
-  color: #909399;
-  font-size: 13px;
-}
-
-.nav-panel {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.nav-card {
-  background: #fff;
-  border: 1px solid #e9edf3;
-  border-radius: 16px;
-  padding: 18px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 28px rgba(31, 45, 61, 0.08);
-  }
-
-  &.active {
-    border-color: #409eff;
-    background: linear-gradient(180deg, #f6fbff 0%, #eef6ff 100%);
-    box-shadow: 0 10px 24px rgba(64, 158, 255, 0.12);
-  }
-}
-
-.nav-card-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  color: #fff;
-  font-size: 22px;
-  flex-shrink: 0;
-}
-
-.nav-card-icon.account {
-  background: linear-gradient(135deg, #409eff, #67c3ff);
-}
-
-.nav-card-icon.plan {
-  background: linear-gradient(135deg, #67c23a, #95d475);
-}
-
-.nav-card-content {
-  min-width: 0;
-}
-
-.nav-card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 4px;
-}
-
-.nav-card-desc {
-  font-size: 12px;
-  color: #909399;
-  line-height: 1.5;
-}
-
-.scope-card,
-.tab-card,
-.search-card {
-  border: 1px solid #ebeef5;
-  border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
-  margin-bottom: 18px;
-}
-
-.main-content > .el-table {
-  width: 100%;
-  margin-bottom: 18px;
-  background: #fff;
-  border: 1px solid #ebeef5;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
-}
-
-.scope-wrap,
-.scope-left,
-.scope-right,
-.toolbar-left,
-.search-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.scope-wrap,
-.search-header {
-  justify-content: space-between;
-}
-
-.scope-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.tab-card {
-  ::v-deep .el-tabs__nav-wrap::after {
-    height: 1px;
-    background-color: #eef1f5;
-  }
-
-  ::v-deep .el-tabs__item.is-active {
-    font-weight: 700;
-    color: #409eff;
-  }
-}
-
-.warning-filter-bar {
-  margin-top: 8px;
-}
-
-.search-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #303133;
-  font-weight: 600;
-}
-
-.search-title i {
-  color: #409eff;
-}
-
-.query-form ::v-deep .el-form-item {
-  margin-bottom: 16px;
-  margin-right: 10px;
-}
-
-.toolbar {
-  margin-bottom: 18px;
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-}
-
-.toolbar-tip {
-  flex: 1;
-  min-width: 260px;
-}
-
-.main-content > .el-table::v-deep .el-table__body-wrapper {
-  border-radius: 0 0 16px 16px;
-}
-
-.table-header-gray {
-  background: #f8fafc !important;
-  color: #606266;
-  font-weight: 700;
-}
-
-::v-deep .el-table__row:hover > td {
-  background: #f5faff !important;
-}
-
-::v-deep .el-table td,
-::v-deep .el-table th {
-  padding: 12px 0;
-}
-
-.page-pagination {
-  margin-top: 20px;
-  padding: 0 16px 16px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.form-grid,
-.dialog-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0 16px;
-}
-
-.search-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.invoice-layout {
-  display: flex;
-  gap: 18px;
-}
-
-.invoice-side-card {
-  width: 280px;
-  padding: 18px;
-  border-radius: 16px;
-  background: linear-gradient(180deg, #f8fbff 0%, #f5f7fa 100%);
-  border: 1px solid #e8eef6;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
-}
-
-.side-card-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 14px;
-  color: #303133;
-}
-
-.side-info-item {
-  padding: 10px 0;
-  border-bottom: 1px dashed #dfe6ee;
-  display: flex;
-  flex-direction: column;
-}
-
-.side-info-item:last-child {
-  border-bottom: none;
-}
-
-.side-info-item span {
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 4px;
-}
-
-.side-info-item strong {
-  font-size: 14px;
-  color: #303133;
-  word-break: break-all;
-}
-
-.invoice-form-panel {
-  flex: 1;
-}
-
-.invoice-panel-header {
-  margin-bottom: 18px;
-}
-
-.panel-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #303133;
-}
-
-.panel-desc {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 4px;
-}
-
-.approval-summary {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px 16px;
-  margin-bottom: 18px;
-  padding: 16px;
-  border-radius: 14px;
-  background: #f8fbff;
-  border: 1px solid #e3eefc;
-}
-
-.summary-item {
-  display: flex;
-  flex-direction: column;
-}
-
-.summary-item span {
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 4px;
-}
-
-.summary-item strong {
-  color: #303133;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.danger-text {
-  color: #f56c6c;
-}
-
-::v-deep .beauty-dialog {
-  .el-dialog {
-    border-radius: 18px;
-    overflow: hidden;
-  }
-
-  .el-dialog__header {
-    padding: 20px 24px 10px;
-    border-bottom: 1px solid #f0f2f5;
-  }
-
-  .el-dialog__title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #303133;
-  }
-
-  .el-dialog__body {
-    padding: 20px 24px;
-    background: #f7f9fc;
-  }
-
-  .el-dialog__footer {
-    padding: 14px 24px 20px;
-    border-top: 1px solid #f0f2f5;
-    background: #fff;
-  }
-}
-
-::v-deep .el-card__body {
-  padding: 18px 20px;
-}
-
-::v-deep .el-input__inner,
-::v-deep .el-textarea__inner,
-::v-deep .el-button {
-  border-radius: 10px;
-}
-
-@media (max-width: 1000px) {
-  .nav-panel,
-  .form-grid,
-  .dialog-grid,
-  .approval-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .invoice-layout {
-    flex-direction: column;
-  }
-
-  .invoice-side-card {
-    width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .scope-wrap,
-  .search-header {
-    align-items: flex-start;
-  }
-}
+.account-manage-page { padding: 20px; background: linear-gradient(180deg, #f6f8fb 0%, #f4f6fa 100%); min-height: 100vh; }
+.page-header { margin-bottom: 20px; }
+.page-title { font-size: 24px; font-weight: 700; margin: 0 0 6px; color: #1f2d3d; }
+.page-desc { margin: 0; color: #909399; font-size: 13px; }
+.nav-panel { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+.nav-card { background: #fff; border: 1px solid #e9edf3; border-radius: 16px; padding: 18px; display: flex; align-items: center; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); &:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(31, 45, 61, 0.08); } &.active { border-color: #409eff; background: linear-gradient(180deg, #f6fbff 0%, #eef6ff 100%); box-shadow: 0 10px 24px rgba(64, 158, 255, 0.12); } }
+.nav-card-icon { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-right: 12px; color: #fff; font-size: 22px; flex-shrink: 0; }
+.nav-card-icon.account { background: linear-gradient(135deg, #409eff, #67c3ff); }
+.nav-card-icon.plan { background: linear-gradient(135deg, #67c23a, #95d475); }
+.nav-card-content { min-width: 0; }
+.nav-card-title { font-size: 16px; font-weight: 600; color: #303133; margin-bottom: 4px; }
+.nav-card-desc { font-size: 12px; color: #909399; line-height: 1.5; }
+.scope-card, .tab-card, .search-card { border: 1px solid #ebeef5; border-radius: 16px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); margin-bottom: 18px; }
+.main-content > .el-table { width: 100%; margin-bottom: 18px; background: #fff; border: 1px solid #ebeef5; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); }
+.scope-wrap, .scope-left, .scope-right, .toolbar-left, .search-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.scope-wrap, .search-header { justify-content: space-between; }
+.scope-label { font-size: 14px; font-weight: 600; color: #303133; }
+.tab-card { ::v-deep .el-tabs__nav-wrap::after { height: 1px; background-color: #eef1f5; } ::v-deep .el-tabs__item.is-active { font-weight: 700; color: #409eff; } }
+.warning-filter-bar { margin-top: 8px; }
+.search-title { display: flex; align-items: center; gap: 8px; color: #303133; font-weight: 600; }
+.search-title i { color: #409eff; }
+.query-form ::v-deep .el-form-item { margin-bottom: 16px; margin-right: 10px; }
+.toolbar { margin-bottom: 18px; display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.toolbar-tip { flex: 1; min-width: 260px; }
+.main-content > .el-table::v-deep .el-table__body-wrapper { border-radius: 0 0 16px 16px; }
+.table-header-gray { background: #f8fafc !important; color: #606266; font-weight: 700; }
+::v-deep .el-table__row:hover > td { background: #f5faff !important; }
+::v-deep .el-table td, ::v-deep .el-table th { padding: 12px 0; }
+.page-pagination { margin-top: 20px; padding: 0 16px 16px; display: flex; justify-content: flex-end; }
+.action-btn { font-size: 14px; font-weight: 600; }
+.account-table ::v-deep .action-column .cell { line-height: 2; }
+.detail-drawer ::v-deep .el-drawer__header, .approval-drawer ::v-deep .el-drawer__header { margin-bottom: 0; padding: 20px 24px; border-bottom: 1px solid #ebeef5; }
+.detail-drawer ::v-deep .el-drawer__body, .approval-drawer ::v-deep .el-drawer__body { background: #f7f9fc; padding: 0; display: flex; flex-direction: column; height: 100%; }
+.detail-drawer-body, .approval-drawer-body { flex: 1; overflow: auto; padding: 20px 24px; }
+.detail-summary-card, .approval-header-card { padding: 18px 20px; border-radius: 16px; background: linear-gradient(135deg, #eef6ff 0%, #f7fbff 100%); border: 1px solid #dceafd; margin-bottom: 18px; }
+.detail-summary-title, .approval-header-title { font-size: 18px; font-weight: 700; color: #1f2d3d; margin-bottom: 6px; }
+.detail-summary-desc, .approval-header-desc { color: #6b7280; font-size: 12px; line-height: 1.7; }
+.detail-grid, .approval-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 16px; margin-bottom: 18px; }
+.detail-item, .summary-item { display: flex; flex-direction: column; padding: 14px 16px; background: #fff; border-radius: 14px; border: 1px solid #ebeef5; }
+.detail-item span, .summary-item span { font-size: 12px; color: #909399; margin-bottom: 6px; }
+.detail-item strong, .summary-item strong { color: #303133; word-break: break-all; }
+.detail-remark-card, .approval-form-card { border-radius: 16px; border: 1px solid #ebeef5; }
+.detail-remark-content { color: #606266; line-height: 1.8; white-space: pre-wrap; }
+.drawer-footer, .dialog-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 24px 20px; border-top: 1px solid #f0f2f5; background: #fff; }
+.danger-text { color: #f56c6c; }
+::v-deep .beauty-dialog { .el-dialog { border-radius: 18px; overflow: hidden; } .el-dialog__header { padding: 20px 24px 10px; border-bottom: 1px solid #f0f2f5; } .el-dialog__title { font-size: 18px; font-weight: 700; color: #303133; } .el-dialog__body { padding: 20px 24px; background: #f7f9fc; } .el-dialog__footer { padding: 14px 24px 20px; border-top: 1px solid #f0f2f5; background: #fff; } }
+::v-deep .el-card__body { padding: 18px 20px; }
+::v-deep .el-input__inner, ::v-deep .el-textarea__inner, ::v-deep .el-button { border-radius: 10px; }
+@media (max-width: 1000px) { .nav-panel, .detail-grid, .approval-summary { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .toolbar { flex-direction: column; align-items: stretch; } .scope-wrap, .search-header { align-items: flex-start; } }
 </style>
