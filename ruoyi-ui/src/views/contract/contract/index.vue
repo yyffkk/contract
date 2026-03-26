@@ -2742,6 +2742,8 @@ export default {
       if (!row) return false;
       const amountType = row.amountType;
       const signStatus = String(row.signStatus || '');
+      const performanceStatus = String(row.performanceStatus || '');
+      if (performanceStatus === '8') return false;
       return amountType !== '无金额' && amountType !== 'none' && signStatus !== '1';
     },
 

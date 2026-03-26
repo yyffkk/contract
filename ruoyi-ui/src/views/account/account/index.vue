@@ -115,7 +115,7 @@
         <el-table-column type="selection" width="55" align="center"/>
         <el-table-column label="关联合同名称" prop="relatedContractName" min-width="180" show-overflow-tooltip />
         <el-table-column label="账款日期" width="120" align="center"><template slot-scope="scope">{{ parseTime(scope.row.accountDate) }}</template></el-table-column>
-        <el-table-column label="预警状态" width="120" align="center"><template slot-scope="scope"><el-tag v-if="getWarningMeta(scope.row).type !== 'normal'" :type="getWarningMeta(scope.row).tagType" size="small">{{ getWarningMeta(scope.row).label }}</el-tag><span v-else>-</span></template></el-table-column>
+        <el-table-column label="预警状态" width="120" align="center"><template slot-scope="scope"><el-tag :type="getWarningMeta(scope.row).tagType" size="small">{{ getWarningMeta(scope.row).label }}</el-tag></template></el-table-column>
         <el-table-column label="账款金额" width="140" align="right"><template slot-scope="scope">¥{{ formatAmount(scope.row.amount) }}</template></el-table-column>
         <el-table-column label="金额类型" width="100" align="center"><template slot-scope="scope"><el-tag :type="scope.row.amountType === 'income' ? 'success' : 'danger'" size="small">{{ scope.row.amountType === 'income' ? '收入' : '支出' }}</el-tag></template></el-table-column>
         <el-table-column label="单据号" prop="orderNo" width="140"/>
@@ -124,7 +124,7 @@
         <el-table-column label="操作" width="360" fixed="right" align="center" class-name="action-column">
           <template slot-scope="scope">
             <el-button size="mini" type="text" class="action-btn" @click="handleDetail(scope.row)">详情</el-button>
-            <el-button v-if="scope.row.status !== 'approving'" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row, scope.row.amountType === 'expense' ? 'pay' : 'receive')">发起审批</el-button>
+            <el-button v-if="showApprovalEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row, scope.row.amountType === 'expense' ? 'pay' : 'receive')">去审批</el-button>
             <el-button v-if="scope.row.status === 'approving'" size="mini" type="text" class="action-btn" @click="openApproveActionDialog(scope.row, 'agree')">通过</el-button>
             <el-button v-if="scope.row.status === 'approving'" size="mini" type="text" class="action-btn danger-text" @click="openApproveActionDialog(scope.row, 'reject')">驳回</el-button>
             <el-button size="mini" type="text" class="action-btn danger-text" @click="handleDelete(scope.row)">删除</el-button>
@@ -142,14 +142,14 @@
       <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" class="page-pagination" />
     </div>
 
-    <el-drawer title="账款详情" :visible.sync="detailDrawerVisible" direction="rtl" size="520px" custom-class="detail-drawer">
-      <div class="detail-drawer-body">
-        <div class="detail-summary-card" v-if="detailData">
+    <el-drawer title="账款详情" :visible.sync="detailDrawerVisible" direction="rtl" size="560px" custom-class="detail-drawer">
+      <div class="detail-drawer-body" v-if="detailData">
+        <div class="detail-summary-card">
           <div class="detail-summary-title">{{ detailData.relatedContractName || '账款信息' }}</div>
           <div class="detail-summary-desc">关联合同编号：{{ detailData.relatedContractNumber || '-' }}</div>
           <el-tag :type="getAccountStatusType(detailData.status)" size="small">{{ getAccountStatusLabel(detailData.status) }}</el-tag>
         </div>
-        <div class="detail-grid" v-if="detailData">
+        <div class="detail-grid">
           <div class="detail-item"><span>账款名称</span><strong>{{ detailData.accountName || '-' }}</strong></div>
           <div class="detail-item"><span>账款日期</span><strong>{{ parseTime(detailData.accountDate) }}</strong></div>
           <div class="detail-item"><span>账款金额</span><strong>¥ {{ formatAmount(detailData.amount) }}</strong></div>
@@ -159,7 +159,16 @@
           <div class="detail-item"><span>对方主体</span><strong>{{ detailData.otherParty || '-' }}</strong></div>
           <div class="detail-item"><span>预警状态</span><strong>{{ getWarningMeta(detailData).label }}</strong></div>
         </div>
-        <el-card shadow="never" class="detail-remark-card" v-if="detailData">
+        <el-card shadow="never" class="timeline-card">
+          <div slot="header">审批时间线</div>
+          <el-timeline>
+            <el-timeline-item v-for="(item, index) in approvalTimeline" :key="index" :timestamp="item.time" :type="item.type">
+              <div class="timeline-item-title">{{ item.title }}</div>
+              <div class="timeline-item-desc">{{ item.desc }}</div>
+            </el-timeline-item>
+          </el-timeline>
+        </el-card>
+        <el-card shadow="never" class="detail-remark-card">
           <div slot="header">备注 / 审批记录</div>
           <div class="detail-remark-content">{{ detailData.remark || '暂无备注' }}</div>
         </el-card>
@@ -229,7 +238,19 @@ export default {
   },
   computed: {
     scopeFilterLabel() { return { mine: '我的', dept: '我部门的', all: '所有的' }[this.scopeFilter] },
-    warningTypeLabel() { return { all: '全部', receive_overdue: '收款已逾期', receive_overdue_3d: '收款逾期1-3天', receive_overdue_7d: '收款逾期4-7天', receive_overdue_30d: '收款逾期8-30天', receive_overdue_30p: '收款逾期30天以上', pay_overdue: '付款已逾期', pay_overdue_3d: '付款逾期1-3天', pay_overdue_7d: '付款逾期4-7天', pay_overdue_30d: '付款逾期8-30天', pay_overdue_30p: '付款逾期30天以上', receive_due_today: '收款今日到期', receive_due_1d: '收款明日到期', receive_due_3d: '收款2-3天内到期', receive_due_7d: '收款4-7天内到期', receive_due_15d: '收款8-15天内到期', receive_due_30d: '收款16-30天内到期', pay_due_today: '付款今日到期', pay_due_1d: '付款明日到期', pay_due_3d: '付款2-3天内到期', pay_due_7d: '付款4-7天内到期', pay_due_15d: '付款8-15天内到期', pay_due_30d: '付款16-30天内到期', normal: '正常' }[this.warningType] }
+    warningTypeLabel() { return { all: '全部', receive_overdue: '收款已逾期', receive_overdue_3d: '收款逾期1-3天', receive_overdue_7d: '收款逾期4-7天', receive_overdue_30d: '收款逾期8-30天', receive_overdue_30p: '收款逾期30天以上', pay_overdue: '付款已逾期', pay_overdue_3d: '付款逾期1-3天', pay_overdue_7d: '付款逾期4-7天', pay_overdue_30d: '付款逾期8-30天', pay_overdue_30p: '付款逾期30天以上', receive_due_today: '收款今日到期', receive_due_1d: '收款明日到期', receive_due_3d: '收款2-3天内到期', receive_due_7d: '收款4-7天内到期', receive_due_15d: '收款8-15天内到期', receive_due_30d: '收款16-30天内到期', pay_due_today: '付款今日到期', pay_due_1d: '付款明日到期', pay_due_3d: '付款2-3天内到期', pay_due_7d: '付款4-7天内到期', pay_due_15d: '付款8-15天内到期', pay_due_30d: '付款16-30天内到期', normal: '正常' }[this.warningType] },
+    approvalTimeline() {
+      if (!this.detailData) return []
+      const remark = this.detailData.remark || ''
+      const items = []
+      items.push({ title: '创建账款', desc: '账款记录已创建', time: this.parseTime(this.detailData.createTime || this.detailData.accountDate), type: 'primary' })
+      if (remark.includes('[审批申请]')) items.push({ title: '提交审批', desc: this.extractRemarkSection(remark, '审批申请'), time: this.parseTime(this.detailData.updateTime || this.detailData.accountDate), type: 'warning' })
+      if (remark.includes('[审批结果]')) {
+        const desc = this.extractRemarkSection(remark, '审批结果')
+        items.push({ title: desc.includes('驳回') ? '审批驳回' : '审批通过', desc, time: this.parseTime(this.detailData.updateTime || this.detailData.accountDate), type: desc.includes('驳回') ? 'danger' : 'success' })
+      }
+      return items
+    }
   },
   created() { this.applyRouteQuery(); this.getList() },
   watch: { '$route.query': { deep: true, handler() { this.applyRouteQuery() } } },
@@ -290,6 +311,9 @@ export default {
     handleDetail(row) {
       this.detailData = { ...row }
       this.detailDrawerVisible = true
+    },
+    showApprovalEntry(row) {
+      return row && row.status !== 'approving' && row.status !== 'approved'
     },
     openApprovalDrawer(row, applyType) {
       this.selectedRow = row
@@ -381,7 +405,9 @@ export default {
       delAccount(id).then(() => { this.$message.success('删除成功'); this.getList() })
     },
     getWarningMeta(row) {
-      if (!row || !row.accountDate || row.status === 'done') return { key: 'all', type: 'normal', label: '正常', tagType: 'info' }
+      if (!row) return { key: 'normal', label: '正常', tagType: 'success' }
+      if (row.status === 'approved' || row.status === 'done') return { key: 'normal', label: '正常', tagType: 'success' }
+      if (!row.accountDate) return { key: 'normal', label: '正常', tagType: 'success' }
       const target = new Date(row.accountDate)
       const today = new Date()
       const current = new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -391,18 +417,22 @@ export default {
       const prefix = receive ? '收款' : '付款'
       if (diff < 0) {
         const overdueDays = Math.abs(diff)
-        if (overdueDays <= 3) return { key: receive ? 'receive_overdue_3d' : 'pay_overdue_3d', type: 'overdue', label: `${prefix}逾期1-3天`, tagType: 'danger' }
-        if (overdueDays <= 7) return { key: receive ? 'receive_overdue_7d' : 'pay_overdue_7d', type: 'overdue', label: `${prefix}逾期4-7天`, tagType: 'danger' }
-        if (overdueDays <= 30) return { key: receive ? 'receive_overdue_30d' : 'pay_overdue_30d', type: 'overdue', label: `${prefix}逾期8-30天`, tagType: 'danger' }
-        return { key: receive ? 'receive_overdue_30p' : 'pay_overdue_30p', type: 'overdue', label: `${prefix}逾期30天+`, tagType: 'danger' }
+        if (overdueDays <= 3) return { key: receive ? 'receive_overdue_3d' : 'pay_overdue_3d', label: `${prefix}逾期1-3天`, tagType: 'danger' }
+        if (overdueDays <= 7) return { key: receive ? 'receive_overdue_7d' : 'pay_overdue_7d', label: `${prefix}逾期4-7天`, tagType: 'danger' }
+        if (overdueDays <= 30) return { key: receive ? 'receive_overdue_30d' : 'pay_overdue_30d', label: `${prefix}逾期8-30天`, tagType: 'danger' }
+        return { key: receive ? 'receive_overdue_30p' : 'pay_overdue_30p', label: `${prefix}逾期30天+`, tagType: 'danger' }
       }
-      if (diff === 0) return { key: receive ? 'receive_due_today' : 'pay_due_today', type: 'expiring', label: `${prefix}今日到期`, tagType: 'warning' }
-      if (diff === 1) return { key: receive ? 'receive_due_1d' : 'pay_due_1d', type: 'expiring', label: `${prefix}明日到期`, tagType: 'warning' }
-      if (diff <= 3) return { key: receive ? 'receive_due_3d' : 'pay_due_3d', type: 'expiring', label: `${prefix}2-3天内`, tagType: 'warning' }
-      if (diff <= 7) return { key: receive ? 'receive_due_7d' : 'pay_due_7d', type: 'expiring', label: `${prefix}4-7天内`, tagType: 'warning' }
-      if (diff <= 15) return { key: receive ? 'receive_due_15d' : 'pay_due_15d', type: 'expiring', label: `${prefix}8-15天内`, tagType: 'warning' }
-      if (diff <= 30) return { key: receive ? 'receive_due_30d' : 'pay_due_30d', type: 'expiring', label: `${prefix}16-30天内`, tagType: 'warning' }
-      return { key: 'all', type: 'normal', label: '正常', tagType: 'info' }
+      if (diff === 0) return { key: receive ? 'receive_due_today' : 'pay_due_today', label: `${prefix}今日到期`, tagType: 'warning' }
+      if (diff === 1) return { key: receive ? 'receive_due_1d' : 'pay_due_1d', label: `${prefix}明日到期`, tagType: 'warning' }
+      if (diff <= 3) return { key: receive ? 'receive_due_3d' : 'pay_due_3d', label: `${prefix}2-3天内`, tagType: 'warning' }
+      if (diff <= 7) return { key: receive ? 'receive_due_7d' : 'pay_due_7d', label: `${prefix}4-7天内`, tagType: 'warning' }
+      if (diff <= 15) return { key: receive ? 'receive_due_15d' : 'pay_due_15d', label: `${prefix}8-15天内`, tagType: 'warning' }
+      if (diff <= 30) return { key: receive ? 'receive_due_30d' : 'pay_due_30d', label: `${prefix}16-30天内`, tagType: 'warning' }
+      return { key: 'normal', label: '正常', tagType: 'success' }
+    },
+    extractRemarkSection(remark, tag) {
+      const match = remark.match(new RegExp(`\\[${tag}\\]([^；]+)`))
+      return match ? match[1].trim() : `${tag}记录`
     },
     formatAmount(v) { if (v === null || v === undefined || v === '') return '0.00'; const n = Number(v); return isNaN(n) ? v : n.toFixed(2) },
     parseTime(v) { if (!v) return '-'; const d = new Date(v); if (isNaN(d.getTime())) return v; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` },
@@ -454,8 +484,9 @@ export default {
 .detail-item, .summary-item { display: flex; flex-direction: column; padding: 14px 16px; background: #fff; border-radius: 14px; border: 1px solid #ebeef5; }
 .detail-item span, .summary-item span { font-size: 12px; color: #909399; margin-bottom: 6px; }
 .detail-item strong, .summary-item strong { color: #303133; word-break: break-all; }
-.detail-remark-card, .approval-form-card { border-radius: 16px; border: 1px solid #ebeef5; }
-.detail-remark-content { color: #606266; line-height: 1.8; white-space: pre-wrap; }
+.timeline-card, .detail-remark-card, .approval-form-card { border-radius: 16px; border: 1px solid #ebeef5; margin-bottom: 18px; }
+.timeline-item-title { font-weight: 700; color: #303133; margin-bottom: 4px; }
+.timeline-item-desc, .detail-remark-content { color: #606266; line-height: 1.8; white-space: pre-wrap; }
 .drawer-footer, .dialog-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 24px 20px; border-top: 1px solid #f0f2f5; background: #fff; }
 .danger-text { color: #f56c6c; }
 ::v-deep .beauty-dialog { .el-dialog { border-radius: 18px; overflow: hidden; } .el-dialog__header { padding: 20px 24px 10px; border-bottom: 1px solid #f0f2f5; } .el-dialog__title { font-size: 18px; font-weight: 700; color: #303133; } .el-dialog__body { padding: 20px 24px; background: #f7f9fc; } .el-dialog__footer { padding: 14px 24px 20px; border-top: 1px solid #f0f2f5; background: #fff; } }
