@@ -151,6 +151,7 @@ public class BizContractContentController extends BaseController
                 // 若依自带的 FileUploadUtils 支持传入完整路径
                 String filePath = FileUploadUtils.upload(contractDir, file);
                 entity.setContent(filePath); // 存的是相对路径，如 /contract/xxx.pdf
+                entity.setFile(filePath);    // 兼容旧页面/旧字段读取
             } catch (Exception e) {
                 return error("文件上传失败");
             }
@@ -338,13 +339,24 @@ public class BizContractContentController extends BaseController
         try {
             if (contentFiles != null && contentFiles.length > 0) {
                 List<String> contentPaths = new ArrayList<>();
+                if (StringUtils.isNotBlank(entity.getContent())) {
+                    try {
+                        contentPaths.addAll(JSON.parseArray(entity.getContent(), String.class));
+                    } catch (Exception ex) {
+                        contentPaths.addAll(Arrays.asList(entity.getContent().split(",")));
+                    }
+                } else if (StringUtils.isNotBlank(entity.getFile())) {
+                    contentPaths.add(entity.getFile());
+                }
                 for (MultipartFile file : contentFiles) {
                     if (file != null && !file.isEmpty()) {
                         contentPaths.add(FileUploadUtils.upload(contractDir, file));
                     }
                 }
+                contentPaths.removeIf(StringUtils::isBlank);
                 if (!contentPaths.isEmpty()) {
                     entity.setContent(contentPaths.size() == 1 ? contentPaths.get(0) : JSON.toJSONString(contentPaths));
+                    entity.setFile(contentPaths.get(0));
                 }
             }
 
