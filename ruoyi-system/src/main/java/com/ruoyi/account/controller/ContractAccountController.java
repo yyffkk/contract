@@ -153,8 +153,10 @@ public class ContractAccountController extends BaseController
     {
         Long id = Long.valueOf(payload.get("id").toString());
         String applyType = payload.get("applyType") == null ? null : payload.get("applyType").toString();
+        String approver = payload.get("approver") == null ? null : payload.get("approver").toString();
+        String handler = payload.get("handler") == null ? null : payload.get("handler").toString();
         String remark = payload.get("remark") == null ? null : payload.get("remark").toString();
-        return toAjax(contractAccountService.submitApproval(id, applyType, remark));
+        return toAjax(contractAccountService.submitApproval(id, applyType, approver, handler, remark));
     }
 
     /**

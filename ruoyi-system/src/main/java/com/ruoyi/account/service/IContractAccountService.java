@@ -76,7 +76,7 @@ public interface IContractAccountService
      * @param remark 审批说明
      * @return 结果
      */
-    public int submitApproval(Long id, String applyType, String remark);
+    public int submitApproval(Long id, String applyType, String approver, String handler, String remark);
 
     /**
      * 审批账款申请

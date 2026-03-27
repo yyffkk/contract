@@ -121,12 +121,14 @@
         <el-table-column label="单据号" prop="orderNo" width="140"/>
         <el-table-column label="关联合同编号" prop="relatedContractNumber" width="160"/>
         <el-table-column label="状态" width="120" align="center"><template slot-scope="scope"><el-tag :type="getAccountStatusType(scope.row.status)" size="small">{{ getAccountStatusLabel(scope.row.status) }}</el-tag></template></el-table-column>
+        <el-table-column label="当前节点" width="120" align="center"><template slot-scope="scope"><el-tag :type="getCurrentNodeMeta(scope.row).type" size="small">{{ getCurrentNodeMeta(scope.row).label }}</el-tag></template></el-table-column>
+        <el-table-column label="当前处理人" min-width="130" align="center"><template slot-scope="scope">{{ getCurrentNodeAssignee(scope.row) }}</template></el-table-column>
         <el-table-column label="操作" width="360" fixed="right" align="center" class-name="action-column">
           <template slot-scope="scope">
             <el-button size="mini" type="text" class="action-btn" @click="handleDetail(scope.row)">详情</el-button>
-            <el-button v-if="showApprovalEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row, scope.row.amountType === 'expense' ? 'pay' : 'receive')">去审批</el-button>
-            <el-button v-if="scope.row.status === 'approving'" size="mini" type="text" class="action-btn" @click="openApproveActionDialog(scope.row, 'agree')">通过</el-button>
-            <el-button v-if="scope.row.status === 'approving'" size="mini" type="text" class="action-btn danger-text" @click="openApproveActionDialog(scope.row, 'reject')">驳回</el-button>
+            <el-button v-if="showApprovalEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row, scope.row.amountType === 'expense' ? 'pay' : 'receive')">发起审批</el-button>
+            <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn" @click="openApproveActionDialog(scope.row, 'agree')">通过</el-button>
+            <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn danger-text" @click="openApproveActionDialog(scope.row, 'reject')">驳回</el-button>
             <el-button size="mini" type="text" class="action-btn danger-text" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
@@ -179,7 +181,7 @@
       <div class="approval-drawer-body" v-if="selectedRow">
         <div class="approval-header-card">
           <div class="approval-header-title">{{ selectedApplyType === 'pay' ? '付款审批流程' : '收款审批流程' }}</div>
-          <div class="approval-header-desc">提交后状态将流转为“审批中”，审批人可继续通过或驳回。</div>
+          <div class="approval-header-desc">按钉钉式流程流转：发起申请 → 直接主管 → 审批人 → 办理人。</div>
         </div>
         <div class="approval-summary">
           <div class="summary-item"><span>合同</span><strong>{{ selectedRow.relatedContractName || '-' }}</strong></div>
@@ -188,6 +190,15 @@
           <div class="summary-item"><span>类型</span><strong>{{ selectedApplyType === 'pay' ? '付款申请' : '收款申请' }}</strong></div>
         </div>
         <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="90px" class="approval-form-card">
+          <el-form-item label="直接主管">
+            <el-input :value="approvalForm.directLeaderDisplay || '提交后自动带出'" disabled />
+          </el-form-item>
+          <el-form-item label="审批人" prop="approver">
+            <el-input v-model="approvalForm.approver" placeholder="请输入系统用户名，如 zhangsan" />
+          </el-form-item>
+          <el-form-item label="办理人" prop="handler">
+            <el-input v-model="approvalForm.handler" placeholder="请输入系统用户名，如 lisi" />
+          </el-form-item>
           <el-form-item label="审批说明" prop="remark">
             <el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="请输入审批说明、付款依据或收款说明" />
           </el-form-item>
@@ -217,6 +228,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex'
 import { listAccount, delAccount, importAccount, downloadAccountTemplate, submitAccountApproval, approveAccount } from '@/api/account/account'
 
 export default {
@@ -231,12 +243,17 @@ export default {
       approvalDrawerVisible: false, approvalDrawerTitle: '提交审批申请',
       approveActionDialogVisible: false, approveActionTitle: '审批操作',
       importLoading: false, downloadLoading: false, submitLoading: false,
-      approvalForm: { remark: '' },
+      approvalForm: { directLeaderDisplay: '', approver: '', handler: '', remark: '' },
       approveActionForm: { remark: '' },
-      approvalRules: { remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }] }
+      approvalRules: {
+        approver: [{ required: true, message: '请输入审批人用户名', trigger: 'blur' }],
+        handler: [{ required: true, message: '请输入办理人用户名', trigger: 'blur' }],
+        remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }]
+      }
     }
   },
   computed: {
+    ...mapGetters(['name', 'nickName']),
     scopeFilterLabel() { return { mine: '我的', dept: '我部门的', all: '所有的' }[this.scopeFilter] },
     warningTypeLabel() { return { all: '全部', receive_overdue: '收款已逾期', receive_overdue_3d: '收款逾期1-3天', receive_overdue_7d: '收款逾期4-7天', receive_overdue_30d: '收款逾期8-30天', receive_overdue_30p: '收款逾期30天以上', pay_overdue: '付款已逾期', pay_overdue_3d: '付款逾期1-3天', pay_overdue_7d: '付款逾期4-7天', pay_overdue_30d: '付款逾期8-30天', pay_overdue_30p: '付款逾期30天以上', receive_due_today: '收款今日到期', receive_due_1d: '收款明日到期', receive_due_3d: '收款2-3天内到期', receive_due_7d: '收款4-7天内到期', receive_due_15d: '收款8-15天内到期', receive_due_30d: '收款16-30天内到期', pay_due_today: '付款今日到期', pay_due_1d: '付款明日到期', pay_due_3d: '付款2-3天内到期', pay_due_7d: '付款4-7天内到期', pay_due_15d: '付款8-15天内到期', pay_due_30d: '付款16-30天内到期', normal: '正常' }[this.warningType] },
     approvalTimeline() {
@@ -246,8 +263,11 @@ export default {
       items.push({ title: '创建账款', desc: '账款记录已创建', time: this.parseTime(this.detailData.createTime || this.detailData.accountDate), type: 'primary' })
       if (remark.includes('[审批申请]')) items.push({ title: '提交审批', desc: this.extractRemarkSection(remark, '审批申请'), time: this.parseTime(this.detailData.updateTime || this.detailData.accountDate), type: 'warning' })
       if (remark.includes('[审批结果]')) {
-        const desc = this.extractRemarkSection(remark, '审批结果')
-        items.push({ title: desc.includes('驳回') ? '审批驳回' : '审批通过', desc, time: this.parseTime(this.detailData.updateTime || this.detailData.accountDate), type: desc.includes('驳回') ? 'danger' : 'success' })
+        const pieces = remark.split('；').filter(item => item.includes('[审批结果]'))
+        pieces.forEach(piece => {
+          const desc = piece.replace('[审批结果]', '').trim()
+          items.push({ title: desc.includes('驳回') ? '审批驳回' : '审批通过', desc, time: this.parseTime(this.detailData.updateTime || this.detailData.accountDate), type: desc.includes('驳回') ? 'danger' : 'success' })
+        })
       }
       return items
     }
@@ -315,11 +335,31 @@ export default {
     showApprovalEntry(row) {
       return row && row.status !== 'approving' && row.status !== 'approved'
     },
+    canHandleCurrentNode(row) {
+      if (!row || row.status !== 'approving') return false
+      const assignee = this.getCurrentNodeAssigneeUserName(row)
+      return !!assignee && [this.name, this.nickName].includes(assignee)
+    },
+    getCurrentNodeAssigneeUserName(row) {
+      if (!row) return ''
+      if (row.currentApprovalNode === 'directLeader') return row.directLeader || ''
+      if (row.currentApprovalNode === 'approver') return row.approver || ''
+      if (row.currentApprovalNode === 'handler') return row.handler || ''
+      return ''
+    },
+    getCurrentNodeAssignee(row) {
+      const assignee = this.getCurrentNodeAssigneeUserName(row)
+      return assignee || '-'
+    },
+    getCurrentNodeMeta(row) {
+      const node = row && row.currentApprovalNode
+      return ({ directLeader: { label: '直接主管', type: 'warning' }, approver: { label: '审批人', type: 'warning' }, handler: { label: '办理人', type: 'primary' }, finished: { label: '已完成', type: 'success' }, rejected: { label: '已驳回', type: 'danger' } })[node] || { label: '-', type: 'info' }
+    },
     openApprovalDrawer(row, applyType) {
       this.selectedRow = row
       this.selectedApplyType = applyType
       this.approvalDrawerTitle = applyType === 'pay' ? '提交付款审批' : '提交收款审批'
-      this.approvalForm = { remark: '' }
+      this.approvalForm = { directLeaderDisplay: '提交后自动匹配当前登录人的直接主管', approver: row.approver || '', handler: row.handler || '', remark: '' }
       this.approvalDrawerVisible = true
       this.$nextTick(() => { this.$refs.approvalForm && this.$refs.approvalForm.clearValidate() })
     },
@@ -327,7 +367,7 @@ export default {
       this.$refs.approvalForm.validate(valid => {
         if (!valid || !this.selectedRow) return
         this.submitLoading = true
-        submitAccountApproval({ id: this.selectedRow.id, applyType: this.selectedApplyType, remark: this.approvalForm.remark }).then(() => {
+        submitAccountApproval({ id: this.selectedRow.id, applyType: this.selectedApplyType, approver: this.approvalForm.approver, handler: this.approvalForm.handler, remark: this.approvalForm.remark }).then(() => {
           this.$message.success(this.selectedApplyType === 'pay' ? '付款审批已提交' : '收款审批已提交')
           this.approvalDrawerVisible = false
           this.getList()
