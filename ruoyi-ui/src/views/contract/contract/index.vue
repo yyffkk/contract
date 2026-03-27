@@ -3846,6 +3846,10 @@ export default {
 
   ::v-deep .el-drawer__body {
     background: #f7f9fc;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 }
 
