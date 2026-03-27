@@ -2491,6 +2491,7 @@ export default {
       api(id)
         .then(res => {
           this.editForm = res.data || {};
+          this.detailUploadForm = { contentFiles: [], attachmentFiles: [] };
           this.editDrawerVisible = true;
         })
         .catch(() => {
@@ -2526,12 +2527,19 @@ export default {
             this.detailUploadForm.contentFiles.forEach(file => formData.append('contentFiles', file.raw));
             this.detailUploadForm.attachmentFiles.forEach(file => formData.append('attachmentFiles', file.raw));
             this.detailUploadLoading = true;
-            await uploadContractDetailFiles(formData);
+            const uploadResp = await uploadContractDetailFiles(formData);
+            if (uploadResp && uploadResp.data) {
+              this.editForm = { ...this.editForm, ...uploadResp.data };
+            }
           }
           this.$message.success("修改成功");
           this.editDrawerVisible = false;
           this.detailUploadForm = { contentFiles: [], attachmentFiles: [] };
-          this.getList();
+          await this.getList();
+          if (this.isApproval && (this.editForm.id || this.editForm.contractId)) {
+            const currentId = this.editForm.id || this.editForm.contractId;
+            this.currentDetail = { ...this.currentDetail, ...this.editForm, id: currentId, contractId: currentId };
+          }
         } catch (e) {
           this.$message.error("修改失败：" + ((e && (e.msg || e.message)) || "请稍后重试"));
         } finally {
@@ -3054,9 +3062,12 @@ export default {
 
       this.detailUploadLoading = true;
       try {
-        await uploadContractDetailFiles(formData);
+        const uploadResp = await uploadContractDetailFiles(formData);
         this.$message.success('文件上传成功');
         this.detailUploadForm = { contentFiles: [], attachmentFiles: [] };
+        if (uploadResp && uploadResp.data) {
+          this.currentDetail = { ...this.currentDetail, ...uploadResp.data, id: contractId, contractId };
+        }
         await this.handleDetail(this.currentDetail);
       } catch (e) {
         this.$message.error('文件上传失败：' + ((e && (e.msg || e.message)) || '请稍后重试'));
