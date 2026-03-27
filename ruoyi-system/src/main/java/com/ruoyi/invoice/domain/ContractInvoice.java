@@ -188,8 +188,14 @@ public class ContractInvoice extends BaseEntity
     public String getRelatedContractNumber() { return relatedContractNumber; }
     public void setApprovalStatus(String approvalStatus) { this.approvalStatus = approvalStatus; }
     public String getApprovalStatus() { return approvalStatus; }
+    public void setDirectLeader(String directLeader) { this.directLeader = directLeader; }
+    public String getDirectLeader() { return directLeader; }
     public void setApprover(String approver) { this.approver = approver; }
     public String getApprover() { return approver; }
+    public void setHandler(String handler) { this.handler = handler; }
+    public String getHandler() { return handler; }
+    public void setCurrentApprovalNode(String currentApprovalNode) { this.currentApprovalNode = currentApprovalNode; }
+    public String getCurrentApprovalNode() { return currentApprovalNode; }
     public void setCc(String cc) { this.cc = cc; }
     public String getCc() { return cc; }
     public void setSubmitter(String submitter) { this.submitter = submitter; }
@@ -223,7 +229,10 @@ public class ContractInvoice extends BaseEntity
             .append("relatedContractName", getRelatedContractName())
             .append("relatedContractNumber", getRelatedContractNumber())
             .append("approvalStatus", getApprovalStatus())
+            .append("directLeader", getDirectLeader())
             .append("approver", getApprover())
+            .append("handler", getHandler())
+            .append("currentApprovalNode", getCurrentApprovalNode())
             .append("cc", getCc())
             .append("submitter", getSubmitter())
             .append("submitTime", getSubmitTime())

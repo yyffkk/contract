@@ -70,9 +70,9 @@
       <el-table-column label="操作" align="center" fixed="right" width="320">
         <template slot-scope="scope">
           <el-button size="mini" type="text" class="action-btn" @click="handleDetail(scope.row)">详情</el-button>
-          <el-button v-if="showApprovalEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row)">去审批</el-button>
-          <el-button v-if="scope.row.approvalStatus === 'pending'" size="mini" type="text" class="action-btn" @click="openApproveDialog(scope.row, 'agree')">通过</el-button>
-          <el-button v-if="scope.row.approvalStatus === 'pending'" size="mini" type="text" class="action-btn danger-text" @click="openApproveDialog(scope.row, 'reject')">驳回</el-button>
+          <el-button v-if="showApprovalEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row)">发起审批</el-button>
+          <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn" @click="openApproveDialog(scope.row, 'agree')">通过</el-button>
+          <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn danger-text" @click="openApproveDialog(scope.row, 'reject')">驳回</el-button>
           <el-button v-if="showReturnEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openReturnDialog(scope.row)">登记归还</el-button>
           <el-button size="mini" type="text" class="action-btn danger-text" @click="handleDelete(scope.row)">删除</el-button>
         </template>
@@ -178,7 +178,7 @@
       <div class="approval-drawer-body" v-if="selectedRow">
         <div class="approval-header-card">
           <div class="approval-header-title">合同借阅审批</div>
-          <div class="approval-header-desc">提交审批后，借阅单进入审批中；审批通过后正式进入借阅中。</div>
+          <div class="approval-header-desc">按钉钉式流程流转：申请人 → 直接主管 → 审批人 → 办理人。</div>
         </div>
         <div class="approval-summary">
           <div class="summary-item"><span>合同</span><strong>{{ selectedRow.contractName || '-' }}</strong></div>
@@ -187,6 +187,11 @@
           <div class="summary-item"><span>预计归还</span><strong>{{ parseDate(selectedRow.expectedReturnDate) }}</strong></div>
         </div>
         <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="90px" class="approval-form-card">
+          <el-form-item label="直接主管">
+            <el-input :value="approvalForm.directLeaderDisplay || '提交后自动匹配'" disabled />
+          </el-form-item>
+          <el-form-item label="审批人" prop="approver"><el-input v-model="approvalForm.approver" placeholder="请输入系统用户名，如 zhangsan" /></el-form-item>
+          <el-form-item label="办理人" prop="handler"><el-input v-model="approvalForm.handler" placeholder="请输入系统用户名，如 lisi" /></el-form-item>
           <el-form-item label="审批说明" prop="remark"><el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="请输入审批说明" /></el-form-item>
         </el-form>
       </div>
@@ -242,7 +247,7 @@ export default {
       contractQueryParams: { pageNum: 1, pageSize: 10, contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' },
       selectedContractId: null, selectedContract: null,
       detailDrawerVisible: false, detailData: null,
-      approvalDrawerVisible: false, approvalDrawerTitle: '提交借阅审批', approvalForm: { remark: '' }, approvalRules: { remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }] },
+      approvalDrawerVisible: false, approvalDrawerTitle: '提交借阅审批', approvalForm: { directLeaderDisplay: '', approver: '', handler: '', remark: '' }, approvalRules: { approver: [{ required: true, message: '请输入审批人', trigger: 'blur' }], handler: [{ required: true, message: '请输入办理人', trigger: 'blur' }], remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }] },
       approveActionDialogVisible: false, approveActionTitle: '审批操作', selectedApproveAction: 'agree', approveActionForm: { remark: '' },
       returnDialogVisible: false, returnForm: { remark: '' }, returnRules: { remark: [{ required: true, message: '请输入归还说明', trigger: 'blur' }] },
       selectedRow: null
@@ -351,13 +356,25 @@ export default {
       })
     },
     showApprovalEntry(row) { return row && row.approvalStatus !== 'pending' && row.approvalStatus !== 'approved' },
+    getCurrentNodeUser(row) {
+      if (!row) return ''
+      if (row.currentApprovalNode === 'directLeader') return row.directLeader || ''
+      if (row.currentApprovalNode === 'approver') return row.approver || ''
+      if (row.currentApprovalNode === 'handler') return row.handler || ''
+      return ''
+    },
+    canHandleCurrentNode(row) {
+      if (!row || row.approvalStatus !== 'pending') return false
+      const currentUser = this.$store && this.$store.getters ? this.$store.getters.name : ''
+      return !!currentUser && this.getCurrentNodeUser(row) === currentUser
+    },
     showReturnEntry(row) {
       const statusKey = this.getBorrowStatusMeta(row).key
       return row && row.approvalStatus === 'approved' && (statusKey === 'borrowing' || statusKey === 'overdue')
     },
     openApprovalDrawer(row) {
       this.selectedRow = row
-      this.approvalForm = { remark: '' }
+      this.approvalForm = { directLeaderDisplay: '提交后自动匹配当前登录人的直接主管', approver: row.approver || '', handler: row.handler || '', remark: '' }
       this.approvalDrawerVisible = true
       this.$nextTick(() => { this.$refs.approvalForm && this.$refs.approvalForm.clearValidate() })
     },
@@ -365,7 +382,7 @@ export default {
       this.$refs.approvalForm.validate(valid => {
         if (!valid || !this.selectedRow) return
         this.submitLoading = true
-        submitBorrowApproval({ id: this.selectedRow.id, remark: this.approvalForm.remark }).then(() => {
+        submitBorrowApproval({ id: this.selectedRow.id, approver: this.approvalForm.approver, handler: this.approvalForm.handler, remark: this.approvalForm.remark }).then(() => {
           this.$message.success('借阅审批已提交')
           this.approvalDrawerVisible = false
           this.getList()

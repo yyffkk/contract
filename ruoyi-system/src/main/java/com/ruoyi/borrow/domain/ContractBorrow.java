@@ -271,6 +271,15 @@ public class ContractBorrow extends BaseEntity
         return delFlag;
     }
 
+    public void setDirectLeader(String directLeader) { this.directLeader = directLeader; }
+    public String getDirectLeader() { return directLeader; }
+    public void setApprover(String approver) { this.approver = approver; }
+    public String getApprover() { return approver; }
+    public void setHandler(String handler) { this.handler = handler; }
+    public String getHandler() { return handler; }
+    public void setCurrentApprovalNode(String currentApprovalNode) { this.currentApprovalNode = currentApprovalNode; }
+    public String getCurrentApprovalNode() { return currentApprovalNode; }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -296,6 +305,10 @@ public class ContractBorrow extends BaseEntity
             .append("createTime", getCreateTime())
             .append("updateBy", getUpdateBy())
             .append("updateTime", getUpdateTime())
+            .append("directLeader", getDirectLeader())
+            .append("approver", getApprover())
+            .append("handler", getHandler())
+            .append("currentApprovalNode", getCurrentApprovalNode())
             .append("delFlag", getDelFlag())
             .toString();
     }

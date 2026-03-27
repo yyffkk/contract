@@ -69,6 +69,18 @@ public class ContractAccount extends BaseEntity
     /** 删除标志（0代表存在 2代表删除） */
     private String delFlag;
 
+    /** 直接主管 */
+    private String directLeader;
+
+    /** 审批人 */
+    private String approver;
+
+    /** 办理人 */
+    private String handler;
+
+    /** 当前审批节点 */
+    private String currentApprovalNode;
+
     /** 查询：主体名称 */
     private String partyName;
 
@@ -205,6 +217,15 @@ public class ContractAccount extends BaseEntity
         return delFlag;
     }
 
+    public void setDirectLeader(String directLeader) { this.directLeader = directLeader; }
+    public String getDirectLeader() { return directLeader; }
+    public void setApprover(String approver) { this.approver = approver; }
+    public String getApprover() { return approver; }
+    public void setHandler(String handler) { this.handler = handler; }
+    public String getHandler() { return handler; }
+    public void setCurrentApprovalNode(String currentApprovalNode) { this.currentApprovalNode = currentApprovalNode; }
+    public String getCurrentApprovalNode() { return currentApprovalNode; }
+
     public void setPartyName(String partyName)
     {
         this.partyName = partyName;
@@ -245,6 +266,10 @@ public class ContractAccount extends BaseEntity
             .append("createTime", getCreateTime())
             .append("updateBy", getUpdateBy())
             .append("updateTime", getUpdateTime())
+            .append("directLeader", getDirectLeader())
+            .append("approver", getApprover())
+            .append("handler", getHandler())
+            .append("currentApprovalNode", getCurrentApprovalNode())
             .append("delFlag", getDelFlag())
             .toString();
     }

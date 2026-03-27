@@ -23,10 +23,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"    column="update_by"    />
         <result property="updateTime"    column="update_time"    />
         <result property="delFlag"    column="del_flag"    />
+        <result property="directLeader"    column="direct_leader"    />
+        <result property="approver"    column="approver"    />
+        <result property="handler"    column="handler"    />
+        <result property="currentApprovalNode"    column="current_approval_node"    />
     </resultMap>
 
     <sql id="selectContractAccountVo">
-        select id, contract_id, account_name, account_date, amount, amount_type, order_no, our_party, other_party, related_contract_name, related_contract_number, remark, status, create_by, create_time, update_by, update_time, del_flag from contract_account
+        select id, contract_id, account_name, account_date, amount, amount_type, order_no, our_party, other_party, related_contract_name, related_contract_number, remark, status, create_by, create_time, update_by, update_time, del_flag, direct_leader, approver, handler, current_approval_node from contract_account
     </sql>
 
     <select id="selectContractAccountList" parameterType="ContractAccount" resultMap="ContractAccountResult">
@@ -99,6 +103,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">update_by,</if>
             <if test="updateTime != null">update_time,</if>
             <if test="delFlag != null">del_flag,</if>
+            <if test="directLeader != null">direct_leader,</if>
+            <if test="approver != null">approver,</if>
+            <if test="handler != null">handler,</if>
+            <if test="currentApprovalNode != null">current_approval_node,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="contractId != null">#{contractId},</if>
@@ -118,6 +126,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updateTime != null">#{updateTime},</if>
             <if test="delFlag != null">#{delFlag},</if>
+            <if test="directLeader != null">#{directLeader},</if>
+            <if test="approver != null">#{approver},</if>
+            <if test="handler != null">#{handler},</if>
+            <if test="currentApprovalNode != null">#{currentApprovalNode},</if>
          </trim>
     </insert>
 
@@ -141,6 +153,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">update_by = #{updateBy},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
             <if test="delFlag != null">del_flag = #{delFlag},</if>
+            direct_leader = #{directLeader},
+            approver = #{approver},
+            handler = #{handler},
+            current_approval_node = #{currentApprovalNode},
         </trim>
         where id = #{id}
     </update>
@@ -158,10 +174,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <insert id="batchInsertContractAccount">
         insert into contract_account
-        (contract_id, account_name, account_date, amount, amount_type, order_no, our_party, other_party, related_contract_name, related_contract_number, remark, status, create_by, create_time, update_by, update_time, del_flag)
+        (contract_id, account_name, account_date, amount, amount_type, order_no, our_party, other_party, related_contract_name, related_contract_number, remark, status, create_by, create_time, update_by, update_time, del_flag, direct_leader, approver, handler, current_approval_node)
         values
         <foreach collection="list" item="item" separator=",">
-            (#{item.contractId}, #{item.accountName}, #{item.accountDate}, #{item.amount}, #{item.amountType}, #{item.orderNo}, #{item.ourParty}, #{item.otherParty}, #{item.relatedContractName}, #{item.relatedContractNumber}, #{item.remark}, #{item.status}, #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime}, #{item.delFlag})
+            (#{item.contractId}, #{item.accountName}, #{item.accountDate}, #{item.amount}, #{item.amountType}, #{item.orderNo}, #{item.ourParty}, #{item.otherParty}, #{item.relatedContractName}, #{item.relatedContractNumber}, #{item.remark}, #{item.status}, #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime}, #{item.delFlag}, #{item.directLeader}, #{item.approver}, #{item.handler}, #{item.currentApprovalNode})
         </foreach>
     </insert>
 </mapper>

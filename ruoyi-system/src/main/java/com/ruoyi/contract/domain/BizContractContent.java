@@ -60,7 +60,9 @@ public class BizContractContent extends BaseEntity
     private Date signDate;
 
     private String sealType;
+    private String directLeader;
     private String approver;
+    private String currentApprovalNode;
     private String cc;
     private String file;
     private String attachments;
@@ -260,12 +262,28 @@ public class BizContractContent extends BaseEntity
         return sealType;
     }
 
+    public void setDirectLeader(String directLeader) {
+        this.directLeader = directLeader;
+    }
+
+    public String getDirectLeader() {
+        return directLeader;
+    }
+
     public void setApprover(String approver) {
         this.approver = approver;
     }
 
     public String getApprover() {
         return approver;
+    }
+
+    public void setCurrentApprovalNode(String currentApprovalNode) {
+        this.currentApprovalNode = currentApprovalNode;
+    }
+
+    public String getCurrentApprovalNode() {
+        return currentApprovalNode;
     }
 
     public void setCc(String cc) {
@@ -601,7 +619,9 @@ public class BizContractContent extends BaseEntity
                 .append("signMethod", getSignMethod())
                 .append("signDate", getSignDate())
                 .append("sealType", getSealType())
+                .append("directLeader", getDirectLeader())
                 .append("approver", getApprover())
+                .append("currentApprovalNode", getCurrentApprovalNode())
                 .append("cc", getCc())
                 .append("file", getFile())
                 .append("attachments", getAttachments())

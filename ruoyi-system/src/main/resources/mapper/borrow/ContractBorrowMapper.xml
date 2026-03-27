@@ -28,10 +28,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"    column="update_by"    />
         <result property="updateTime"    column="update_time"    />
         <result property="delFlag"    column="del_flag"    />
+        <result property="directLeader"    column="direct_leader"    />
+        <result property="approver"    column="approver"    />
+        <result property="handler"    column="handler"    />
+        <result property="currentApprovalNode"    column="current_approval_node"    />
     </resultMap>
 
     <sql id="selectContractBorrowVo">
-        select id, contract_id, borrow_no, borrower, borrow_department, borrow_date, expected_return_date, actual_return_date, borrow_reason, contract_name, contract_number, contract_type, contract_amount, our_party, other_party, status, approval_status, remark, create_by, create_time, update_by, update_time, del_flag from contract_borrow
+        select id, contract_id, borrow_no, borrower, borrow_department, borrow_date, expected_return_date, actual_return_date, borrow_reason, contract_name, contract_number, contract_type, contract_amount, our_party, other_party, status, approval_status, remark, create_by, create_time, update_by, update_time, del_flag, direct_leader, approver, handler, current_approval_node from contract_borrow
     </sql>
 
     <select id="selectContractBorrowList" parameterType="ContractBorrow" resultMap="ContractBorrowResult">
@@ -86,6 +90,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">update_by,</if>
             <if test="updateTime != null">update_time,</if>
             <if test="delFlag != null">del_flag,</if>
+            <if test="directLeader != null">direct_leader,</if>
+            <if test="approver != null">approver,</if>
+            <if test="handler != null">handler,</if>
+            <if test="currentApprovalNode != null">current_approval_node,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="contractId != null">#{contractId},</if>
@@ -110,6 +118,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updateTime != null">#{updateTime},</if>
             <if test="delFlag != null">#{delFlag},</if>
+            <if test="directLeader != null">#{directLeader},</if>
+            <if test="approver != null">#{approver},</if>
+            <if test="handler != null">#{handler},</if>
+            <if test="currentApprovalNode != null">#{currentApprovalNode},</if>
          </trim>
     </insert>
 
@@ -138,6 +150,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">update_by = #{updateBy},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
             <if test="delFlag != null">del_flag = #{delFlag},</if>
+            direct_leader = #{directLeader},
+            approver = #{approver},
+            handler = #{handler},
+            current_approval_node = #{currentApprovalNode},
         </trim>
         where id = #{id}
     </update>

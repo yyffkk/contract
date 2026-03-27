@@ -30,7 +30,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="relatedContractName" column="related_contract_name" />
         <result property="relatedContractNumber" column="related_contract_number" />
         <result property="approvalStatus" column="approval_status" />
+        <result property="directLeader" column="direct_leader" />
         <result property="approver" column="approver" />
+        <result property="handler" column="handler" />
+        <result property="currentApprovalNode" column="current_approval_node" />
         <result property="cc" column="cc" />
         <result property="submitter" column="submitter" />
         <result property="submitTime" column="submit_time" />
@@ -46,7 +49,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <sql id="selectContractInvoiceVo">
         select li.id, li.contract_id, li.invoice_code, li.invoice_number, li.invoice_date, li.invoice_amount, li.invoice_type, li.invoice_status,
                li.tax_rate, li.tax_amount, li.purchaser_name, li.purchaser_tax_no, li.seller_name, li.seller_tax_no,
-               li.related_contract_name, li.related_contract_number, li.approval_status, li.approver, li.cc, li.submitter, li.submit_time, li.approve_time,
+               li.related_contract_name, li.related_contract_number, li.approval_status, li.direct_leader, li.approver, li.handler, li.current_approval_node, li.cc, li.submitter, li.submit_time, li.approve_time,
                li.remark, li.create_by, li.create_time, li.update_by, li.update_time, li.del_flag,
                c.other_party_name as counterparty_name,
                coalesce(c.submitter, c.owner, li.create_by) as initiator,
@@ -117,7 +120,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="relatedContractName != null">related_contract_name,</if>
             <if test="relatedContractNumber != null">related_contract_number,</if>
             <if test="approvalStatus != null">approval_status,</if>
+            <if test="directLeader != null">direct_leader,</if>
             <if test="approver != null">approver,</if>
+            <if test="handler != null">handler,</if>
+            <if test="currentApprovalNode != null">current_approval_node,</if>
             <if test="cc != null">cc,</if>
             <if test="submitter != null">submitter,</if>
             <if test="submitTime != null">submit_time,</if>
@@ -146,7 +152,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="relatedContractName != null">#{relatedContractName},</if>
             <if test="relatedContractNumber != null">#{relatedContractNumber},</if>
             <if test="approvalStatus != null">#{approvalStatus},</if>
+            <if test="directLeader != null">#{directLeader},</if>
             <if test="approver != null">#{approver},</if>
+            <if test="handler != null">#{handler},</if>
+            <if test="currentApprovalNode != null">#{currentApprovalNode},</if>
             <if test="cc != null">#{cc},</if>
             <if test="submitter != null">#{submitter},</if>
             <if test="submitTime != null">#{submitTime},</if>
@@ -179,7 +188,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="relatedContractName != null">related_contract_name = #{relatedContractName},</if>
             <if test="relatedContractNumber != null">related_contract_number = #{relatedContractNumber},</if>
             <if test="approvalStatus != null">approval_status = #{approvalStatus},</if>
+            direct_leader = #{directLeader},
             approver = #{approver},
+            handler = #{handler},
+            current_approval_node = #{currentApprovalNode},
             cc = #{cc},
             submitter = #{submitter},
             submit_time = #{submitTime},

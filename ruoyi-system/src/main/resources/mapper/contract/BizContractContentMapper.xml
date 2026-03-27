@@ -23,7 +23,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="signMethod"    column="sign_method"    />
         <result property="signDate"    column="sign_date"    />
         <result property="sealType"    column="seal_type"    />
+        <result property="directLeader"    column="direct_leader"    />
         <result property="approver"    column="approver"    />
+        <result property="currentApprovalNode"    column="current_approval_node"    />
         <result property="cc"    column="cc"    />
         <result property="file"    column="file"    />
         <result property="attachments"    column="attachments"    />
@@ -68,7 +70,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectBizContractContentVo">
-        select id, contract_name, contract_number, category, number_mode, amount_type, total_amount, term_type, archiver, cooperators, description, my_party_name, my_contact, other_party_name, other_contact, sign_method, sign_date, seal_type, approver, cc, file, attachments, owner, content, sign_status, performance_status, start_date, end_date, apply_time, submitter, payment_progress, received_paid, pending_received_paid, invoicing_progress, issued_received, pending_issued_received, control_group, source, sign_remarks, archive_remarks, proxy_submitter, department, archive_file, archive_time, account_status, invoice_status, approval_number, project, approve_pass_time, borrow_status, archive_id, archive_approval_number, comment_mentioned, comment_count, other_payment_amount, other_receipt_amount, total_amount_calculation_method, create_time, update_time, del_flag from biz_contract_content
+        select id, contract_name, contract_number, category, number_mode, amount_type, total_amount, term_type, archiver, cooperators, description, my_party_name, my_contact, other_party_name, other_contact, sign_method, sign_date, seal_type, direct_leader, approver, current_approval_node, cc, file, attachments, owner, content, sign_status, performance_status, start_date, end_date, apply_time, submitter, payment_progress, received_paid, pending_received_paid, invoicing_progress, issued_received, pending_issued_received, control_group, source, sign_remarks, archive_remarks, proxy_submitter, department, archive_file, archive_time, account_status, invoice_status, approval_number, project, approve_pass_time, borrow_status, archive_id, archive_approval_number, comment_mentioned, comment_count, other_payment_amount, other_receipt_amount, total_amount_calculation_method, create_time, update_time, del_flag from biz_contract_content
     </sql>
 
     <select id="selectBizContractContentList" parameterType="BizContractContent" resultMap="BizContractContentResult">
