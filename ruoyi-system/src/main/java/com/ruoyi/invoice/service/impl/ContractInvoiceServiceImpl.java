@@ -2,6 +2,7 @@ package com.ruoyi.invoice.service.impl;
 
 import java.util.List;
 import com.ruoyi.common.utils.DateUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.ruoyi.invoice.mapper.ContractInvoiceMapper;
@@ -92,5 +93,91 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
     public int deleteContractInvoiceById(Long id)
     {
         return contractInvoiceMapper.deleteContractInvoiceById(id);
+    }
+
+    @Override
+    public String importContractInvoice(List<ContractInvoice> invoiceList, String operName)
+    {
+        if (invoiceList == null || invoiceList.isEmpty())
+        {
+            return "导入失败：发票数据不能为空！";
+        }
+        int successNum = 0;
+        int failureNum = 0;
+        StringBuilder failureMsg = new StringBuilder();
+        for (ContractInvoice invoice : invoiceList)
+        {
+            try
+            {
+                normalizeInvoice(invoice);
+                invoice.setCreateBy(operName);
+                invoice.setCreateTime(DateUtils.getNowDate());
+                invoice.setDelFlag("0");
+                contractInvoiceMapper.insertContractInvoice(invoice);
+                successNum++;
+            }
+            catch (Exception e)
+            {
+                failureNum++;
+                failureMsg.append("<br/>第").append(successNum + failureNum).append("条导入失败：")
+                        .append(e.getMessage());
+            }
+        }
+        if (failureNum > 0)
+        {
+            failureMsg.insert(0, "很抱歉，导入成功 " + successNum + " 条，失败 " + failureNum + " 条，错误如下：");
+            return failureMsg.toString();
+        }
+        return "恭喜您，数据已全部导入成功！共 " + successNum + " 条。";
+    }
+
+    private void normalizeInvoice(ContractInvoice invoice)
+    {
+        if (invoice == null)
+        {
+            return;
+        }
+        if (StringUtils.isBlank(invoice.getInvoiceType()))
+        {
+            invoice.setInvoiceType("normal");
+        }
+        else if ("增值税专用发票".equals(invoice.getInvoiceType()))
+        {
+            invoice.setInvoiceType("vat");
+        }
+        else if ("普通发票".equals(invoice.getInvoiceType()))
+        {
+            invoice.setInvoiceType("normal");
+        }
+
+        if (StringUtils.isBlank(invoice.getInvoiceStatus()))
+        {
+            invoice.setInvoiceStatus("invoiced");
+        }
+        else if ("未开票".equals(invoice.getInvoiceStatus()))
+        {
+            invoice.setInvoiceStatus("no_invoice");
+        }
+        else if ("已开票".equals(invoice.getInvoiceStatus()))
+        {
+            invoice.setInvoiceStatus("invoiced");
+        }
+        else if ("已作废".equals(invoice.getInvoiceStatus()))
+        {
+            invoice.setInvoiceStatus("voided");
+        }
+
+        if (StringUtils.isBlank(invoice.getAmountType()))
+        {
+            invoice.setAmountType("收入");
+        }
+        else if ("进项".equals(invoice.getAmountType()))
+        {
+            invoice.setAmountType("支出");
+        }
+        else if ("销项".equals(invoice.getAmountType()))
+        {
+            invoice.setAmountType("收入");
+        }
     }
 }

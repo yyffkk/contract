@@ -53,6 +53,8 @@
     <div class="toolbar">
       <div class="toolbar-left">
         <el-button type="primary" icon="el-icon-plus" @click="handleAddInvoice">录发票</el-button>
+        <el-button type="success" plain icon="el-icon-upload2" @click="handleImport">导入</el-button>
+        <el-button plain icon="el-icon-download" @click="handleDownloadTemplate">下载模板</el-button>
       </div>
       <div class="toolbar-tip">
         <el-alert title="录发票时先选择合同，再进入发票明细填写页面。" type="info" :closable="false" show-icon />
@@ -153,6 +155,33 @@
       <div slot="footer" class="dialog-footer"><el-button @click="contractDialogVisible = false">取消</el-button><el-button type="primary" :disabled="!selectedContractId" @click="confirmContractSelection">确认并继续</el-button></div>
     </el-dialog>
 
+    <el-dialog :title="upload.title" :visible.sync="upload.open" width="420px" append-to-body>
+      <el-upload
+        ref="upload"
+        drag
+        :limit="1"
+        accept=".xlsx,.xls"
+        :headers="upload.headers"
+        :action="upload.url"
+        :disabled="upload.isUploading"
+        :auto-upload="false"
+        :show-file-list="true"
+        :on-progress="handleFileUploadProgress"
+        :on-success="handleFileSuccess"
+      >
+        <i class="el-icon-upload"></i>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        <div slot="tip" class="el-upload__tip text-center">
+          仅允许导入 xls、xlsx 格式文件。
+          <el-link type="primary" :underline="false" style="font-size: 12px; vertical-align: baseline" @click="handleDownloadTemplate">下载模板</el-link>
+        </div>
+      </el-upload>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="submitFileForm">确 定</el-button>
+        <el-button @click="upload.open = false">取 消</el-button>
+      </div>
+    </el-dialog>
+
     <el-dialog :title="dialogTitle" :visible.sync="open" width="920px" append-to-body custom-class="beauty-dialog invoice-dialog">
       <div class="invoice-layout">
         <div class="invoice-side-card" v-if="selectedContract || form.relatedContractName">
@@ -214,8 +243,9 @@
 </template>
 
 <script>
-import { listInvoice, getInvoice, delInvoice, addInvoice, updateInvoice } from '@/api/invoice/invoice'
+import { listInvoice, getInvoice, delInvoice, addInvoice, updateInvoice, importTemplate } from '@/api/invoice/invoice'
 import { listContractContent } from '@/api/contract/contract'
+import { getToken } from '@/utils/auth'
 
 const createQueryParams = () => ({
   pageNum: 1,
@@ -292,7 +322,14 @@ export default {
       selectedContractId: null,
       selectedContract: null,
       contractQueryParams: { pageNum: 1, pageSize: 10, contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' },
-      pendingDirection: null
+      pendingDirection: null,
+      upload: {
+        open: false,
+        title: '发票导入',
+        isUploading: false,
+        headers: { Authorization: 'Bearer ' + getToken() },
+        url: process.env.VUE_APP_BASE_API + '/invoice/invoice/importData'
+      }
     }
   },
   computed: {
@@ -430,6 +467,52 @@ export default {
         this.getList()
         this.$modal.msgSuccess('删除成功')
       }).catch(() => {})
+    },
+    handleImport() {
+      this.upload.title = '发票导入'
+      this.upload.open = true
+      this.upload.isUploading = false
+      this.$nextTick(() => {
+        this.$refs.upload && this.$refs.upload.clearFiles()
+      })
+    },
+    async handleDownloadTemplate() {
+      try {
+        const res = await importTemplate()
+        const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        const link = document.createElement('a')
+        link.href = window.URL.createObjectURL(blob)
+        link.download = '发票批量导入2024-2025(1).xlsx'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(link.href)
+      } catch (error) {
+        this.$message.error('模板下载失败，请稍后重试')
+      }
+    },
+    handleFileUploadProgress() {
+      this.upload.isUploading = true
+    },
+    handleFileSuccess(response) {
+      this.upload.open = false
+      this.upload.isUploading = false
+      this.$refs.upload && this.$refs.upload.clearFiles()
+      this.$alert("<div style='overflow:auto;overflow-x:hidden;max-height:70vh;padding:10px 20px 0;'>" + response.msg + '</div>', '导入结果', { dangerouslyUseHTMLString: true })
+      this.getList()
+    },
+    submitFileForm() {
+      const file = this.$refs.upload && this.$refs.upload.uploadFiles
+      if (!file || file.length === 0) {
+        this.$modal.msgError('请选择要导入的文件。')
+        return
+      }
+      const fileName = (file[0].name || '').toLowerCase()
+      if (!(fileName.endsWith('.xls') || fileName.endsWith('.xlsx'))) {
+        this.$modal.msgError('请选择后缀为 xls 或 xlsx 的文件。')
+        return
+      }
+      this.$refs.upload.submit()
     },
     parseTime(time, format = '{y}-{m}-{d}') {
       if (!time) return '-'

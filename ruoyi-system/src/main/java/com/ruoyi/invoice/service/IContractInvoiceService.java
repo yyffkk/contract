@@ -58,4 +58,13 @@ public interface IContractInvoiceService
      * @return 结果
      */
     public int deleteContractInvoiceById(Long id);
+
+    /**
+     * 导入发票信息
+     *
+     * @param invoiceList 发票数据
+     * @param operName 操作人
+     * @return 导入结果
+     */
+    public String importContractInvoice(List<ContractInvoice> invoiceList, String operName);
 }

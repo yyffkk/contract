@@ -35,6 +35,27 @@ export function updateInvoice(data) {
   })
 }
 
+// 导入发票信息
+export function importInvoice(data) {
+  return request({
+    url: '/invoice/invoice/importData',
+    method: 'post',
+    data,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+// 下载导入模板
+export function importTemplate() {
+  return request({
+    url: '/invoice/invoice/importTemplate',
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
 // 删除发票信息
 export function delInvoice(id) {
   return request({

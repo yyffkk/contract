@@ -104,6 +104,7 @@ public class ContractInvoice extends BaseEntity
     private String project;
 
     /** 款项类型（收入/支出） */
+    @Excel(name = "发票分类", readConverterExp = "支出=进项,收入=销项")
     private String amountType;
 
     /** 关联合同名称 */

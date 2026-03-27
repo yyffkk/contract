@@ -1,9 +1,17 @@
 package com.ruoyi.invoice.controller;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.MediaType;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -11,7 +19,9 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
@@ -57,6 +67,41 @@ public class ContractInvoiceController extends BaseController
         List<ContractInvoice> list = contractInvoiceService.selectContractInvoiceList(contractInvoice);
         ExcelUtil<ContractInvoice> util = new ExcelUtil<ContractInvoice>(ContractInvoice.class);
         util.exportExcel(response, list, "发票信息数据");
+    }
+
+    /**
+     * 导入发票信息
+     */
+    @PreAuthorize("@ss.hasPermi('invoice:invoice:import')")
+    @Log(title = "发票信息", businessType = BusinessType.IMPORT)
+    @PostMapping("/importData")
+    public AjaxResult importData(MultipartFile file, @RequestParam(value = "updateSupport", required = false) boolean updateSupport) throws Exception
+    {
+        ExcelUtil<ContractInvoice> util = new ExcelUtil<ContractInvoice>(ContractInvoice.class);
+        List<ContractInvoice> invoiceList = util.importExcel(file.getInputStream());
+        String operName = getUsername();
+        String message = contractInvoiceService.importContractInvoice(invoiceList, operName);
+        return success(message);
+    }
+
+    /**
+     * 下载导入模板
+     */
+    @PreAuthorize("@ss.hasPermi('invoice:invoice:import')")
+    @GetMapping("/importTemplate")
+    public void importTemplate(HttpServletResponse response) throws IOException
+    {
+        ClassPathResource resource = new ClassPathResource("templates/发票批量导入2024-2025(1).xlsx");
+        String fileName = URLEncoder.encode("发票批量导入2024-2025(1).xlsx", StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName);
+        response.setContentLengthLong(resource.contentLength());
+        try (InputStream inputStream = new BufferedInputStream(resource.getInputStream()))
+        {
+            FileCopyUtils.copy(inputStream, response.getOutputStream());
+            response.flushBuffer();
+        }
     }
 
     /**
