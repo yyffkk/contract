@@ -967,6 +967,7 @@
       destroy-on-close
       custom-class="edit-drawer"
     >
+      <div class="edit-drawer-shell">
       <div class="edit-drawer-content">
         <el-form
           v-if="isApproval"
@@ -1061,6 +1062,19 @@
                 </el-upload>
               </div>
 
+              <div v-if="editParsedContentFiles.length" class="edit-upload-existing">
+                <div class="edit-upload-existing__title">已上传正文</div>
+                <div class="edit-upload-list">
+                  <div v-for="(file, index) in editParsedContentFiles" :key="`saved-content-${index}`" class="edit-upload-item existing">
+                    <div class="edit-upload-item__left">
+                      <i class="el-icon-document"></i>
+                      <span>{{ file.name }}</span>
+                    </div>
+                    <el-button type="text" @click="downloadFile(file)">下载</el-button>
+                  </div>
+                </div>
+              </div>
+
               <div v-if="detailUploadForm.contentFiles.length" class="edit-upload-list">
                 <div v-for="(file, index) in detailUploadForm.contentFiles" :key="`content-${index}`" class="edit-upload-item">
                   <div class="edit-upload-item__left">
@@ -1070,7 +1084,7 @@
                   <el-button type="text" class="danger-text" @click="removeDetailSelectedFile('contentFiles', index)">删除</el-button>
                 </div>
               </div>
-              <div v-else class="edit-upload-empty">暂未选择正文文件</div>
+              <div v-else class="edit-upload-empty">暂未选择新的正文文件</div>
             </div>
 
             <div class="edit-upload-group">
@@ -1090,6 +1104,19 @@
                 </el-upload>
               </div>
 
+              <div v-if="editParsedAttachments.length" class="edit-upload-existing">
+                <div class="edit-upload-existing__title">已上传附件</div>
+                <div class="edit-upload-list">
+                  <div v-for="(file, index) in editParsedAttachments" :key="`saved-attachment-${index}`" class="edit-upload-item existing">
+                    <div class="edit-upload-item__left">
+                      <i class="el-icon-paperclip"></i>
+                      <span>{{ file.name }}</span>
+                    </div>
+                    <el-button type="text" @click="downloadFile(file)">下载</el-button>
+                  </div>
+                </div>
+              </div>
+
               <div v-if="detailUploadForm.attachmentFiles.length" class="edit-upload-list">
                 <div v-for="(file, index) in detailUploadForm.attachmentFiles" :key="`attachment-${index}`" class="edit-upload-item">
                   <div class="edit-upload-item__left">
@@ -1099,7 +1126,7 @@
                   <el-button type="text" class="danger-text" @click="removeDetailSelectedFile('attachmentFiles', index)">删除</el-button>
                 </div>
               </div>
-              <div v-else class="edit-upload-empty">暂未选择附件</div>
+              <div v-else class="edit-upload-empty">暂未选择新的附件</div>
             </div>
           </div>
         </el-form>
@@ -1170,9 +1197,10 @@
         </el-form>
       </div>
 
-      <div slot="footer" class="drawer-footer">
-        <el-button @click="editDrawerVisible = false">取 消</el-button>
-        <el-button type="primary" @click="submitEditForm">保 存</el-button>
+      <div class="drawer-footer fixed-drawer-footer">
+        <el-button @click="closeEditDrawer">取消</el-button>
+        <el-button type="primary" @click="submitEditForm">确定</el-button>
+      </div>
       </div>
     </el-drawer>
 
@@ -2189,6 +2217,12 @@ export default {
     },
     parsedAttachments() {
       return this.normalizeFileList(this.currentDetail.attachments);
+    },
+    editParsedContentFiles() {
+      return this.normalizeFileList(this.editForm.content || this.editForm.file);
+    },
+    editParsedAttachments() {
+      return this.normalizeFileList(this.editForm.attachments);
     }
   },
   created() {
@@ -2471,6 +2505,12 @@ export default {
           done();
         })
         .catch(() => {});
+    },
+
+    closeEditDrawer() {
+      this.handleCloseEditDrawer(() => {
+        this.editDrawerVisible = false;
+      });
     },
 
     submitEditForm() {
@@ -3750,7 +3790,41 @@ export default {
 
   ::v-deep .el-drawer__body {
     background: #f7f9fc;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
+}
+
+.edit-drawer-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-drawer-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.edit-upload-existing {
+  margin-bottom: 12px;
+}
+
+.edit-upload-existing__title {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.fixed-drawer-footer {
+  padding: 14px 20px 18px;
+  border-top: 1px solid #ebeef5;
+  background: #fff;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .drawer-footer,
