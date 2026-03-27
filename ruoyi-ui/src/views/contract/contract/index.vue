@@ -2942,8 +2942,39 @@ export default {
 
     getFileUrl(relativePath) {
       if (!relativePath) return '';
-      if (/^https?:\/\//i.test(relativePath)) return relativePath;
-      return process.env.VUE_APP_BASE_API + "/profile" + relativePath;
+      let normalizedPath = String(relativePath).trim().replace(/\\/g, '/');
+      if (!normalizedPath) return '';
+      if (/^https?:\/\//i.test(normalizedPath)) return normalizedPath;
+
+      // 兼容数据库里保存了本机绝对路径的情况，例如：
+      // D:/ruoyi/uploadPath/contract/2026/03/27/xxx.pdf
+      // C:/xxx/ruoyi/uploadPath/archive/xxx.pdf
+      const profileMarkers = [
+        '/ruoyi/uploadPath/',
+        'D:/ruoyi/uploadPath/',
+        'C:/ruoyi/uploadPath/'
+      ];
+      for (const marker of profileMarkers) {
+        const idx = normalizedPath.indexOf(marker.replace(/\\/g, '/'));
+        if (idx !== -1) {
+          normalizedPath = normalizedPath.substring(idx + marker.length - 1);
+          break;
+        }
+      }
+
+      if (normalizedPath.startsWith('/profile/')) {
+        return process.env.VUE_APP_BASE_API + normalizedPath;
+      }
+      if (normalizedPath.startsWith('/contract/') || normalizedPath.startsWith('/archive/') || normalizedPath.startsWith('/upload/') || normalizedPath.startsWith('/avatar/')) {
+        return process.env.VUE_APP_BASE_API + '/profile' + normalizedPath;
+      }
+      if (/^[A-Za-z]:\//.test(normalizedPath)) {
+        return '';
+      }
+      if (!normalizedPath.startsWith('/')) {
+        normalizedPath = '/' + normalizedPath;
+      }
+      return process.env.VUE_APP_BASE_API + '/profile' + normalizedPath;
     },
 
     getFileName(path) {
