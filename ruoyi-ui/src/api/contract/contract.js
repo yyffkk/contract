@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { getToken } from '@/utils/auth'
 
 // 查询智能合同审批列表
 export function listContractContent(query) {
@@ -52,15 +53,26 @@ export function updateContractContent(data) {
 }
 
 // 详情页上传合同正文/附件
-export function uploadContractDetailFiles(data) {
-  return request({
-    url: '/contract/contractContent/detail-files',
-    method: 'post',
-    data,
+export async function uploadContractDetailFiles(data) {
+  const response = await fetch(process.env.VUE_APP_BASE_API + '/contract/contractContent/detail-files', {
+    method: 'POST',
     headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+      Authorization: getToken() ? 'Bearer ' + getToken() : undefined
+    },
+    body: data
   })
+
+  const result = await response.json()
+
+  if (!response.ok) {
+    throw new Error(result.msg || ('系统接口' + response.status + '异常'))
+  }
+
+  if ((result.code || 200) !== 200) {
+    throw new Error(result.msg || '上传失败')
+  }
+
+  return result
 }
 
 // 删除智能合同审批

@@ -115,262 +115,95 @@ public class ContractInvoice extends BaseEntity
     @Excel(name = "关联合同编号")
     private String relatedContractNumber;
 
+    /** 审批状态 */
+    private String approvalStatus;
+
+    /** 审批人 */
+    private String approver;
+
+    /** 抄送人 */
+    private String cc;
+
+    /** 提交审批人 */
+    private String submitter;
+
+    /** 提交审批时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date submitTime;
+
+    /** 审批完成时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date approveTime;
+
     /** 删除标志（0代表存在 2代表删除） */
     private String delFlag;
 
-    public void setId(Long id) 
-    {
-        this.id = id;
-    }
-
-    public Long getId() 
-    {
-        return id;
-    }
-
-    public void setContractId(Long contractId) 
-    {
-        this.contractId = contractId;
-    }
-
-    public Long getContractId() 
-    {
-        return contractId;
-    }
-
-    public void setInvoiceCode(String invoiceCode) 
-    {
-        this.invoiceCode = invoiceCode;
-    }
-
-    public String getInvoiceCode() 
-    {
-        return invoiceCode;
-    }
-
-    public void setInvoiceNumber(String invoiceNumber) 
-    {
-        this.invoiceNumber = invoiceNumber;
-    }
-
-    public String getInvoiceNumber() 
-    {
-        return invoiceNumber;
-    }
-
-    public void setInvoiceDate(Date invoiceDate) 
-    {
-        this.invoiceDate = invoiceDate;
-    }
-
-    public Date getInvoiceDate() 
-    {
-        return invoiceDate;
-    }
-
-    public void setInvoiceAmount(BigDecimal invoiceAmount) 
-    {
-        this.invoiceAmount = invoiceAmount;
-    }
-
-    public BigDecimal getInvoiceAmount() 
-    {
-        return invoiceAmount;
-    }
-
-    public void setInvoiceType(String invoiceType) 
-    {
-        this.invoiceType = invoiceType;
-    }
-
-    public String getInvoiceType() 
-    {
-        return invoiceType;
-    }
-
-    public void setInvoiceStatus(String invoiceStatus) 
-    {
-        this.invoiceStatus = invoiceStatus;
-    }
-
-    public String getInvoiceStatus() 
-    {
-        return invoiceStatus;
-    }
-
-    public void setTaxRate(BigDecimal taxRate) 
-    {
-        this.taxRate = taxRate;
-    }
-
-    public BigDecimal getTaxRate() 
-    {
-        return taxRate;
-    }
-
-    public void setTaxAmount(BigDecimal taxAmount) 
-    {
-        this.taxAmount = taxAmount;
-    }
-
-    public BigDecimal getTaxAmount() 
-    {
-        return taxAmount;
-    }
-
-    public void setPurchaserName(String purchaserName) 
-    {
-        this.purchaserName = purchaserName;
-    }
-
-    public String getPurchaserName() 
-    {
-        return purchaserName;
-    }
-
-    public void setPurchaserTaxNo(String purchaserTaxNo) 
-    {
-        this.purchaserTaxNo = purchaserTaxNo;
-    }
-
-    public String getPurchaserTaxNo() 
-    {
-        return purchaserTaxNo;
-    }
-
-    public void setSellerName(String sellerName) 
-    {
-        this.sellerName = sellerName;
-    }
-
-    public String getSellerName() 
-    {
-        return sellerName;
-    }
-
-    public void setSellerTaxNo(String sellerTaxNo) 
-    {
-        this.sellerTaxNo = sellerTaxNo;
-    }
-
-    public String getSellerTaxNo() 
-    {
-        return sellerTaxNo;
-    }
-
-    public void setCounterpartyName(String counterpartyName) 
-    {
-        this.counterpartyName = counterpartyName;
-    }
-
-    public String getCounterpartyName() 
-    {
-        return counterpartyName;
-    }
-
-    public void setInitiator(String initiator) 
-    {
-        this.initiator = initiator;
-    }
-
-    public String getInitiator() 
-    {
-        return initiator;
-    }
-
-    public void setApplyTime(Date applyTime) 
-    {
-        this.applyTime = applyTime;
-    }
-
-    public Date getApplyTime() 
-    {
-        return applyTime;
-    }
-
-    public void setDepartment(String department) 
-    {
-        this.department = department;
-    }
-
-    public String getDepartment() 
-    {
-        return department;
-    }
-
-    public void setInvoiceContent(String invoiceContent) 
-    {
-        this.invoiceContent = invoiceContent;
-    }
-
-    public String getInvoiceContent() 
-    {
-        return invoiceContent;
-    }
-
-    public void setUntaxedAmount(BigDecimal untaxedAmount) 
-    {
-        this.untaxedAmount = untaxedAmount;
-    }
-
-    public BigDecimal getUntaxedAmount() 
-    {
-        return untaxedAmount;
-    }
-
-    public void setProject(String project) 
-    {
-        this.project = project;
-    }
-
-    public String getProject() 
-    {
-        return project;
-    }
-
-    public void setAmountType(String amountType) 
-    {
-        this.amountType = amountType;
-    }
-
-    public String getAmountType() 
-    {
-        return amountType;
-    }
-
-    public void setRelatedContractName(String relatedContractName) 
-    {
-        this.relatedContractName = relatedContractName;
-    }
-
-    public String getRelatedContractName() 
-    {
-        return relatedContractName;
-    }
-
-    public void setRelatedContractNumber(String relatedContractNumber) 
-    {
-        this.relatedContractNumber = relatedContractNumber;
-    }
-
-    public String getRelatedContractNumber() 
-    {
-        return relatedContractNumber;
-    }
-
-    public void setDelFlag(String delFlag) 
-    {
-        this.delFlag = delFlag;
-    }
-
-    public String getDelFlag() 
-    {
-        return delFlag;
-    }
+    public void setId(Long id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setContractId(Long contractId) { this.contractId = contractId; }
+    public Long getContractId() { return contractId; }
+    public void setInvoiceCode(String invoiceCode) { this.invoiceCode = invoiceCode; }
+    public String getInvoiceCode() { return invoiceCode; }
+    public void setInvoiceNumber(String invoiceNumber) { this.invoiceNumber = invoiceNumber; }
+    public String getInvoiceNumber() { return invoiceNumber; }
+    public void setInvoiceDate(Date invoiceDate) { this.invoiceDate = invoiceDate; }
+    public Date getInvoiceDate() { return invoiceDate; }
+    public void setInvoiceAmount(BigDecimal invoiceAmount) { this.invoiceAmount = invoiceAmount; }
+    public BigDecimal getInvoiceAmount() { return invoiceAmount; }
+    public void setInvoiceType(String invoiceType) { this.invoiceType = invoiceType; }
+    public String getInvoiceType() { return invoiceType; }
+    public void setInvoiceStatus(String invoiceStatus) { this.invoiceStatus = invoiceStatus; }
+    public String getInvoiceStatus() { return invoiceStatus; }
+    public void setTaxRate(BigDecimal taxRate) { this.taxRate = taxRate; }
+    public BigDecimal getTaxRate() { return taxRate; }
+    public void setTaxAmount(BigDecimal taxAmount) { this.taxAmount = taxAmount; }
+    public BigDecimal getTaxAmount() { return taxAmount; }
+    public void setPurchaserName(String purchaserName) { this.purchaserName = purchaserName; }
+    public String getPurchaserName() { return purchaserName; }
+    public void setPurchaserTaxNo(String purchaserTaxNo) { this.purchaserTaxNo = purchaserTaxNo; }
+    public String getPurchaserTaxNo() { return purchaserTaxNo; }
+    public void setSellerName(String sellerName) { this.sellerName = sellerName; }
+    public String getSellerName() { return sellerName; }
+    public void setSellerTaxNo(String sellerTaxNo) { this.sellerTaxNo = sellerTaxNo; }
+    public String getSellerTaxNo() { return sellerTaxNo; }
+    public void setCounterpartyName(String counterpartyName) { this.counterpartyName = counterpartyName; }
+    public String getCounterpartyName() { return counterpartyName; }
+    public void setInitiator(String initiator) { this.initiator = initiator; }
+    public String getInitiator() { return initiator; }
+    public void setApplyTime(Date applyTime) { this.applyTime = applyTime; }
+    public Date getApplyTime() { return applyTime; }
+    public void setDepartment(String department) { this.department = department; }
+    public String getDepartment() { return department; }
+    public void setInvoiceContent(String invoiceContent) { this.invoiceContent = invoiceContent; }
+    public String getInvoiceContent() { return invoiceContent; }
+    public void setUntaxedAmount(BigDecimal untaxedAmount) { this.untaxedAmount = untaxedAmount; }
+    public BigDecimal getUntaxedAmount() { return untaxedAmount; }
+    public void setProject(String project) { this.project = project; }
+    public String getProject() { return project; }
+    public void setAmountType(String amountType) { this.amountType = amountType; }
+    public String getAmountType() { return amountType; }
+    public void setRelatedContractName(String relatedContractName) { this.relatedContractName = relatedContractName; }
+    public String getRelatedContractName() { return relatedContractName; }
+    public void setRelatedContractNumber(String relatedContractNumber) { this.relatedContractNumber = relatedContractNumber; }
+    public String getRelatedContractNumber() { return relatedContractNumber; }
+    public void setApprovalStatus(String approvalStatus) { this.approvalStatus = approvalStatus; }
+    public String getApprovalStatus() { return approvalStatus; }
+    public void setApprover(String approver) { this.approver = approver; }
+    public String getApprover() { return approver; }
+    public void setCc(String cc) { this.cc = cc; }
+    public String getCc() { return cc; }
+    public void setSubmitter(String submitter) { this.submitter = submitter; }
+    public String getSubmitter() { return submitter; }
+    public void setSubmitTime(Date submitTime) { this.submitTime = submitTime; }
+    public Date getSubmitTime() { return submitTime; }
+    public void setApproveTime(Date approveTime) { this.approveTime = approveTime; }
+    public Date getApproveTime() { return approveTime; }
+    public void setDelFlag(String delFlag) { this.delFlag = delFlag; }
+    public String getDelFlag() { return delFlag; }
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
+        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
             .append("id", getId())
             .append("contractId", getContractId())
             .append("invoiceCode", getInvoiceCode())
@@ -389,6 +222,12 @@ public class ContractInvoice extends BaseEntity
             .append("amountType", getAmountType())
             .append("relatedContractName", getRelatedContractName())
             .append("relatedContractNumber", getRelatedContractNumber())
+            .append("approvalStatus", getApprovalStatus())
+            .append("approver", getApprover())
+            .append("cc", getCc())
+            .append("submitter", getSubmitter())
+            .append("submitTime", getSubmitTime())
+            .append("approveTime", getApproveTime())
             .append("remark", getRemark())
             .append("createBy", getCreateBy())
             .append("createTime", getCreateTime())

@@ -31,6 +31,10 @@ service.interceptors.request.use(config => {
   if (getToken() && !isToken) {
     config.headers['Authorization'] = 'Bearer ' + getToken() // 让每个请求携带自定义token 请根据实际情况自行修改
   }
+  // FormData 请求必须交给浏览器自动设置 multipart boundary，不能沿用全局 JSON Content-Type
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
   // get请求映射params参数
   if (config.method === 'get' && config.params) {
     let url = config.url + '?' + tansParams(config.params)

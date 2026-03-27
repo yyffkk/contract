@@ -1,13 +1,38 @@
 package com.ruoyi.invoice.service.impl;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import com.ruoyi.common.core.domain.entity.SysUser;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.contract.domain.BizContractOperateLog;
+import com.ruoyi.contract.service.IBizContractOperateLogService;
+import com.ruoyi.invoice.domain.ContractInvoice;
+import com.ruoyi.invoice.mapper.ContractInvoiceMapper;
+import com.ruoyi.invoice.service.IContractInvoiceService;
+import com.ruoyi.system.service.ISysUserService;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.ruoyi.invoice.mapper.ContractInvoiceMapper;
-import com.ruoyi.invoice.domain.ContractInvoice;
-import com.ruoyi.invoice.service.IContractInvoiceService;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 发票信息Service业务层处理
@@ -18,77 +43,82 @@ import com.ruoyi.invoice.service.IContractInvoiceService;
 @Service
 public class ContractInvoiceServiceImpl implements IContractInvoiceService 
 {
+    private static final String LOG_TYPE = "invoice";
+
     @Autowired
     private ContractInvoiceMapper contractInvoiceMapper;
 
-    /**
-     * 查询发票信息
-     * 
-     * @param id 发票信息主键
-     * @return 发票信息
-     */
+    @Autowired
+    private IBizContractOperateLogService operateLogService;
+
+    @Autowired
+    private ISysUserService sysUserService;
+
     @Override
     public ContractInvoice selectContractInvoiceById(Long id)
     {
         return contractInvoiceMapper.selectContractInvoiceById(id);
     }
 
-    /**
-     * 查询发票信息列表
-     * 
-     * @param contractInvoice 发票信息
-     * @return 发票信息
-     */
     @Override
     public List<ContractInvoice> selectContractInvoiceList(ContractInvoice contractInvoice)
     {
         return contractInvoiceMapper.selectContractInvoiceList(contractInvoice);
     }
 
-    /**
-     * 新增发票信息
-     * 
-     * @param contractInvoice 发票信息
-     * @return 结果
-     */
     @Override
     public int insertContractInvoice(ContractInvoice contractInvoice)
     {
         contractInvoice.setCreateTime(DateUtils.getNowDate());
-        return contractInvoiceMapper.insertContractInvoice(contractInvoice);
+        if (StringUtils.isBlank(contractInvoice.getApprovalStatus()))
+        {
+            contractInvoice.setApprovalStatus("draft");
+        }
+        if (StringUtils.isBlank(contractInvoice.getDelFlag()))
+        {
+            contractInvoice.setDelFlag("0");
+        }
+        int rows = contractInvoiceMapper.insertContractInvoice(contractInvoice);
+        if (rows > 0 && contractInvoice.getId() != null)
+        {
+            operateLogService.addSystemLog(contractInvoice.getId(), LOG_TYPE, "新建发票", "创建发票记录");
+        }
+        return rows;
     }
 
-    /**
-     * 修改发票信息
-     * 
-     * @param contractInvoice 发票信息
-     * @return 结果
-     */
     @Override
     public int updateContractInvoice(ContractInvoice contractInvoice)
     {
+        ContractInvoice current = getRequired(contractInvoice.getId());
+        if ("pending".equals(current.getApprovalStatus()))
+        {
+            throw new ServiceException("审批中的发票不允许修改");
+        }
+        if ("approved".equals(current.getApprovalStatus()))
+        {
+            throw new ServiceException("审批通过的发票不允许修改");
+        }
+        contractInvoice.setApprovalStatus(current.getApprovalStatus());
+        contractInvoice.setApprover(current.getApprover());
+        contractInvoice.setCc(current.getCc());
+        contractInvoice.setSubmitter(current.getSubmitter());
+        contractInvoice.setSubmitTime(current.getSubmitTime());
+        contractInvoice.setApproveTime(current.getApproveTime());
         contractInvoice.setUpdateTime(DateUtils.getNowDate());
-        return contractInvoiceMapper.updateContractInvoice(contractInvoice);
+        int rows = contractInvoiceMapper.updateContractInvoice(contractInvoice);
+        if (rows > 0 && contractInvoice.getId() != null)
+        {
+            operateLogService.addSystemLog(contractInvoice.getId(), LOG_TYPE, "编辑发票", "更新发票信息");
+        }
+        return rows;
     }
 
-    /**
-     * 批量删除发票信息
-     * 
-     * @param ids 需要删除的发票信息主键
-     * @return 结果
-     */
     @Override
     public int deleteContractInvoiceByIds(Long[] ids)
     {
         return contractInvoiceMapper.deleteContractInvoiceByIds(ids);
     }
 
-    /**
-     * 删除发票信息信息
-     * 
-     * @param id 发票信息主键
-     * @return 结果
-     */
     @Override
     public int deleteContractInvoiceById(Long id)
     {
@@ -105,23 +135,26 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         int successNum = 0;
         int failureNum = 0;
         StringBuilder failureMsg = new StringBuilder();
+        int rowNum = 1;
         for (ContractInvoice invoice : invoiceList)
         {
             try
             {
-                normalizeInvoice(invoice);
-                invoice.setCreateBy(operName);
-                invoice.setCreateTime(DateUtils.getNowDate());
-                invoice.setDelFlag("0");
+                prepareImportedInvoice(invoice, operName);
                 contractInvoiceMapper.insertContractInvoice(invoice);
+                if (invoice.getId() != null)
+                {
+                    operateLogService.addSystemLog(invoice.getId(), LOG_TYPE, "导入发票", "通过模板导入发票记录");
+                }
                 successNum++;
             }
             catch (Exception e)
             {
                 failureNum++;
-                failureMsg.append("<br/>第").append(successNum + failureNum).append("条导入失败：")
+                failureMsg.append("<br/>第").append(rowNum).append("行导入失败：")
                         .append(e.getMessage());
             }
+            rowNum++;
         }
         if (failureNum > 0)
         {
@@ -129,6 +162,91 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
             return failureMsg.toString();
         }
         return "恭喜您，数据已全部导入成功！共 " + successNum + " 条。";
+    }
+
+    @Override
+    public String importContractInvoice(MultipartFile file, String operName) throws IOException
+    {
+        List<ContractInvoice> invoiceList = parseInvoiceExcel(file);
+        return importContractInvoice(invoiceList, operName);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int submitApproval(Long id, String approver, String cc, String remark)
+    {
+        ContractInvoice entity = getRequired(id);
+        if ("pending".equals(entity.getApprovalStatus()))
+        {
+            throw new ServiceException("该发票已在审批中");
+        }
+        if ("approved".equals(entity.getApprovalStatus()))
+        {
+            throw new ServiceException("该发票已审批通过，无需重复提交");
+        }
+        String currentUser = SecurityUtils.getUsername();
+        entity.setApprovalStatus("pending");
+        entity.setApprover(StringUtils.trimToNull(approver));
+        entity.setCc(StringUtils.trimToNull(cc));
+        entity.setSubmitter(resolveNickName(currentUser));
+        entity.setSubmitTime(DateUtils.getNowDate());
+        entity.setApproveTime(null);
+        entity.setUpdateBy(currentUser);
+        entity.setUpdateTime(DateUtils.getNowDate());
+        int rows = contractInvoiceMapper.updateContractInvoice(entity);
+        if (rows > 0)
+        {
+            operateLogService.addSystemLog(id, LOG_TYPE, "提交审批", buildSubmitLogDetail(entity, remark));
+        }
+        return rows;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int handleApproval(Long id, String action, String remark)
+    {
+        ContractInvoice entity = getRequired(id);
+        if (!"pending".equals(entity.getApprovalStatus()))
+        {
+            throw new ServiceException("当前发票不在审批中");
+        }
+        if ("agree".equals(action))
+        {
+            entity.setApprovalStatus("approved");
+        }
+        else if ("reject".equals(action))
+        {
+            entity.setApprovalStatus("rejected");
+        }
+        else
+        {
+            throw new ServiceException("无效的审批动作");
+        }
+        entity.setApproveTime(DateUtils.getNowDate());
+        entity.setUpdateBy(SecurityUtils.getUsername());
+        entity.setUpdateTime(DateUtils.getNowDate());
+        int rows = contractInvoiceMapper.updateContractInvoice(entity);
+        if (rows > 0)
+        {
+            operateLogService.addSystemLog(id, LOG_TYPE, "审批发票", buildApproveLogDetail(action, remark));
+        }
+        return rows;
+    }
+
+    @Override
+    public List<BizContractOperateLog> selectOperateLogs(Long id)
+    {
+        return operateLogService.selectByContract(id, LOG_TYPE);
+    }
+
+    private ContractInvoice getRequired(Long id)
+    {
+        ContractInvoice entity = contractInvoiceMapper.selectContractInvoiceById(id);
+        if (entity == null)
+        {
+            throw new ServiceException("发票记录不存在");
+        }
+        return entity;
     }
 
     private void normalizeInvoice(ContractInvoice invoice)
@@ -141,11 +259,11 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         {
             invoice.setInvoiceType("normal");
         }
-        else if ("增值税专用发票".equals(invoice.getInvoiceType()))
+        else if ("增值税专用发票".equals(invoice.getInvoiceType()) || "专票".equals(invoice.getInvoiceType()) || "vat".equalsIgnoreCase(invoice.getInvoiceType()))
         {
             invoice.setInvoiceType("vat");
         }
-        else if ("普通发票".equals(invoice.getInvoiceType()))
+        else if ("普通发票".equals(invoice.getInvoiceType()) || "普票".equals(invoice.getInvoiceType()) || "normal".equalsIgnoreCase(invoice.getInvoiceType()))
         {
             invoice.setInvoiceType("normal");
         }
@@ -154,15 +272,15 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         {
             invoice.setInvoiceStatus("invoiced");
         }
-        else if ("未开票".equals(invoice.getInvoiceStatus()))
+        else if ("未开票".equals(invoice.getInvoiceStatus()) || "no_invoice".equalsIgnoreCase(invoice.getInvoiceStatus()))
         {
             invoice.setInvoiceStatus("no_invoice");
         }
-        else if ("已开票".equals(invoice.getInvoiceStatus()))
+        else if ("已开票".equals(invoice.getInvoiceStatus()) || "invoiced".equalsIgnoreCase(invoice.getInvoiceStatus()))
         {
             invoice.setInvoiceStatus("invoiced");
         }
-        else if ("已作废".equals(invoice.getInvoiceStatus()))
+        else if ("已作废".equals(invoice.getInvoiceStatus()) || "voided".equalsIgnoreCase(invoice.getInvoiceStatus()))
         {
             invoice.setInvoiceStatus("voided");
         }
@@ -171,13 +289,354 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         {
             invoice.setAmountType("收入");
         }
-        else if ("进项".equals(invoice.getAmountType()))
+        else if ("进项".equals(invoice.getAmountType()) || "支出".equals(invoice.getAmountType()))
         {
             invoice.setAmountType("支出");
         }
-        else if ("销项".equals(invoice.getAmountType()))
+        else if ("销项".equals(invoice.getAmountType()) || "收入".equals(invoice.getAmountType()))
         {
             invoice.setAmountType("收入");
         }
+    }
+
+    private void prepareImportedInvoice(ContractInvoice invoice, String operName)
+    {
+        normalizeInvoice(invoice);
+        if (StringUtils.isBlank(invoice.getInvoiceCode()) && StringUtils.isBlank(invoice.getInvoiceNumber()))
+        {
+            throw new ServiceException("发票代码和发票号码不能同时为空");
+        }
+        if (invoice.getInvoiceDate() == null)
+        {
+            throw new ServiceException("开票日期不能为空");
+        }
+        if (invoice.getInvoiceAmount() == null)
+        {
+            throw new ServiceException("发票金额不能为空");
+        }
+        if (StringUtils.isBlank(invoice.getPurchaserName()))
+        {
+            throw new ServiceException("发票抬头不能为空");
+        }
+        if (StringUtils.isBlank(invoice.getInvoiceContent()))
+        {
+            throw new ServiceException("开票内容不能为空");
+        }
+        if (invoice.getUntaxedAmount() == null && invoice.getInvoiceAmount() != null)
+        {
+            BigDecimal taxAmount = invoice.getTaxAmount() == null ? BigDecimal.ZERO : invoice.getTaxAmount();
+            invoice.setUntaxedAmount(invoice.getInvoiceAmount().subtract(taxAmount));
+        }
+        invoice.setCreateBy(operName);
+        invoice.setCreateTime(DateUtils.getNowDate());
+        invoice.setDelFlag("0");
+        invoice.setApprovalStatus("draft");
+    }
+
+    private List<ContractInvoice> parseInvoiceExcel(MultipartFile file) throws IOException
+    {
+        try (InputStream inputStream = file.getInputStream(); Workbook workbook = WorkbookFactory.create(inputStream))
+        {
+            Sheet sheet = workbook.getSheetAt(0);
+            if (sheet == null)
+            {
+                throw new ServiceException("Excel 中没有可读取的工作表");
+            }
+            int headerRowNum = findHeaderRow(sheet);
+            if (headerRowNum < 0)
+            {
+                throw new ServiceException("未识别到表头，请使用系统模板或保留中文列标题");
+            }
+            Map<String, Integer> headerMap = buildHeaderMap(sheet.getRow(headerRowNum));
+            List<ContractInvoice> list = new ArrayList<>();
+            for (int i = headerRowNum + 1; i <= sheet.getLastRowNum(); i++)
+            {
+                Row row = sheet.getRow(i);
+                if (isRowEmpty(row))
+                {
+                    continue;
+                }
+                ContractInvoice invoice = new ContractInvoice();
+                invoice.setAmountType(getCellString(row, headerMap, aliases("发票分类", "分类", "进销项", "发票类别")));
+                invoice.setCounterpartyName(getCellString(row, headerMap, aliases("相对方名称", "对方名称", "客户名称", "供应商名称")));
+                invoice.setPurchaserName(getCellString(row, headerMap, aliases("发票抬头", "购买方名称", "购方名称", "抬头")));
+                invoice.setPurchaserTaxNo(getCellString(row, headerMap, aliases("纳税人识别号", "购买方税号", "购方税号", "税号")));
+                invoice.setSellerName(getCellString(row, headerMap, aliases("销售方名称", "销方名称")));
+                invoice.setSellerTaxNo(getCellString(row, headerMap, aliases("销售方税号", "销方税号")));
+                invoice.setInvoiceCode(getCellString(row, headerMap, aliases("发票代码", "票据代码")));
+                invoice.setInvoiceNumber(getCellString(row, headerMap, aliases("发票号码", "票据号码")));
+                invoice.setInvoiceDate(getCellDate(row, headerMap, aliases("开票日期", "发票日期"), i + 1));
+                invoice.setInvoiceAmount(getCellDecimal(row, headerMap, aliases("发票金额", "价税合计", "金额"), i + 1));
+                invoice.setTaxRate(getCellDecimal(row, headerMap, aliases("税率"), i + 1));
+                invoice.setTaxAmount(getCellDecimal(row, headerMap, aliases("税额"), i + 1));
+                invoice.setUntaxedAmount(getCellDecimal(row, headerMap, aliases("不含税金额", "金额不含税"), i + 1));
+                invoice.setInvoiceType(getCellString(row, headerMap, aliases("发票类型", "票种")));
+                invoice.setInvoiceStatus(getCellString(row, headerMap, aliases("发票状态", "状态")));
+                invoice.setInvoiceContent(getCellString(row, headerMap, aliases("开票内容", "货物或应税劳务名称", "内容")));
+                invoice.setProject(getCellString(row, headerMap, aliases("所属项目", "项目")));
+                invoice.setRelatedContractName(getCellString(row, headerMap, aliases("关联合同名称", "合同名称")));
+                invoice.setRelatedContractNumber(getCellString(row, headerMap, aliases("关联合同编号", "合同编号")));
+                invoice.setRemark(getCellString(row, headerMap, aliases("备注", "说明")));
+                list.add(invoice);
+            }
+            if (list.isEmpty())
+            {
+                throw new ServiceException("模板中没有可导入的数据，请从表头下一行开始填写后再导入");
+            }
+            return list;
+        }
+        catch (ServiceException e)
+        {
+            throw e;
+        }
+        catch (Exception e)
+        {
+            throw new ServiceException("导入失败：" + e.getMessage());
+        }
+    }
+
+    private int findHeaderRow(Sheet sheet)
+    {
+        int maxCheck = Math.min(sheet.getLastRowNum(), 5);
+        for (int i = 0; i <= maxCheck; i++)
+        {
+            Row row = sheet.getRow(i);
+            if (row == null)
+            {
+                continue;
+            }
+            Map<String, Integer> headerMap = buildHeaderMap(row);
+            if (containsAnyHeader(headerMap, aliases("发票金额", "价税合计", "金额"))
+                    && containsAnyHeader(headerMap, aliases("开票日期", "发票日期"))
+                    && (containsAnyHeader(headerMap, aliases("发票抬头", "购买方名称", "购方名称"))
+                    || containsAnyHeader(headerMap, aliases("发票号码", "票据号码"))))
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private Map<String, Integer> buildHeaderMap(Row row)
+    {
+        Map<String, Integer> map = new HashMap<>();
+        if (row == null)
+        {
+            return map;
+        }
+        for (Cell cell : row)
+        {
+            String value = normalizeHeader(readCellAsString(cell));
+            if (StringUtils.isNotBlank(value))
+            {
+                map.put(value, cell.getColumnIndex());
+            }
+        }
+        return map;
+    }
+
+    private boolean containsAnyHeader(Map<String, Integer> headerMap, List<String> aliases)
+    {
+        for (String alias : aliases)
+        {
+            if (headerMap.containsKey(normalizeHeader(alias)))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<String> aliases(String... values)
+    {
+        return Arrays.asList(values);
+    }
+
+    private String getCellString(Row row, Map<String, Integer> headerMap, List<String> aliases)
+    {
+        Integer index = findColumnIndex(headerMap, aliases);
+        if (index == null || row == null)
+        {
+            return null;
+        }
+        return StringUtils.trimToNull(readCellAsString(row.getCell(index)));
+    }
+
+    private BigDecimal getCellDecimal(Row row, Map<String, Integer> headerMap, List<String> aliases, int excelRowNum)
+    {
+        String value = getCellString(row, headerMap, aliases);
+        if (StringUtils.isBlank(value))
+        {
+            return null;
+        }
+        value = value.replace("¥", "").replace(",", "").replace("%", "").trim();
+        try
+        {
+            return new BigDecimal(value);
+        }
+        catch (Exception e)
+        {
+            throw new ServiceException("第" + excelRowNum + "行数值格式错误：" + value);
+        }
+    }
+
+    private Date getCellDate(Row row, Map<String, Integer> headerMap, List<String> aliases, int excelRowNum)
+    {
+        Integer index = findColumnIndex(headerMap, aliases);
+        if (index == null || row == null)
+        {
+            return null;
+        }
+        Cell cell = row.getCell(index);
+        if (cell == null)
+        {
+            return null;
+        }
+        if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell))
+        {
+            return cell.getDateCellValue();
+        }
+        String value = StringUtils.trimToNull(readCellAsString(cell));
+        if (value == null)
+        {
+            return null;
+        }
+        List<String> patterns = Arrays.asList("yyyy-MM-dd", "yyyy/M/d", "yyyy/M/dd", "yyyy-MM-dd HH:mm:ss", "yyyy/M/d H:m:s");
+        for (String pattern : patterns)
+        {
+            try
+            {
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.CHINA);
+                sdf.setLenient(false);
+                return sdf.parse(value);
+            }
+            catch (Exception ignored)
+            {
+            }
+        }
+        throw new ServiceException("第" + excelRowNum + "行日期格式错误：" + value);
+    }
+
+    private Integer findColumnIndex(Map<String, Integer> headerMap, List<String> aliases)
+    {
+        for (String alias : aliases)
+        {
+            Integer index = headerMap.get(normalizeHeader(alias));
+            if (index != null)
+            {
+                return index;
+            }
+        }
+        return null;
+    }
+
+    private String normalizeHeader(String value)
+    {
+        if (value == null)
+        {
+            return null;
+        }
+        return value.replace("\n", "").replace("\r", "").replace(" ", "").replace("　", "").trim();
+    }
+
+    private boolean isRowEmpty(Row row)
+    {
+        if (row == null)
+        {
+            return true;
+        }
+        for (int i = row.getFirstCellNum(); i < row.getLastCellNum(); i++)
+        {
+            if (i < 0)
+            {
+                continue;
+            }
+            if (StringUtils.isNotBlank(readCellAsString(row.getCell(i))))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String readCellAsString(Cell cell)
+    {
+        if (cell == null)
+        {
+            return "";
+        }
+        if (cell.getCellType() == CellType.NUMERIC)
+        {
+            if (DateUtil.isCellDateFormatted(cell))
+            {
+                return new SimpleDateFormat("yyyy-MM-dd").format(cell.getDateCellValue());
+            }
+            return BigDecimal.valueOf(cell.getNumericCellValue()).stripTrailingZeros().toPlainString();
+        }
+        if (cell.getCellType() == CellType.BOOLEAN)
+        {
+            return String.valueOf(cell.getBooleanCellValue());
+        }
+        if (cell.getCellType() == CellType.FORMULA)
+        {
+            try
+            {
+                return cell.getStringCellValue();
+            }
+            catch (Exception e)
+            {
+                try
+                {
+                    return BigDecimal.valueOf(cell.getNumericCellValue()).stripTrailingZeros().toPlainString();
+                }
+                catch (Exception ex)
+                {
+                    return "";
+                }
+            }
+        }
+        return cell.toString();
+    }
+
+    private String buildSubmitLogDetail(ContractInvoice entity, String remark)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("发起人：").append(StringUtils.defaultString(entity.getSubmitter(), "-")).append("；");
+        sb.append("审批人：").append(StringUtils.defaultString(entity.getApprover(), "-")).append("；");
+        sb.append("抄送人：").append(StringUtils.defaultString(entity.getCc(), "-")).append("；");
+        if (StringUtils.isNotBlank(remark))
+        {
+            sb.append("说明：").append(remark.trim());
+        }
+        else
+        {
+            sb.append("说明：提交发票审批");
+        }
+        return sb.toString();
+    }
+
+    private String buildApproveLogDetail(String action, String remark)
+    {
+        String actionName = "agree".equals(action) ? "审批通过" : "审批驳回";
+        String approverName = resolveNickName(SecurityUtils.getUsername());
+        if (StringUtils.isNotBlank(remark))
+        {
+            return String.format("%s；审批人：%s；意见：%s", actionName, approverName, remark.trim());
+        }
+        return String.format("%s；审批人：%s", actionName, approverName);
+    }
+
+    private String resolveNickName(String userName)
+    {
+        if (StringUtils.isBlank(userName))
+        {
+            return userName;
+        }
+        SysUser user = sysUserService.selectUserByUserName(userName);
+        if (user != null && StringUtils.isNotBlank(user.getNickName()))
+        {
+            return user.getNickName();
+        }
+        return userName;
     }
 }

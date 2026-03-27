@@ -1,44 +1,53 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.invoice.mapper.ContractInvoiceMapper">
     
     <resultMap type="ContractInvoice" id="ContractInvoiceResult">
-        <result property="id"    column="id"    />
-        <result property="contractId"    column="contract_id"    />
-        <result property="invoiceCode"    column="invoice_code"    />
-        <result property="invoiceNumber"    column="invoice_number"    />
-        <result property="invoiceDate"    column="invoice_date"    />
-        <result property="invoiceAmount"    column="invoice_amount"    />
-        <result property="invoiceType"    column="invoice_type"    />
-        <result property="invoiceStatus"    column="invoice_status"    />
-        <result property="taxRate"    column="tax_rate"    />
-        <result property="taxAmount"    column="tax_amount"    />
-        <result property="purchaserName"    column="purchaser_name"    />
-        <result property="purchaserTaxNo"    column="purchaser_tax_no"    />
-        <result property="sellerName"    column="seller_name"    />
-        <result property="sellerTaxNo"    column="seller_tax_no"    />
-        <result property="counterpartyName"    column="counterparty_name"    />
-        <result property="initiator"    column="initiator"    />
-        <result property="applyTime"    column="apply_time"    />
-        <result property="department"    column="department"    />
-        <result property="invoiceContent"    column="invoice_content"    />
-        <result property="untaxedAmount"    column="untaxed_amount"    />
-        <result property="project"    column="project"    />
-        <result property="amountType"    column="amount_type"    />
-        <result property="relatedContractName"    column="related_contract_name"    />
-        <result property="relatedContractNumber"    column="related_contract_number"    />
-        <result property="remark"    column="remark"    />
-        <result property="createBy"    column="create_by"    />
-        <result property="createTime"    column="create_time"    />
-        <result property="updateBy"    column="update_by"    />
-        <result property="updateTime"    column="update_time"    />
-        <result property="delFlag"    column="del_flag"    />
+        <result property="id" column="id" />
+        <result property="contractId" column="contract_id" />
+        <result property="invoiceCode" column="invoice_code" />
+        <result property="invoiceNumber" column="invoice_number" />
+        <result property="invoiceDate" column="invoice_date" />
+        <result property="invoiceAmount" column="invoice_amount" />
+        <result property="invoiceType" column="invoice_type" />
+        <result property="invoiceStatus" column="invoice_status" />
+        <result property="taxRate" column="tax_rate" />
+        <result property="taxAmount" column="tax_amount" />
+        <result property="purchaserName" column="purchaser_name" />
+        <result property="purchaserTaxNo" column="purchaser_tax_no" />
+        <result property="sellerName" column="seller_name" />
+        <result property="sellerTaxNo" column="seller_tax_no" />
+        <result property="counterpartyName" column="counterparty_name" />
+        <result property="initiator" column="initiator" />
+        <result property="applyTime" column="apply_time" />
+        <result property="department" column="department" />
+        <result property="invoiceContent" column="invoice_content" />
+        <result property="untaxedAmount" column="untaxed_amount" />
+        <result property="project" column="project" />
+        <result property="amountType" column="amount_type" />
+        <result property="relatedContractName" column="related_contract_name" />
+        <result property="relatedContractNumber" column="related_contract_number" />
+        <result property="approvalStatus" column="approval_status" />
+        <result property="approver" column="approver" />
+        <result property="cc" column="cc" />
+        <result property="submitter" column="submitter" />
+        <result property="submitTime" column="submit_time" />
+        <result property="approveTime" column="approve_time" />
+        <result property="remark" column="remark" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+        <result property="delFlag" column="del_flag" />
     </resultMap>
 
     <sql id="selectContractInvoiceVo">
-        select li.id, li.contract_id, li.invoice_code, li.invoice_number, li.invoice_date, li.invoice_amount, li.invoice_type, li.invoice_status, li.tax_rate, li.tax_amount, li.purchaser_name, li.purchaser_tax_no, li.seller_name, li.seller_tax_no, li.related_contract_name, li.related_contract_number, li.remark, li.create_by, li.create_time, li.update_by, li.update_time, li.del_flag,
+        select li.id, li.contract_id, li.invoice_code, li.invoice_number, li.invoice_date, li.invoice_amount, li.invoice_type, li.invoice_status,
+               li.tax_rate, li.tax_amount, li.purchaser_name, li.purchaser_tax_no, li.seller_name, li.seller_tax_no,
+               li.related_contract_name, li.related_contract_number, li.approval_status, li.approver, li.cc, li.submitter, li.submit_time, li.approve_time,
+               li.remark, li.create_by, li.create_time, li.update_by, li.update_time, li.del_flag,
                c.other_party_name as counterparty_name,
                coalesce(c.submitter, c.owner, li.create_by) as initiator,
                c.apply_time,
@@ -53,30 +62,35 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectContractInvoiceList" parameterType="ContractInvoice" resultMap="ContractInvoiceResult">
         <include refid="selectContractInvoiceVo"/>
-        <where>  
-            <if test="contractId != null "> and li.contract_id = #{contractId}</if>
-            <if test="invoiceCode != null  and invoiceCode != ''"> and li.invoice_code = #{invoiceCode}</if>
-            <if test="invoiceNumber != null  and invoiceNumber != ''"> and li.invoice_number = #{invoiceNumber}</if>
-            <if test="invoiceDate != null "> and li.invoice_date = #{invoiceDate}</if>
-            <if test="invoiceAmount != null "> and li.invoice_amount = #{invoiceAmount}</if>
-            <if test="invoiceType != null  and invoiceType != ''"> and li.invoice_type = #{invoiceType}</if>
-            <if test="invoiceStatus != null  and invoiceStatus != ''"> and li.invoice_status = #{invoiceStatus}</if>
-            <if test="taxRate != null "> and li.tax_rate = #{taxRate}</if>
-            <if test="taxAmount != null "> and li.tax_amount = #{taxAmount}</if>
-            <if test="purchaserName != null  and purchaserName != ''"> and li.purchaser_name like concat('%', #{purchaserName}, '%')</if>
-            <if test="purchaserTaxNo != null  and purchaserTaxNo != ''"> and li.purchaser_tax_no like concat('%', #{purchaserTaxNo}, '%')</if>
-            <if test="sellerName != null  and sellerName != ''"> and li.seller_name like concat('%', #{sellerName}, '%')</if>
-            <if test="sellerTaxNo != null  and sellerTaxNo != ''"> and li.seller_tax_no like concat('%', #{sellerTaxNo}, '%')</if>
-            <if test="counterpartyName != null  and counterpartyName != ''"> and c.other_party_name like concat('%', #{counterpartyName}, '%')</if>
-            <if test="initiator != null  and initiator != ''"> and coalesce(c.submitter, c.owner, li.create_by) like concat('%', #{initiator}, '%')</if>
-            <if test="applyTime != null "> and c.apply_time = #{applyTime}</if>
-            <if test="department != null  and department != ''"> and c.department like concat('%', #{department}, '%')</if>
-            <if test="invoiceContent != null  and invoiceContent != ''"> and c.content like concat('%', #{invoiceContent}, '%')</if>
-            <if test="untaxedAmount != null "> and (ifnull(li.invoice_amount, 0) - ifnull(li.tax_amount, 0)) = #{untaxedAmount}</if>
-            <if test="project != null  and project != ''"> and c.project like concat('%', #{project}, '%')</if>
-            <if test="relatedContractName != null  and relatedContractName != ''"> and li.related_contract_name like concat('%', #{relatedContractName}, '%')</if>
-            <if test="relatedContractNumber != null  and relatedContractNumber != ''"> and li.related_contract_number like concat('%', #{relatedContractNumber}, '%')</if>
+        <where>
+            <if test="contractId != null"> and li.contract_id = #{contractId}</if>
+            <if test="invoiceCode != null and invoiceCode != ''"> and li.invoice_code = #{invoiceCode}</if>
+            <if test="invoiceNumber != null and invoiceNumber != ''"> and li.invoice_number = #{invoiceNumber}</if>
+            <if test="invoiceDate != null"> and li.invoice_date = #{invoiceDate}</if>
+            <if test="invoiceAmount != null"> and li.invoice_amount = #{invoiceAmount}</if>
+            <if test="invoiceType != null and invoiceType != ''"> and li.invoice_type = #{invoiceType}</if>
+            <if test="invoiceStatus != null and invoiceStatus != ''"> and li.invoice_status = #{invoiceStatus}</if>
+            <if test="taxRate != null"> and li.tax_rate = #{taxRate}</if>
+            <if test="taxAmount != null"> and li.tax_amount = #{taxAmount}</if>
+            <if test="purchaserName != null and purchaserName != ''"> and li.purchaser_name like concat('%', #{purchaserName}, '%')</if>
+            <if test="purchaserTaxNo != null and purchaserTaxNo != ''"> and li.purchaser_tax_no like concat('%', #{purchaserTaxNo}, '%')</if>
+            <if test="sellerName != null and sellerName != ''"> and li.seller_name like concat('%', #{sellerName}, '%')</if>
+            <if test="sellerTaxNo != null and sellerTaxNo != ''"> and li.seller_tax_no like concat('%', #{sellerTaxNo}, '%')</if>
+            <if test="counterpartyName != null and counterpartyName != ''"> and c.other_party_name like concat('%', #{counterpartyName}, '%')</if>
+            <if test="initiator != null and initiator != ''"> and coalesce(c.submitter, c.owner, li.create_by) like concat('%', #{initiator}, '%')</if>
+            <if test="applyTime != null"> and c.apply_time = #{applyTime}</if>
+            <if test="department != null and department != ''"> and c.department like concat('%', #{department}, '%')</if>
+            <if test="invoiceContent != null and invoiceContent != ''"> and c.content like concat('%', #{invoiceContent}, '%')</if>
+            <if test="untaxedAmount != null"> and (ifnull(li.invoice_amount, 0) - ifnull(li.tax_amount, 0)) = #{untaxedAmount}</if>
+            <if test="project != null and project != ''"> and c.project like concat('%', #{project}, '%')</if>
+            <if test="relatedContractName != null and relatedContractName != ''"> and li.related_contract_name like concat('%', #{relatedContractName}, '%')</if>
+            <if test="relatedContractNumber != null and relatedContractNumber != ''"> and li.related_contract_number like concat('%', #{relatedContractNumber}, '%')</if>
+            <if test="approvalStatus != null and approvalStatus != ''"> and li.approval_status = #{approvalStatus}</if>
+            <if test="approver != null and approver != ''"> and li.approver like concat('%', #{approver}, '%')</if>
+            <if test="cc != null and cc != ''"> and li.cc like concat('%', #{cc}, '%')</if>
+            <if test="submitter != null and submitter != ''"> and li.submitter like concat('%', #{submitter}, '%')</if>
         </where>
+        order by li.id desc
     </select>
     
     <select id="selectContractInvoiceById" parameterType="Long" resultMap="ContractInvoiceResult">
@@ -102,6 +116,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="sellerTaxNo != null">seller_tax_no,</if>
             <if test="relatedContractName != null">related_contract_name,</if>
             <if test="relatedContractNumber != null">related_contract_number,</if>
+            <if test="approvalStatus != null">approval_status,</if>
+            <if test="approver != null">approver,</if>
+            <if test="cc != null">cc,</if>
+            <if test="submitter != null">submitter,</if>
+            <if test="submitTime != null">submit_time,</if>
+            <if test="approveTime != null">approve_time,</if>
             <if test="remark != null">remark,</if>
             <if test="createBy != null">create_by,</if>
             <if test="createTime != null">create_time,</if>
@@ -125,6 +145,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="sellerTaxNo != null">#{sellerTaxNo},</if>
             <if test="relatedContractName != null">#{relatedContractName},</if>
             <if test="relatedContractNumber != null">#{relatedContractNumber},</if>
+            <if test="approvalStatus != null">#{approvalStatus},</if>
+            <if test="approver != null">#{approver},</if>
+            <if test="cc != null">#{cc},</if>
+            <if test="submitter != null">#{submitter},</if>
+            <if test="submitTime != null">#{submitTime},</if>
+            <if test="approveTime != null">#{approveTime},</if>
             <if test="remark != null">#{remark},</if>
             <if test="createBy != null">#{createBy},</if>
             <if test="createTime != null">#{createTime},</if>
@@ -152,6 +178,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="sellerTaxNo != null">seller_tax_no = #{sellerTaxNo},</if>
             <if test="relatedContractName != null">related_contract_name = #{relatedContractName},</if>
             <if test="relatedContractNumber != null">related_contract_number = #{relatedContractNumber},</if>
+            <if test="approvalStatus != null">approval_status = #{approvalStatus},</if>
+            approver = #{approver},
+            cc = #{cc},
+            submitter = #{submitter},
+            submit_time = #{submitTime},
+            approve_time = #{approveTime},
             <if test="remark != null">remark = #{remark},</if>
             <if test="createBy != null">create_by = #{createBy},</if>
             <if test="createTime != null">create_time = #{createTime},</if>

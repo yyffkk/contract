@@ -383,10 +383,17 @@ public class BizContractContentController extends BaseController
             log.setContractId(contractId);
             log.setContractType("approval");
             log.setAction("上传合同文件");
-            log.setDetail("在详情页上传了合同正文/附件");
+            log.setDetail("在修改页上传了合同正文/附件");
             bizContractContentService.addOperateLog(log);
-            return success(entity);
+
+            BizContractContent latest = bizContractContentService.selectBizContractContentById(contractId);
+            if (latest != null) {
+                latest.setParams(new java.util.HashMap<>());
+                latest.getParams().put("operateLogs", bizContractContentService.selectOperateLogs(contractId));
+            }
+            return success(latest != null ? latest : entity);
         } catch (Exception e) {
+            e.printStackTrace();
             return error("上传失败：" + e.getMessage());
         }
     }

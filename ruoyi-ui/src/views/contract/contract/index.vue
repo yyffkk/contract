@@ -978,42 +978,18 @@
           label-position="right"
         >
           <el-form-item label="合同名称" prop="contractName">
-            <el-input v-model="editForm.contractName" placeholder="请输入合同名称" />
+            <el-input v-model="editForm.contractName" placeholder="请输入合同名称" :disabled="true"/>
           </el-form-item>
           <el-form-item label="合同编号" prop="contractNumber">
-            <el-input v-model="editForm.contractNumber" placeholder="请输入合同编号" />
+            <el-input v-model="editForm.contractNumber" placeholder="请输入合同编号" :disabled="true"/>
           </el-form-item>
-          <el-form-item label="签署状态" prop="signStatus">
-            <el-select v-model="editForm.signStatus" placeholder="请选择">
-              <el-option label="审批中" value="1" />
-              <el-option label="签署中" value="2" />
-              <el-option label="待归档" value="3" />
-              <el-option label="归档确认中" value="4" />
-              <el-option label="已归档" value="5" />
-              <el-option label="已撤销" value="6" />
-              <el-option label="已拒绝" value="7" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="履约状态" prop="performanceStatus">
-            <el-select v-model="editForm.performanceStatus" placeholder="请选择">
-              <el-option label="未履约" value="1" />
-              <el-option label="待生效" value="2" />
-              <el-option label="履约中" value="3" />
-              <el-option label="30天内到期" value="4" />
-              <el-option label="7天内到期" value="5" />
-              <el-option label="今日到期" value="6" />
-              <el-option label="已到期" value="7" />
-              <el-option label="已完结" value="8" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="合同总额" prop="totalAmount">
-            <el-input v-model="editForm.totalAmount" placeholder="请输入合同总额" />
-          </el-form-item>
+         
+
           <el-form-item label="我方主体名称" prop="myPartyName">
-            <el-input v-model="editForm.myPartyName" placeholder="请输入我方主体名称" />
+            <el-input v-model="editForm.myPartyName" placeholder="请输入我方主体名称" :disabled="true"/>
           </el-form-item>
           <el-form-item label="对方主体名称" prop="otherPartyName">
-            <el-input v-model="editForm.otherPartyName" placeholder="请输入对方主体名称" />
+            <el-input v-model="editForm.otherPartyName" placeholder="请输入对方主体名称" :disabled="true"/>
           </el-form-item>
           <el-form-item label="归属人" prop="owner">
             <el-input v-model="editForm.owner" placeholder="请输入归属人" />
@@ -1199,7 +1175,7 @@
 
       <div class="drawer-footer fixed-drawer-footer">
         <el-button @click="closeEditDrawer">取消</el-button>
-        <el-button type="primary" @click="submitEditForm">确定</el-button>
+        <el-button type="primary" :loading="editSubmitting" @click="submitEditForm">确定</el-button>
       </div>
       </div>
     </el-drawer>
@@ -1218,7 +1194,7 @@
         <h2>合同完结</h2>
         <p>请确认回款、开票、归档等信息后，再执行完结。</p>
       </div>
-      <el-tag type="success" effect="dark">完结动作</el-tag>
+      <el-tag type="success" effect="dark">完结</el-tag>
     </div>
 
     <div class="finish-contract-card">
@@ -1369,7 +1345,6 @@
               </div>
             </div>
             <div v-else class="empty-text">暂无附件</div>
-
           </el-card>
         </div>
 
@@ -2192,6 +2167,7 @@ export default {
       },
 
       detailUploadLoading: false,
+      editSubmitting: false,
       detailUploadForm: {
         contentFiles: [],
         attachmentFiles: []
@@ -2517,33 +2493,41 @@ export default {
     submitEditForm() {
       this.$refs.editForm.validate(async valid => {
         if (!valid) return;
+        this.editSubmitting = true;
         try {
           const api = this.isApproval ? updateContractContent : updateSealApply;
+          const contractId = this.editForm.id || this.editForm.contractId;
+          const hasPendingFiles = this.isApproval && (this.detailUploadForm.contentFiles.length || this.detailUploadForm.attachmentFiles.length);
+
           await api(this.editForm);
-          if (this.isApproval && (this.detailUploadForm.contentFiles.length || this.detailUploadForm.attachmentFiles.length)) {
-            const contractId = this.editForm.id || this.editForm.contractId;
+
+          if (hasPendingFiles) {
+            if (!contractId) {
+              throw new Error('缺少合同ID，文件无法保存');
+            }
             const formData = new FormData();
             formData.append('contractId', contractId);
-            this.detailUploadForm.contentFiles.forEach(file => formData.append('contentFiles', file.raw));
-            this.detailUploadForm.attachmentFiles.forEach(file => formData.append('attachmentFiles', file.raw));
+            this.detailUploadForm.contentFiles.forEach(file => file && file.raw && formData.append('contentFiles', file.raw));
+            this.detailUploadForm.attachmentFiles.forEach(file => file && file.raw && formData.append('attachmentFiles', file.raw));
             this.detailUploadLoading = true;
-            const uploadResp = await uploadContractDetailFiles(formData);
-            if (uploadResp && uploadResp.data) {
-              this.editForm = { ...this.editForm, ...uploadResp.data };
-            }
+            await uploadContractDetailFiles(formData);
           }
-          this.$message.success("修改成功");
+
+          if (this.isApproval && contractId) {
+            const latestResp = await getContractContent(contractId);
+            this.editForm = (latestResp && latestResp.data) || this.editForm;
+            this.currentDetail = { ...this.currentDetail, ...this.editForm, id: contractId, contractId };
+          }
+
+          this.$message.success(hasPendingFiles ? '修改并保存文件成功' : '修改成功');
           this.editDrawerVisible = false;
           this.detailUploadForm = { contentFiles: [], attachmentFiles: [] };
           await this.getList();
-          if (this.isApproval && (this.editForm.id || this.editForm.contractId)) {
-            const currentId = this.editForm.id || this.editForm.contractId;
-            this.currentDetail = { ...this.currentDetail, ...this.editForm, id: currentId, contractId: currentId };
-          }
         } catch (e) {
-          this.$message.error("修改失败：" + ((e && (e.msg || e.message)) || "请稍后重试"));
+          this.$message.error('修改失败：' + ((e && (e.msg || e.message)) || '请稍后重试'));
         } finally {
           this.detailUploadLoading = false;
+          this.editSubmitting = false;
         }
       });
     },
@@ -2988,7 +2972,8 @@ export default {
     getFileName(path) {
       if (!path) return "";
       const cleanPath = typeof path === 'string' ? path : (path.raw || path.url || path.name || '');
-      return cleanPath.substring(cleanPath.lastIndexOf("/") + 1);
+      const normalized = String(cleanPath).replace(/\\/g, '/');
+      return normalized.substring(normalized.lastIndexOf("/") + 1);
     },
 
     downloadFile(file) {
@@ -3024,19 +3009,25 @@ export default {
 
     handleDetailContentFileChange(file) {
       if (file && file.raw) {
-        this.detailUploadForm.contentFiles.push({
-          name: file.name,
-          raw: file.raw
-        });
+        const exists = this.detailUploadForm.contentFiles.some(item => item.name === file.name && item.raw === file.raw);
+        if (!exists) {
+          this.detailUploadForm.contentFiles.push({
+            name: file.name,
+            raw: file.raw
+          });
+        }
       }
     },
 
     handleDetailAttachmentFileChange(file) {
       if (file && file.raw) {
-        this.detailUploadForm.attachmentFiles.push({
-          name: file.name,
-          raw: file.raw
-        });
+        const exists = this.detailUploadForm.attachmentFiles.some(item => item.name === file.name && item.raw === file.raw);
+        if (!exists) {
+          this.detailUploadForm.attachmentFiles.push({
+            name: file.name,
+            raw: file.raw
+          });
+        }
       }
     },
 
@@ -3057,18 +3048,18 @@ export default {
       }
       const formData = new FormData();
       formData.append('contractId', contractId);
-      this.detailUploadForm.contentFiles.forEach(file => formData.append('contentFiles', file.raw));
-      this.detailUploadForm.attachmentFiles.forEach(file => formData.append('attachmentFiles', file.raw));
+      this.detailUploadForm.contentFiles.forEach(file => file && file.raw && formData.append('contentFiles', file.raw));
+      this.detailUploadForm.attachmentFiles.forEach(file => file && file.raw && formData.append('attachmentFiles', file.raw));
 
       this.detailUploadLoading = true;
       try {
         const uploadResp = await uploadContractDetailFiles(formData);
-        this.$message.success('文件上传成功');
         this.detailUploadForm = { contentFiles: [], attachmentFiles: [] };
         if (uploadResp && uploadResp.data) {
           this.currentDetail = { ...this.currentDetail, ...uploadResp.data, id: contractId, contractId };
         }
         await this.handleDetail(this.currentDetail);
+        this.$message.success('文件上传成功并已保存');
       } catch (e) {
         this.$message.error('文件上传失败：' + ((e && (e.msg || e.message)) || '请稍后重试'));
       } finally {
