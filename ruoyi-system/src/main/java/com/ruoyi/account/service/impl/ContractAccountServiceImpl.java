@@ -26,7 +26,7 @@ import com.ruoyi.account.domain.ContractAccount;
 import com.ruoyi.account.mapper.ContractAccountMapper;
 import com.ruoyi.account.service.IContractAccountService;
 import com.ruoyi.common.exception.ServiceException;
-import com.ruoyi.common.utils.ApprovalFlowUtils;
+import com.ruoyi.system.utils.ApprovalFlowUtils;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.contract.domain.BizContractContent;

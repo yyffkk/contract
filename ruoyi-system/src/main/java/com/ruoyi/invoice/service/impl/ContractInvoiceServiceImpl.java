@@ -12,7 +12,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import com.ruoyi.common.core.domain.entity.SysUser;
+import com.ruoyi.common.core.domain.entity.SysDept;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.system.utils.ApprovalFlowUtils;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.contract.domain.BizContractOperateLog;
@@ -20,6 +23,7 @@ import com.ruoyi.contract.service.IBizContractOperateLogService;
 import com.ruoyi.invoice.domain.ContractInvoice;
 import com.ruoyi.invoice.mapper.ContractInvoiceMapper;
 import com.ruoyi.invoice.service.IContractInvoiceService;
+import com.ruoyi.system.service.ISysDeptService;
 import com.ruoyi.system.service.ISysUserService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
@@ -53,6 +57,9 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
 
     @Autowired
     private ISysUserService sysUserService;
+
+    @Autowired
+    private ISysDeptService sysDeptService;
 
     @Override
     public ContractInvoice selectContractInvoiceById(Long id)
@@ -99,7 +106,10 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
             throw new ServiceException("审批通过的发票不允许修改");
         }
         contractInvoice.setApprovalStatus(current.getApprovalStatus());
+        contractInvoice.setDirectLeader(current.getDirectLeader());
         contractInvoice.setApprover(current.getApprover());
+        contractInvoice.setHandler(current.getHandler());
+        contractInvoice.setCurrentApprovalNode(current.getCurrentApprovalNode());
         contractInvoice.setCc(current.getCc());
         contractInvoice.setSubmitter(current.getSubmitter());
         contractInvoice.setSubmitTime(current.getSubmitTime());
@@ -173,7 +183,7 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int submitApproval(Long id, String approver, String cc, String remark)
+    public int submitApproval(Long id, String approver, String handler, String cc, String remark)
     {
         ContractInvoice entity = getRequired(id);
         if ("pending".equals(entity.getApprovalStatus()))
@@ -185,8 +195,16 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
             throw new ServiceException("该发票已审批通过，无需重复提交");
         }
         String currentUser = SecurityUtils.getUsername();
+        SysUser current = sysUserService.selectUserByUserName(currentUser);
+        String directLeader = ApprovalFlowUtils.resolveDirectLeaderUserName(current, sysDeptService, sysUserService);
+        String normalizedApprover = normalizeAssignee(approver, "审批人");
+        String normalizedHandler = normalizeAssignee(handler, "办理人");
+        ensureDistinctFlowUsers(currentUser, directLeader, normalizedApprover, normalizedHandler);
         entity.setApprovalStatus("pending");
-        entity.setApprover(StringUtils.trimToNull(approver));
+        entity.setDirectLeader(directLeader);
+        entity.setApprover(normalizedApprover);
+        entity.setHandler(normalizedHandler);
+        entity.setCurrentApprovalNode("directLeader");
         entity.setCc(StringUtils.trimToNull(cc));
         entity.setSubmitter(resolveNickName(currentUser));
         entity.setSubmitTime(DateUtils.getNowDate());
@@ -210,25 +228,46 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         {
             throw new ServiceException("当前发票不在审批中");
         }
-        if ("agree".equals(action))
-        {
-            entity.setApprovalStatus("approved");
-        }
-        else if ("reject".equals(action))
+        String currentNode = ApprovalFlowUtils.normalizeNode(entity.getCurrentApprovalNode());
+        String currentUser = SecurityUtils.getUsername();
+        validateCurrentNodeOperator(entity, currentNode, currentUser);
+        if ("reject".equals(action))
         {
             entity.setApprovalStatus("rejected");
+            entity.setCurrentApprovalNode("rejected");
+            entity.setApproveTime(DateUtils.getNowDate());
+        }
+        else if ("agree".equals(action))
+        {
+            if ("directLeader".equals(currentNode))
+            {
+                entity.setCurrentApprovalNode("approver");
+            }
+            else if ("approver".equals(currentNode))
+            {
+                entity.setCurrentApprovalNode("handler");
+            }
+            else if ("handler".equals(currentNode))
+            {
+                entity.setApprovalStatus("approved");
+                entity.setCurrentApprovalNode("finished");
+                entity.setApproveTime(DateUtils.getNowDate());
+            }
+            else
+            {
+                throw new ServiceException("当前审批节点无效");
+            }
         }
         else
         {
             throw new ServiceException("无效的审批动作");
         }
-        entity.setApproveTime(DateUtils.getNowDate());
-        entity.setUpdateBy(SecurityUtils.getUsername());
+        entity.setUpdateBy(currentUser);
         entity.setUpdateTime(DateUtils.getNowDate());
         int rows = contractInvoiceMapper.updateContractInvoice(entity);
         if (rows > 0)
         {
-            operateLogService.addSystemLog(id, LOG_TYPE, "审批发票", buildApproveLogDetail(action, remark));
+            operateLogService.addSystemLog(id, LOG_TYPE, "审批发票", buildApproveLogDetail(entity, currentNode, action, remark));
         }
         return rows;
     }
@@ -602,7 +641,9 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
     {
         StringBuilder sb = new StringBuilder();
         sb.append("发起人：").append(StringUtils.defaultString(entity.getSubmitter(), "-")).append("；");
-        sb.append("审批人：").append(StringUtils.defaultString(entity.getApprover(), "-")).append("；");
+        sb.append("直接主管：").append(resolveDisplayName(entity.getDirectLeader())).append("；");
+        sb.append("审批人：").append(resolveDisplayName(entity.getApprover())).append("；");
+        sb.append("办理人：").append(resolveDisplayName(entity.getHandler())).append("；");
         sb.append("抄送人：").append(StringUtils.defaultString(entity.getCc(), "-")).append("；");
         if (StringUtils.isNotBlank(remark))
         {
@@ -615,15 +656,123 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         return sb.toString();
     }
 
-    private String buildApproveLogDetail(String action, String remark)
+    private String buildApproveLogDetail(ContractInvoice entity, String currentNode, String action, String remark)
     {
+        String nodeName = getNodeName(currentNode);
         String actionName = "agree".equals(action) ? "审批通过" : "审批驳回";
         String approverName = resolveNickName(SecurityUtils.getUsername());
+        StringBuilder sb = new StringBuilder();
+        sb.append(nodeName).append(actionName).append("；处理人：").append(approverName);
         if (StringUtils.isNotBlank(remark))
         {
-            return String.format("%s；审批人：%s；意见：%s", actionName, approverName, remark.trim());
+            sb.append("；意见：").append(remark.trim());
         }
-        return String.format("%s；审批人：%s", actionName, approverName);
+        if ("agree".equals(action))
+        {
+            String nextUser = null;
+            if ("directLeader".equals(currentNode))
+            {
+                nextUser = entity.getApprover();
+            }
+            else if ("approver".equals(currentNode))
+            {
+                nextUser = entity.getHandler();
+            }
+            if (StringUtils.isNotBlank(nextUser))
+            {
+                sb.append("；流转至：").append(resolveDisplayName(nextUser));
+            }
+        }
+        return sb.toString();
+    }
+
+    private String normalizeAssignee(String userName, String roleName)
+    {
+        if (StringUtils.isBlank(userName))
+        {
+            throw new ServiceException(roleName + "不能为空");
+        }
+        SysUser user = sysUserService.selectUserByUserName(userName.trim());
+        if (user == null)
+        {
+            throw new ServiceException(roleName + "不存在：" + userName);
+        }
+        return user.getUserName();
+    }
+
+    private void ensureDistinctFlowUsers(String applicant, String directLeader, String approver, String handler)
+    {
+        if (StringUtils.equalsAny(applicant, approver, handler))
+        {
+            throw new ServiceException("审批人和办理人不能与申请人相同");
+        }
+        if (StringUtils.equals(directLeader, approver))
+        {
+            throw new ServiceException("审批人不能与直接主管相同");
+        }
+        if (StringUtils.equalsAny(handler, directLeader, approver))
+        {
+            throw new ServiceException("办理人不能与直接主管或审批人相同");
+        }
+    }
+
+    private void validateCurrentNodeOperator(ContractInvoice entity, String currentNode, String currentUser)
+    {
+        String expectedUser = null;
+        if ("directLeader".equals(currentNode))
+        {
+            expectedUser = entity.getDirectLeader();
+        }
+        else if ("approver".equals(currentNode))
+        {
+            expectedUser = entity.getApprover();
+        }
+        else if ("handler".equals(currentNode))
+        {
+            expectedUser = entity.getHandler();
+        }
+        else
+        {
+            throw new ServiceException("当前审批节点无效");
+        }
+        if (StringUtils.isBlank(expectedUser))
+        {
+            throw new ServiceException(getNodeName(currentNode) + "未配置处理人");
+        }
+        if (!StringUtils.equals(expectedUser, currentUser))
+        {
+            throw new ServiceException("当前节点应由【" + resolveDisplayName(expectedUser) + "】处理");
+        }
+    }
+
+    private String getNodeName(String node)
+    {
+        if ("directLeader".equals(node))
+        {
+            return "直接主管";
+        }
+        if ("approver".equals(node))
+        {
+            return "审批人";
+        }
+        if ("handler".equals(node))
+        {
+            return "办理人";
+        }
+        if ("finished".equals(node))
+        {
+            return "已完成";
+        }
+        if ("rejected".equals(node))
+        {
+            return "已驳回";
+        }
+        return "审批节点";
+    }
+
+    private String resolveDisplayName(String userName)
+    {
+        return ApprovalFlowUtils.resolveDisplayNameByUserName(userName, sysUserService);
     }
 
     private String resolveNickName(String userName)
