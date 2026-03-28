@@ -88,6 +88,18 @@ public class ContractBorrow extends BaseEntity
     @Excel(name = "审批状态 (pending:审批中, approved:已通过, rejected:已拒绝)")
     private String approvalStatus;
 
+    /** 直接主管 */
+    private String directLeader;
+
+    /** 审批人 */
+    private String approver;
+
+    /** 办理人 */
+    private String handler;
+
+    /** 当前审批节点 */
+    private String currentApprovalNode;
+
     /** 删除标志 (0存在 2删除) */
     private String delFlag;
 
