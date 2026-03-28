@@ -87,6 +87,15 @@ public class ContractAccount extends BaseEntity
     /** 查询：预警状态 */
     private String warningType;
 
+    /** 归属人 */
+    private String owner;
+
+    /** 附件 */
+    private String attachments;
+
+    /** 供应商 */
+    private String supplierName;
+
     public void setId(Long id) 
     {
         this.id = id;
@@ -246,6 +255,36 @@ public class ContractAccount extends BaseEntity
         return warningType;
     }
 
+    public void setOwner(String owner)
+    {
+        this.owner = owner;
+    }
+
+    public String getOwner()
+    {
+        return owner;
+    }
+
+    public void setAttachments(String attachments)
+    {
+        this.attachments = attachments;
+    }
+
+    public String getAttachments()
+    {
+        return attachments;
+    }
+
+    public void setSupplierName(String supplierName)
+    {
+        this.supplierName = supplierName;
+    }
+
+    public String getSupplierName()
+    {
+        return supplierName;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -270,6 +309,9 @@ public class ContractAccount extends BaseEntity
             .append("approver", getApprover())
             .append("handler", getHandler())
             .append("currentApprovalNode", getCurrentApprovalNode())
+            .append("owner", getOwner())
+            .append("attachments", getAttachments())
+            .append("supplierName", getSupplierName())
             .append("delFlag", getDelFlag())
             .toString();
     }

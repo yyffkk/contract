@@ -183,21 +183,34 @@
           <div class="approval-header-title">{{ selectedApplyType === 'pay' ? '付款审批流程' : '收款审批流程' }}</div>
           <div class="approval-header-desc">按钉钉式流程流转：发起申请 → 直接主管 → 审批人 → 办理人。</div>
         </div>
-        <div class="approval-summary">
-          <div class="summary-item"><span>合同</span><strong>{{ selectedRow.relatedContractName || '-' }}</strong></div>
-          <div class="summary-item"><span>合同编号</span><strong>{{ selectedRow.relatedContractNumber || '-' }}</strong></div>
+        <div class="approval-summary approval-summary-extended">
+          <div class="summary-item"><span>申请日期</span><strong>{{ parseTime(selectedRow.accountDate) }}</strong></div>
+          <div class="summary-item"><span>金额类型</span><strong>{{ selectedRow.amountType === 'income' ? '收入' : selectedRow.amountType === 'expense' ? '支出' : (selectedRow.amountType || '-') }}</strong></div>
           <div class="summary-item"><span>金额</span><strong>¥ {{ formatAmount(selectedRow.amount) }}</strong></div>
-          <div class="summary-item"><span>类型</span><strong>{{ selectedApplyType === 'pay' ? '付款申请' : '收款申请' }}</strong></div>
+          <div class="summary-item"><span>归属人</span><strong>{{ selectedRow.owner || '-' }}</strong></div>
+          <div class="summary-item"><span>关联合同</span><strong>{{ selectedRow.relatedContractName || '-' }}{{ selectedRow.relatedContractNumber ? ' / ' + selectedRow.relatedContractNumber : '' }}</strong></div>
+          <div class="summary-item"><span>供应商</span><strong>{{ selectedRow.supplierName || selectedRow.otherParty || '-' }}</strong></div>
+          <div class="summary-item summary-item-attachment"><span>附件</span>
+            <div class="attachment-list" v-if="getAttachmentList(selectedRow.attachments).length">
+              <el-tag v-for="(file, index) in getAttachmentList(selectedRow.attachments)" :key="index" size="mini" effect="plain">{{ getAttachmentName(file) }}</el-tag>
+            </div>
+            <strong v-else>-</strong>
+          </div>
+          <div class="summary-item"><span>申请类型</span><strong>{{ selectedApplyType === 'pay' ? '付款申请' : '收款申请' }}</strong></div>
         </div>
         <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="90px" class="approval-form-card">
           <el-form-item label="直接主管">
             <el-input :value="approvalForm.directLeaderDisplay || '提交后自动带出'" disabled />
           </el-form-item>
           <el-form-item label="审批人" prop="approver">
-            <el-input v-model="approvalForm.approver" placeholder="请输入系统用户名，如 zhangsan" />
+            <el-select v-model="approvalForm.approver" filterable clearable placeholder="请选择审批人" style="width: 100%">
+              <el-option v-for="item in userOptions" :key="item.userId" :label="formatUserOption(item)" :value="item.userName" />
+            </el-select>
           </el-form-item>
           <el-form-item label="办理人" prop="handler">
-            <el-input v-model="approvalForm.handler" placeholder="请输入系统用户名，如 lisi" />
+            <el-select v-model="approvalForm.handler" filterable clearable placeholder="请选择办理人" style="width: 100%">
+              <el-option v-for="item in userOptions" :key="'handler-' + item.userId" :label="formatUserOption(item)" :value="item.userName" />
+            </el-select>
           </el-form-item>
           <el-form-item label="审批说明" prop="remark">
             <el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="请输入审批说明、付款依据或收款说明" />
@@ -230,6 +243,7 @@
 <script>
 import { mapGetters } from 'vuex'
 import { listAccount, delAccount, importAccount, downloadAccountTemplate, submitAccountApproval, approveAccount } from '@/api/account/account'
+import { listUser } from '@/api/system/user'
 
 export default {
   name: 'Account',
@@ -238,6 +252,7 @@ export default {
       currentNav: 'account', scopeFilter: 'mine', activeTab: 'all', warningType: 'all', showSearch: true, loading: false, total: 0,
       ids: [], selectedRows: [], selectedRow: null, selectedApplyType: 'receive', selectedApproveAction: 'agree',
       accountList: [], planList: [{ id: 1, planName: '示例收款计划', planNo: 'PLAN001', planType: 'receive', planAmount: 100000 }],
+      userOptions: [],
       queryParams: { pageNum: 1, pageSize: 10, contractId: null, orderNo: null, amountType: null, partyName: null, warningType: 'all', planName: null, planNo: null, scope: 'mine' },
       detailDrawerVisible: false, detailData: null,
       approvalDrawerVisible: false, approvalDrawerTitle: '提交审批申请',
@@ -246,8 +261,8 @@ export default {
       approvalForm: { directLeaderDisplay: '', approver: '', handler: '', remark: '' },
       approveActionForm: { remark: '' },
       approvalRules: {
-        approver: [{ required: true, message: '请输入审批人用户名', trigger: 'blur' }],
-        handler: [{ required: true, message: '请输入办理人用户名', trigger: 'blur' }],
+        approver: [{ required: true, message: '请选择审批人', trigger: 'change' }],
+        handler: [{ required: true, message: '请选择办理人', trigger: 'change' }],
         remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }]
       }
     }
@@ -272,7 +287,7 @@ export default {
       return items
     }
   },
-  created() { this.applyRouteQuery(); this.getList() },
+  created() { this.applyRouteQuery(); this.getList(); this.getUserOptions() },
   watch: { '$route.query': { deep: true, handler() { this.applyRouteQuery() } } },
   methods: {
     applyRouteQuery() {
@@ -297,6 +312,13 @@ export default {
     handleQuery() { this.queryParams.pageNum = 1; this.queryParams.warningType = this.warningType; this.getList() },
     resetQuery() { this.queryParams = { pageNum: 1, pageSize: 10, contractId: null, orderNo: null, amountType: null, partyName: null, warningType: 'all', planName: null, planNo: null, scope: this.scopeFilter }; this.warningType = 'all'; this.activeTab = 'all'; this.getList() },
     handleSelectionChange(selection) { this.selectedRows = selection; this.ids = selection.map(item => item.id); this.selectedRow = selection.length === 1 ? selection[0] : null },
+    getUserOptions() {
+      listUser({ status: '0', pageNum: 1, pageSize: 1000 }).then(res => {
+        this.userOptions = res.rows || []
+      }).catch(() => {
+        this.userOptions = []
+      })
+    },
     getList() {
       if (this.currentNav !== 'account') { this.total = this.planList.length; return }
       this.loading = true
@@ -474,6 +496,29 @@ export default {
       const match = remark.match(new RegExp(`\\[${tag}\\]([^；]+)`))
       return match ? match[1].trim() : `${tag}记录`
     },
+    formatUserOption(user) {
+      if (!user) return '-'
+      const label = user.nickName || user.userName || '-'
+      return user.userName && user.nickName ? `${label}（${user.userName}）` : label
+    },
+    getAttachmentList(value) {
+      if (!value) return []
+      if (Array.isArray(value)) return value.filter(Boolean)
+      const text = String(value).trim()
+      if (!text) return []
+      try {
+        const parsed = JSON.parse(text)
+        if (Array.isArray(parsed)) return parsed.filter(Boolean)
+      } catch (e) {}
+      return text.split(',').map(item => item.trim()).filter(Boolean)
+    },
+    getAttachmentName(file) {
+      if (!file) return '-'
+      const value = String(file)
+      const normalized = value.replace(/\\/g, '/')
+      const parts = normalized.split('/')
+      return parts[parts.length - 1] || value
+    },
     formatAmount(v) { if (v === null || v === undefined || v === '') return '0.00'; const n = Number(v); return isNaN(n) ? v : n.toFixed(2) },
     parseTime(v) { if (!v) return '-'; const d = new Date(v); if (isNaN(d.getTime())) return v; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` },
     getAccountStatusType(status) { return ({ pending: 'info', approving: 'warning', approved: 'success', rejected: 'danger', partial: 'warning', done: 'success' })[status] || 'info' },
@@ -523,7 +568,10 @@ export default {
 .detail-grid, .approval-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 16px; margin-bottom: 18px; }
 .detail-item, .summary-item { display: flex; flex-direction: column; padding: 14px 16px; background: #fff; border-radius: 14px; border: 1px solid #ebeef5; }
 .detail-item span, .summary-item span { font-size: 12px; color: #909399; margin-bottom: 6px; }
-.detail-item strong, .summary-item strong { color: #303133; word-break: break-all; }
+ .detail-item strong, .summary-item strong { color: #303133; word-break: break-all; }
+.approval-summary-extended { grid-template-columns: repeat(2, 1fr); }
+.summary-item-attachment { grid-column: 1 / -1; }
+.attachment-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .timeline-card, .detail-remark-card, .approval-form-card { border-radius: 16px; border: 1px solid #ebeef5; margin-bottom: 18px; }
 .timeline-item-title { font-weight: 700; color: #303133; margin-bottom: 4px; }
 .timeline-item-desc, .detail-remark-content { color: #606266; line-height: 1.8; white-space: pre-wrap; }

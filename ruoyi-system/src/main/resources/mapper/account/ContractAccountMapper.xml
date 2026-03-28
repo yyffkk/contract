@@ -27,52 +27,58 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="approver"    column="approver"    />
         <result property="handler"    column="handler"    />
         <result property="currentApprovalNode"    column="current_approval_node"    />
+        <result property="owner"    column="owner"    />
+        <result property="attachments"    column="attachments"    />
+        <result property="supplierName"    column="supplier_name"    />
     </resultMap>
 
     <sql id="selectContractAccountVo">
-        select id, contract_id, account_name, account_date, amount, amount_type, order_no, our_party, other_party, related_contract_name, related_contract_number, remark, status, create_by, create_time, update_by, update_time, del_flag, direct_leader, approver, handler, current_approval_node from contract_account
+        select a.id, a.contract_id, a.account_name, a.account_date, a.amount, a.amount_type, a.order_no, a.our_party, a.other_party, a.related_contract_name, a.related_contract_number, a.remark, a.status, a.create_by, a.create_time, a.update_by, a.update_time, a.del_flag, a.direct_leader, a.approver, a.handler, a.current_approval_node,
+               c.owner, c.attachments, c.other_party_name as supplier_name
+        from contract_account a
+        left join biz_contract_content c on a.contract_id = c.id
     </sql>
 
     <select id="selectContractAccountList" parameterType="ContractAccount" resultMap="ContractAccountResult">
         <include refid="selectContractAccountVo"/>
         <where>  
-            <if test="contractId != null "> and contract_id = #{contractId}</if>
-            <if test="accountName != null  and accountName != ''"> and account_name like concat('%', #{accountName}, '%')</if>
-            <if test="accountDate != null "> and account_date = #{accountDate}</if>
-            <if test="amount != null "> and amount = #{amount}</if>
-            <if test="amountType != null  and amountType != ''"> and amount_type = #{amountType}</if>
-            <if test="orderNo != null  and orderNo != ''"> and order_no = #{orderNo}</if>
-            <if test="ourParty != null  and ourParty != ''"> and our_party = #{ourParty}</if>
-            <if test="otherParty != null  and otherParty != ''"> and other_party = #{otherParty}</if>
-            <if test="partyName != null and partyName != ''"> and (our_party like concat('%', #{partyName}, '%') or other_party like concat('%', #{partyName}, '%'))</if>
-            <if test="relatedContractName != null  and relatedContractName != ''"> and related_contract_name like concat('%', #{relatedContractName}, '%')</if>
-            <if test="relatedContractNumber != null  and relatedContractNumber != ''"> and related_contract_number = #{relatedContractNumber}</if>
-            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="contractId != null "> and a.contract_id = #{contractId}</if>
+            <if test="accountName != null  and accountName != ''"> and a.account_name like concat('%', #{accountName}, '%')</if>
+            <if test="accountDate != null "> and a.account_date = #{accountDate}</if>
+            <if test="amount != null "> and a.amount = #{amount}</if>
+            <if test="amountType != null  and amountType != ''"> and a.amount_type = #{amountType}</if>
+            <if test="orderNo != null  and orderNo != ''"> and a.order_no = #{orderNo}</if>
+            <if test="ourParty != null  and ourParty != ''"> and a.our_party = #{ourParty}</if>
+            <if test="otherParty != null  and otherParty != ''"> and a.other_party = #{otherParty}</if>
+            <if test="partyName != null and partyName != ''"> and (a.our_party like concat('%', #{partyName}, '%') or a.other_party like concat('%', #{partyName}, '%'))</if>
+            <if test="relatedContractName != null  and relatedContractName != ''"> and a.related_contract_name like concat('%', #{relatedContractName}, '%')</if>
+            <if test="relatedContractNumber != null  and relatedContractNumber != ''"> and a.related_contract_number = #{relatedContractNumber}</if>
+            <if test="status != null  and status != ''"> and a.status = #{status}</if>
             <if test="warningType != null and warningType != '' and warningType != 'all'">
                 <choose>
-                    <when test="warningType == 'receive_overdue'">and amount_type = 'income' and (status is null or status != 'done') and account_date &lt; CURDATE()</when>
-                    <when test="warningType == 'pay_overdue'">and amount_type = 'expense' and (status is null or status != 'done') and account_date &lt; CURDATE()</when>
-                    <when test="warningType == 'receive_overdue_3d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 1 and 3</when>
-                    <when test="warningType == 'pay_overdue_3d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 1 and 3</when>
-                    <when test="warningType == 'receive_overdue_7d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 4 and 7</when>
-                    <when test="warningType == 'pay_overdue_7d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 4 and 7</when>
-                    <when test="warningType == 'receive_overdue_30d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 8 and 30</when>
-                    <when test="warningType == 'pay_overdue_30d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) between 8 and 30</when>
-                    <when test="warningType == 'receive_overdue_30p'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) &gt; 30</when>
-                    <when test="warningType == 'pay_overdue_30p'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(CURDATE(), account_date) &gt; 30</when>
-                    <when test="warningType == 'receive_due_today'">and amount_type = 'income' and (status is null or status != 'done') and account_date = CURDATE()</when>
-                    <when test="warningType == 'pay_due_today'">and amount_type = 'expense' and (status is null or status != 'done') and account_date = CURDATE()</when>
-                    <when test="warningType == 'receive_due_1d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) = 1</when>
-                    <when test="warningType == 'pay_due_1d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) = 1</when>
-                    <when test="warningType == 'receive_due_3d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 2 and 3</when>
-                    <when test="warningType == 'pay_due_3d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 2 and 3</when>
-                    <when test="warningType == 'receive_due_7d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 4 and 7</when>
-                    <when test="warningType == 'pay_due_7d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 4 and 7</when>
-                    <when test="warningType == 'receive_due_15d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 8 and 15</when>
-                    <when test="warningType == 'pay_due_15d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 8 and 15</when>
-                    <when test="warningType == 'receive_due_30d'">and amount_type = 'income' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 16 and 30</when>
-                    <when test="warningType == 'pay_due_30d'">and amount_type = 'expense' and (status is null or status != 'done') and DATEDIFF(account_date, CURDATE()) between 16 and 30</when>
-                    <when test="warningType == 'normal'">and ((status = 'done') or account_date is null or DATEDIFF(account_date, CURDATE()) &gt; 30)</when>
+                    <when test="warningType == 'receive_overdue'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and a.account_date &lt; CURDATE()</when>
+                    <when test="warningType == 'pay_overdue'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and a.account_date &lt; CURDATE()</when>
+                    <when test="warningType == 'receive_overdue_3d'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and DATEDIFF(CURDATE(), a.account_date) between 1 and 3</when>
+                    <when test="warningType == 'pay_overdue_3d'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and DATEDIFF(CURDATE(), a.account_date) between 1 and 3</when>
+                    <when test="warningType == 'receive_overdue_7d'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and DATEDIFF(CURDATE(), a.account_date) between 4 and 7</when>
+                    <when test="warningType == 'pay_overdue_7d'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and DATEDIFF(CURDATE(), a.account_date) between 4 and 7</when>
+                    <when test="warningType == 'receive_overdue_30d'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and DATEDIFF(CURDATE(), a.account_date) between 8 and 30</when>
+                    <when test="warningType == 'pay_overdue_30d'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and DATEDIFF(CURDATE(), a.account_date) between 8 and 30</when>
+                    <when test="warningType == 'receive_overdue_30p'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and DATEDIFF(CURDATE(), a.account_date) &gt; 30</when>
+                    <when test="warningType == 'pay_overdue_30p'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and DATEDIFF(CURDATE(), a.account_date) &gt; 30</when>
+                    <when test="warningType == 'receive_due_today'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and a.account_date = CURDATE()</when>
+                    <when test="warningType == 'pay_due_today'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and a.account_date = CURDATE()</when>
+                    <when test="warningType == 'receive_due_1d'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and DATEDIFF(a.account_date, CURDATE()) = 1</when>
+                    <when test="warningType == 'pay_due_1d'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and DATEDIFF(a.account_date, CURDATE()) = 1</when>
+                    <when test="warningType == 'receive_due_3d'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and DATEDIFF(a.account_date, CURDATE()) between 2 and 3</when>
+                    <when test="warningType == 'pay_due_3d'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and DATEDIFF(a.account_date, CURDATE()) between 2 and 3</when>
+                    <when test="warningType == 'receive_due_7d'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and DATEDIFF(a.account_date, CURDATE()) between 4 and 7</when>
+                    <when test="warningType == 'pay_due_7d'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and DATEDIFF(a.account_date, CURDATE()) between 4 and 7</when>
+                    <when test="warningType == 'receive_due_15d'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and DATEDIFF(a.account_date, CURDATE()) between 8 and 15</when>
+                    <when test="warningType == 'pay_due_15d'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and DATEDIFF(a.account_date, CURDATE()) between 8 and 15</when>
+                    <when test="warningType == 'receive_due_30d'">and a.amount_type = 'income' and (a.status is null or a.status != 'done') and DATEDIFF(a.account_date, CURDATE()) between 16 and 30</when>
+                    <when test="warningType == 'pay_due_30d'">and a.amount_type = 'expense' and (a.status is null or a.status != 'done') and DATEDIFF(a.account_date, CURDATE()) between 16 and 30</when>
+                    <when test="warningType == 'normal'">and ((a.status = 'done') or a.account_date is null or DATEDIFF(a.account_date, CURDATE()) &gt; 30)</when>
                 </choose>
             </if>
         </where>
@@ -80,7 +86,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     
     <select id="selectContractAccountById" parameterType="Long" resultMap="ContractAccountResult">
         <include refid="selectContractAccountVo"/>
-        where id = #{id}
+        where a.id = #{id}
     </select>
 
     <insert id="insertContractAccount" parameterType="ContractAccount" useGeneratedKeys="true" keyProperty="id">
