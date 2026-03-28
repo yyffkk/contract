@@ -118,8 +118,17 @@ public class ContractInvoice extends BaseEntity
     /** 审批状态 */
     private String approvalStatus;
 
+    /** 直接主管 */
+    private String directLeader;
+
     /** 审批人 */
     private String approver;
+
+    /** 办理人 */
+    private String handler;
+
+    /** 当前审批节点 */
+    private String currentApprovalNode;
 
     /** 抄送人 */
     private String cc;
