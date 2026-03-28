@@ -341,10 +341,6 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
     private void prepareImportedInvoice(ContractInvoice invoice, String operName)
     {
         normalizeInvoice(invoice);
-        if (StringUtils.isBlank(invoice.getInvoiceCode()) && StringUtils.isBlank(invoice.getInvoiceNumber()))
-        {
-            throw new ServiceException("发票代码和发票号码不能同时为空");
-        }
         if (invoice.getInvoiceDate() == null)
         {
             throw new ServiceException("开票日期不能为空");
