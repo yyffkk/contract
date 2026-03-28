@@ -103,6 +103,8 @@ public class ContractBorrow extends BaseEntity
     /** 删除标志 (0存在 2删除) */
     private String delFlag;
 
+
+
     public void setId(Long id) 
     {
         this.id = id;
