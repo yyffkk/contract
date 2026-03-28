@@ -101,8 +101,10 @@ public class ContractBorrowController extends BaseController
     public AjaxResult submitApproval(@RequestBody Map<String, Object> payload)
     {
         Long id = Long.valueOf(payload.get("id").toString());
+        String approver = payload.get("approver") == null ? null : payload.get("approver").toString();
+        String handler = payload.get("handler") == null ? null : payload.get("handler").toString();
         String remark = payload.get("remark") == null ? null : payload.get("remark").toString();
-        return toAjax(contractBorrowService.submitApproval(id, remark));
+        return toAjax(contractBorrowService.submitApproval(id, approver, handler, remark));
     }
 
     /**

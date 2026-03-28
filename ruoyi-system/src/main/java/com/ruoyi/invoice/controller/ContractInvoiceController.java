@@ -152,9 +152,10 @@ public class ContractInvoiceController extends BaseController
     {
         Long id = Long.valueOf(payload.get("id").toString());
         String approver = payload.get("approver") == null ? null : payload.get("approver").toString();
+        String handler = payload.get("handler") == null ? null : payload.get("handler").toString();
         String cc = payload.get("cc") == null ? null : payload.get("cc").toString();
         String remark = payload.get("remark") == null ? null : payload.get("remark").toString();
-        return toAjax(contractInvoiceService.submitApproval(id, approver, cc, remark));
+        return toAjax(contractInvoiceService.submitApproval(id, approver, handler, cc, remark));
     }
 
     @PreAuthorize("@ss.hasPermi('invoice:invoice:edit')")

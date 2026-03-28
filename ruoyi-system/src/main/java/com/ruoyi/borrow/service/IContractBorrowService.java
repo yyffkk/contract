@@ -63,10 +63,12 @@ public interface IContractBorrowService
      * 提交借阅审批
      *
      * @param id 借阅ID
+     * @param approver 审批人
+     * @param handler 办理人
      * @param remark 审批说明
      * @return 结果
      */
-    public int submitApproval(Long id, String remark);
+    public int submitApproval(Long id, String approver, String handler, String remark);
 
     /**
      * 审批借阅申请

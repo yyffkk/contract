@@ -30,7 +30,7 @@ public interface IContractInvoiceService
 
     public String importContractInvoice(MultipartFile file, String operName) throws IOException;
 
-    public int submitApproval(Long id, String approver, String cc, String remark);
+    public int submitApproval(Long id, String approver, String handler, String cc, String remark);
 
     public int handleApproval(Long id, String action, String remark);
 
