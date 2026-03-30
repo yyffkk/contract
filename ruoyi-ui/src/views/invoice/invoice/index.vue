@@ -447,8 +447,8 @@ export default {
         amountType: direction,
         relatedContractName: this.selectedContract.contractName || '',
         relatedContractNumber: this.selectedContract.contractNumber || '',
-        purchaserName: direction === '收入' ? (this.selectedContract.otherPartyName || '') : (this.selectedContract.myPartyName || ''),
-        sellerName: direction === '收入' ? (this.selectedContract.myPartyName || '') : (this.selectedContract.otherPartyName || ''),
+        purchaserName: direction === '支出' ? (this.selectedContract.otherPartyName || '') : (this.selectedContract.myPartyName || ''),
+        sellerName: direction === '支出' ? (this.selectedContract.myPartyName || '') : (this.selectedContract.otherPartyName || ''),
         counterpartyName: this.selectedContract.otherPartyName || '',
         project: this.selectedContract.project || ''
       }
@@ -678,4 +678,8 @@ export default {
 @media screen and (max-width: 1200px) { .query-form .form-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 1000px) { .dialog-grid, .contract-grid, .approval-summary { grid-template-columns: 1fr; } .invoice-layout { flex-direction: column; } .invoice-side-card { width: 100%; } }
 @media screen and (max-width: 768px) { .invoice-manage-page { padding: 12px; } .query-form .form-grid { grid-template-columns: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
+</style>
+ .invoice-manage-page { padding: 12px; } .query-form .form-grid { grid-template-columns: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
+</style>
+bar { flex-direction: column; align-items: stretch; } }
 </style>
