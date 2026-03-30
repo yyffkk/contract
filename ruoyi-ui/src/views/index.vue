@@ -51,6 +51,15 @@
           <div class="card-title">借阅申请</div>
         </div>
       </div>
+
+      <div class="action-card-simple" @click="handleInstrumentDashboard">
+        <div class="card-content">
+          <div class="icon-wrapper">
+            <i class="el-icon-data-analysis" style="font-size: 32px; color: #409EFF;"></i>
+          </div>
+          <div class="card-title">仪表盘</div>
+        </div>
+      </div>
     </div>
 
     <div class="todo-section">
@@ -149,6 +158,9 @@ export default {
     handleBorrow() {
       this.$message.info('点击了【借阅申请】')
     },
+    handleInstrumentDashboard() {
+      this.$router.push('/instrument')
+    },
     goToContractTodo(item) {
       this.$router.push({
         path: '/contract/contract',
@@ -189,7 +201,7 @@ export default {
 .greeting { font-weight: 500; }
 .action-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 20px;
   margin-bottom: 30px;
 }
