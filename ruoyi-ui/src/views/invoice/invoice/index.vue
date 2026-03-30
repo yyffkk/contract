@@ -75,9 +75,14 @@
     <el-table v-loading="loading" :data="invoiceList" @selection-change="handleSelectionChange" border stripe class="modern-table" header-cell-class-name="table-header-gray">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="合同编码" align="center" prop="relatedContractNumber" min-width="150" show-overflow-tooltip />
-      <!-- <el-table-column label="发票分类" align="center" width="100">
-        <template slot-scope="scope"><el-tag size="small" effect="plain" :type="scope.row.amountType === '支出' ? 'warning' : 'success'">{{ scope.row.amountType === '支出' ? '进项' : scope.row.amountType === '收入' ? '销项' : '-' }}</el-tag></template>
-      </el-table-column> -->
+      <el-table-column label="发票分类" align="center" width="160">
+        <template slot-scope="scope">
+          <div class="invoice-type-wrap">
+            <el-tag size="small" effect="plain" :type="getInvoiceBizTypeByRow(scope.row).tagType">{{ getInvoiceBizTypeByRow(scope.row).label }}</el-tag>
+            <span class="invoice-type-raw">{{ getInvoiceBizTypeByRow(scope.row).rawLabel }}</span>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column label="发票类型" align="center" prop="invoiceType" width="120">
         <template slot-scope="scope"><span>{{ formatInvoiceType(scope.row.invoiceType) }}</span></template>
       </el-table-column>
@@ -150,7 +155,7 @@
           <div class="invoice-panel-header"><div class="panel-title">{{ dialogTitle }}</div><div class="panel-desc">先选择合同，再填写发票明细；审批相关信息在列表页处理</div></div>
           <el-form :model="form" ref="form" :rules="rules" label-width="110px" class="dialog-form">
             <div class="dialog-grid">
-              <el-form-item label="发票分类" prop="amountType"><el-select v-model="form.amountType" style="width:100%"><el-option label="进项" value="支出" /><el-option label="销项" value="收入" /></el-select></el-form-item>
+              <el-form-item label="发票分类" prop="invoiceBizType"><el-select v-model="form.invoiceBizType" style="width:100%"><el-option label="进项" value="input" /><el-option label="销项" value="output" /></el-select></el-form-item>
               <el-form-item label="发票类型" prop="invoiceType"><el-select v-model="form.invoiceType" style="width:100%" clearable><el-option label="增值税专用发票" value="vat" /><el-option label="普通发票" value="normal" /></el-select></el-form-item>
               <el-form-item label="发票代码" prop="invoiceCode"><el-input v-model="form.invoiceCode" /></el-form-item>
               <el-form-item label="发票号码" prop="invoiceNumber"><el-input v-model="form.invoiceNumber" /></el-form-item>
@@ -204,9 +209,9 @@
         </div>
         <div class="approval-summary approval-summary-extended">
           <div class="summary-item"><span>开票日期</span><strong>{{ parseTime(selectedRow.invoiceDate) }}</strong></div>
-          <div class="summary-item"><span>发票分类</span><strong>{{ selectedRow.amountType === '支出' ? '进项' : selectedRow.amountType === '收入' ? '销项' : (selectedRow.amountType || '-') }}</strong></div>
+          <div class="summary-item"><span>发票分类</span><strong>{{ getInvoiceBizTypeByRow(selectedRow).fullLabel }}</strong></div>
           <div class="summary-item"><span>发票金额</span><strong>¥ {{ formatMoney(selectedRow.invoiceAmount) }}</strong></div>
-          <div class="summary-item"><span>发票状态</span><strong>{{ selectedRow.invoiceStatus === 'invoiced' ? '已开票' : selectedRow.invoiceStatus === 'no_invoice' ? '未开票' : selectedRow.invoiceStatus === 'voided' ? '已作废' : (selectedRow.invoiceStatus || '-') }}</strong></div>
+          <div class="summary-item"><span>发票状态</span><strong>{{ getInvoiceStatusMeta(selectedRow.invoiceStatus).label }}</strong></div>
           <div class="summary-item"><span>关联合同</span><strong>{{ selectedRow.relatedContractName || '-' }}{{ selectedRow.relatedContractNumber ? ' / ' + selectedRow.relatedContractNumber : '' }}</strong></div>
           <div class="summary-item"><span>发票号码</span><strong>{{ selectedRow.invoiceNumber || '-' }}</strong></div>
           <div class="summary-item"><span>发票抬头</span><strong>{{ selectedRow.purchaserName || '-' }}</strong></div>
@@ -267,6 +272,7 @@ const createQueryParams = () => ({
   project: null,
   relatedContractName: null,
   amountType: null,
+  invoiceBizType: null,
   approvalStatus: null
 })
 
@@ -318,7 +324,7 @@ export default {
       form: createForm(),
       rules: {
         contractId: [{ required: true, message: '请选择合同', trigger: 'change' }],
-        amountType: [{ required: true, message: '请选择发票分类', trigger: 'change' }],
+        invoiceBizType: [{ required: true, message: '请选择发票分类', trigger: 'change' }],
         invoiceDate: [{ required: true, message: '请选择开票日期', trigger: 'change' }],
         invoiceAmount: [{ required: true, message: '请输入发票金额', trigger: 'blur' }],
         purchaserName: [{ required: true, message: '请输入发票抬头', trigger: 'blur' }],
@@ -335,9 +341,7 @@ export default {
       selectedRow: null,
       approvalDrawerVisible: false,
       approvalForm: { directLeaderDisplay: '', approverDisplay: '', handlerDisplay: '', remark: '' },
-      approvalRules: {
-        remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }]
-      },
+      approvalRules: { remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }] },
       approveActionDialogVisible: false,
       approveActionTitle: '审批操作',
       selectedApproveAction: 'agree',
@@ -362,11 +366,19 @@ export default {
   },
   methods: {
     getInvoiceBizType,
+    getInvoiceBizTypeByRow(row) {
+      const amountType = row && row.amountType ? row.amountType : ((row && row.invoiceBizType) === 'output' ? '支出' : (row && row.invoiceBizType) === 'input' ? '收入' : '')
+      return getInvoiceBizType(amountType)
+    },
+    syncAmountTypeByBizType(form) {
+      if (!form) return
+      form.amountType = form.invoiceBizType === 'output' ? '支出' : form.invoiceBizType === 'input' ? '收入' : form.amountType
+    },
     openFlowSetting() { this.flowSettingVisible = true },
     handleFlowSaved() { this.getList() },
     handleTabClick(tab) {
       this.activeTab = tab.name
-      this.queryParams.amountType = getInvoiceTabAmountType(this.activeTab)
+      this.queryParams.invoiceBizType = this.activeTab === 'all' ? null : this.activeTab
       this.queryParams.pageNum = 1
       this.getList()
     },
@@ -383,19 +395,15 @@ export default {
     resetQuery() {
       this.$refs.queryForm && this.$refs.queryForm.resetFields()
       this.queryParams = createQueryParams()
-      this.queryParams.amountType = this.activeTab === 'input' ? '支出' : this.activeTab === 'output' ? '收入' : null
+      this.queryParams.invoiceBizType = this.activeTab === 'all' ? null : this.activeTab
       this.handleQuery()
     },
     handleSelectionChange(selection) {
       this.ids = selection.map(item => item.id)
       this.selectedRow = selection.length === 1 ? selection[0] : null
     },
-    canEdit(row) {
-      return row && row.approvalStatus !== 'pending' && row.approvalStatus !== 'approved'
-    },
-    canSubmitApproval(row) {
-      return row && row.approvalStatus !== 'pending' && row.approvalStatus !== 'approved'
-    },
+    canEdit(row) { return row && row.approvalStatus !== 'pending' && row.approvalStatus !== 'approved' },
+    canSubmitApproval(row) { return row && row.approvalStatus !== 'pending' && row.approvalStatus !== 'approved' },
     getCurrentNodeUser(row) {
       if (!row) return ''
       if (row.currentApprovalNode === 'node1') return row.directLeader || ''
@@ -408,12 +416,8 @@ export default {
       const currentUser = this.$store && this.$store.getters ? this.$store.getters.name : ''
       return !!currentUser && this.getCurrentNodeUser(row) === currentUser
     },
-    getCurrentNodeLabel(row) {
-      const node = row && row.currentApprovalNode
-      return ({ node1: '审批节点1', node2: '审批节点2', node3: '审批节点3', finished: '已完成', rejected: '已驳回' })[node] || '-'
-    },
     handleAddInvoice() {
-      const defaultDirection = this.activeTab === 'input' ? '支出' : this.activeTab === 'output' ? '收入' : null
+      const defaultDirection = getInvoiceTabAmountType(this.activeTab)
       this.openContractDialog(defaultDirection)
     },
     openContractDialog(direction = null) {
@@ -429,9 +433,7 @@ export default {
       listContractContent(this.contractQueryParams).then(res => {
         this.contractList = res.rows || []
         this.contractTotal = res.total || 0
-      }).finally(() => {
-        this.contractLoading = false
-      })
+      }).finally(() => { this.contractLoading = false })
     },
     resetContractQuery() {
       this.contractQueryParams = { pageNum: 1, pageSize: 10, contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' }
@@ -441,6 +443,7 @@ export default {
     confirmContractSelection() {
       if (!this.selectedContract) return this.$message.warning('请先选择一个合同')
       const direction = this.pendingDirection || getInvoiceTabAmountType(this.activeTab) || '收入'
+      const invoiceBizType = this.activeTab === 'all' ? getInvoiceBizType(direction).key : this.activeTab
       this.contractDialogVisible = false
       this.dialogTitle = getInvoiceDialogTitle(direction)
       this.form = {
@@ -463,6 +466,7 @@ export default {
       if (!id) return this.$message.warning('请先选择一条数据')
       getInvoice(id).then(response => {
         const data = response.data || {}
+        data.invoiceBizType = data.invoiceBizType || getInvoiceBizType(data.amountType).key
         this.form = { ...createForm(), ...data }
         this.selectedContract = { id: data.contractId, contractName: data.relatedContractName, contractNumber: data.relatedContractNumber, otherPartyName: data.counterpartyName, myPartyName: data.sellerName }
         this.dialogTitle = '修改发票信息'
@@ -473,6 +477,7 @@ export default {
     submitForm() {
       this.$refs.form.validate(valid => {
         if (!valid) return
+        this.syncAmountTypeByBizType(this.form)
         this.submitLoading = true
         const request = this.form.id ? updateInvoice(this.form) : addInvoice(this.form)
         request.then(() => {
@@ -515,16 +520,14 @@ export default {
         this.getList()
       }).finally(() => { this.submitLoading = false })
     },
- openLogDrawer(row) {
-  this.selectedRow = row
-  this.invoiceLogs = []
-  this.logDrawerVisible = true
-  listInvoiceLogs(row.id).then(res => {
-    this.invoiceLogs = (res.data || [])
-      .filter(item => item.action !== '导入发票')  // 👈 关键
-      .reverse()
-  })
-},
+    openLogDrawer(row) {
+      this.selectedRow = row
+      this.invoiceLogs = []
+      this.logDrawerVisible = true
+      listInvoiceLogs(row.id).then(res => {
+        this.invoiceLogs = (res.data || []).filter(item => item.action !== '导入发票').reverse()
+      })
+    },
     handleDelete(row) {
       const ids = row && row.id ? row.id : this.ids
       if (!ids || (Array.isArray(ids) && ids.length === 0)) return this.$message.warning('请选择要删除的数据')
@@ -565,7 +568,7 @@ export default {
         const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
         const link = document.createElement('a')
         link.href = window.URL.createObjectURL(blob)
-        link.download = '发票批量导入2024-2025(1).xlsx'
+        link.download = '发票导入模板.xlsx'
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -643,6 +646,8 @@ export default {
 .modern-table { width: 100%; background: #fff; border: 1px solid #ebeef5; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); }
 .table-header-gray { background: #f8fafc !important; color: #606266; font-weight: 700; }
 .money-text { color: #00b96b; font-weight: 700; }
+.invoice-type-wrap { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.invoice-type-raw { font-size: 12px; color: #909399; }
 .danger-text { color: #f56c6c; }
 .light-text { color: #909399; margin-top: 6px; }
 .modern-table ::v-deep .el-table__row:hover > td { background-color: #f5faff !important; }
@@ -681,6 +686,4 @@ export default {
 @media screen and (max-width: 1200px) { .query-form .form-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 1000px) { .dialog-grid, .contract-grid, .approval-summary { grid-template-columns: 1fr; } .invoice-layout { flex-direction: column; } .invoice-side-card { width: 100%; } }
 @media screen and (max-width: 768px) { .invoice-manage-page { padding: 12px; } .query-form .form-grid { grid-template-columns: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
-</style>
-s: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
 </style>
