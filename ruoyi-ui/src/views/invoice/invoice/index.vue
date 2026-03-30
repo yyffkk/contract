@@ -245,6 +245,7 @@
 import { listInvoice, getInvoice, delInvoice, addInvoice, updateInvoice, importTemplate, importInvoice, submitInvoiceApproval, approveInvoice, listInvoiceLogs } from '@/api/invoice/invoice'
 import { listContractContent } from '@/api/contract/contract'
 import { getToken } from '@/utils/auth'
+import { getInvoiceBizType, getInvoiceDialogTitle, getInvoiceTabAmountType } from '@/utils/invoiceType'
 import ApprovalFlowSetting from '@/components/ApprovalFlowSetting'
 
 const createQueryParams = () => ({
@@ -359,12 +360,12 @@ export default {
     this.getList()
   },
   methods: {
+    getInvoiceBizType,
     openFlowSetting() { this.flowSettingVisible = true },
     handleFlowSaved() { this.getList() },
     handleTabClick(tab) {
       this.activeTab = tab.name
-      const typeMap = { all: null, input: '支出', output: '收入' }
-      this.queryParams.amountType = typeMap[this.activeTab]
+      this.queryParams.amountType = getInvoiceTabAmountType(this.activeTab)
       this.queryParams.pageNum = 1
       this.getList()
     },
@@ -438,17 +439,17 @@ export default {
     selectContractRow(row) { this.selectedContract = row },
     confirmContractSelection() {
       if (!this.selectedContract) return this.$message.warning('请先选择一个合同')
-      const direction = this.pendingDirection || '收入'
+      const direction = this.pendingDirection || getInvoiceTabAmountType(this.activeTab) || '收入'
       this.contractDialogVisible = false
-      this.dialogTitle = direction === '支出' ? '录进项发票' : direction === '收入' ? '录销项发票' : '录发票'
+      this.dialogTitle = getInvoiceDialogTitle(direction)
       this.form = {
         ...createForm(),
         contractId: this.selectedContract.id,
         amountType: direction,
         relatedContractName: this.selectedContract.contractName || '',
         relatedContractNumber: this.selectedContract.contractNumber || '',
-        purchaserName: direction === '支出' ? (this.selectedContract.otherPartyName || '') : (this.selectedContract.myPartyName || ''),
-        sellerName: direction === '支出' ? (this.selectedContract.myPartyName || '') : (this.selectedContract.otherPartyName || ''),
+        purchaserName: getInvoiceBizType(direction).key === 'input' ? (this.selectedContract.otherPartyName || '') : (this.selectedContract.myPartyName || ''),
+        sellerName: getInvoiceBizType(direction).key === 'input' ? (this.selectedContract.myPartyName || '') : (this.selectedContract.otherPartyName || ''),
         counterpartyName: this.selectedContract.otherPartyName || '',
         project: this.selectedContract.project || ''
       }
@@ -678,8 +679,4 @@ export default {
 @media screen and (max-width: 1200px) { .query-form .form-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 1000px) { .dialog-grid, .contract-grid, .approval-summary { grid-template-columns: 1fr; } .invoice-layout { flex-direction: column; } .invoice-side-card { width: 100%; } }
 @media screen and (max-width: 768px) { .invoice-manage-page { padding: 12px; } .query-form .form-grid { grid-template-columns: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
-</style>
- .invoice-manage-page { padding: 12px; } .query-form .form-grid { grid-template-columns: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
-</style>
-bar { flex-direction: column; align-items: stretch; } }
 </style>

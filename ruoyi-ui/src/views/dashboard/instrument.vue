@@ -307,6 +307,7 @@ export default {
       if (isNaN(date.getTime())) return null
       return date.getFullYear()
     },
+    getInvoiceBizType,
     sumBy(rows, field) {
       return (rows || []).reduce((sum, item) => sum + this.toNumber(item && item[field]), 0)
     },
