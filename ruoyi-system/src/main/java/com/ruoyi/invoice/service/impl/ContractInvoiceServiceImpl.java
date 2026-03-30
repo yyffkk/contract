@@ -204,6 +204,12 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         String directLeader = ApprovalFlowUtils.resolveDirectLeaderUserName(current, sysDeptService, sysUserService);
         String normalizedApprover = normalizeAssignee(approver, "审批人");
         String normalizedHandler = normalizeAssignee(handler, "办理人");
+        if (StringUtils.isBlank(normalizedApprover) || StringUtils.isBlank(normalizedHandler))
+        {
+            String[] autoFlowUsers = resolveAutoFlowUsers(entity, currentUser, directLeader, normalizedApprover, normalizedHandler);
+            normalizedApprover = autoFlowUsers[0];
+            normalizedHandler = autoFlowUsers[1];
+        }
         ensureDistinctFlowUsers(currentUser, directLeader, normalizedApprover, normalizedHandler);
         entity.setApprovalStatus("pending");
         entity.setDirectLeader(directLeader);
@@ -738,7 +744,7 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
     {
         if (StringUtils.isBlank(userName))
         {
-            throw new ServiceException(roleName + "不能为空");
+            return null;
         }
         SysUser user = sysUserService.selectUserByUserName(userName.trim());
         if (user == null)
@@ -746,6 +752,118 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
             throw new ServiceException(roleName + "不存在：" + userName);
         }
         return user.getUserName();
+    }
+
+    private String[] resolveAutoFlowUsers(ContractInvoice entity, String applicant, String directLeader, String approver, String handler)
+    {
+        String resolvedApprover = approver;
+        String resolvedHandler = handler;
+        BizContractContent contract = entity.getContractId() == null ? null : bizContractContentMapper.selectBizContractContentById(entity.getContractId());
+        if (StringUtils.isBlank(resolvedApprover))
+        {
+            resolvedApprover = resolveContractOwnerUserName(contract);
+            if (!isUsableFlowUser(resolvedApprover, applicant, directLeader))
+            {
+                resolvedApprover = resolveUpperLeaderUserName(directLeader, applicant, directLeader);
+            }
+        }
+        if (StringUtils.isBlank(resolvedHandler))
+        {
+            resolvedHandler = resolveUpperLeaderUserName(resolvedApprover, applicant, directLeader, resolvedApprover);
+            if (!isUsableFlowUser(resolvedHandler, applicant, directLeader, resolvedApprover))
+            {
+                String contractOwner = resolveContractOwnerUserName(contract);
+                if (isUsableFlowUser(contractOwner, applicant, directLeader, resolvedApprover))
+                {
+                    resolvedHandler = contractOwner;
+                }
+            }
+        }
+        if (StringUtils.isBlank(resolvedApprover))
+        {
+            throw new ServiceException("未能自动确定审批人，请检查合同归属人或上级主管配置");
+        }
+        if (StringUtils.isBlank(resolvedHandler))
+        {
+            throw new ServiceException("未能自动确定办理人，请检查审批链上级主管配置");
+        }
+        return new String[] { resolvedApprover, resolvedHandler };
+    }
+
+    private String resolveContractOwnerUserName(BizContractContent contract)
+    {
+        if (contract == null || StringUtils.isBlank(contract.getOwner()))
+        {
+            return null;
+        }
+        return resolveUserNameByUserNameOrNickName(contract.getOwner().trim());
+    }
+
+    private String resolveUpperLeaderUserName(String baseUserName, String... excludes)
+    {
+        if (StringUtils.isBlank(baseUserName))
+        {
+            return null;
+        }
+        SysUser baseUser = sysUserService.selectUserByUserName(baseUserName);
+        if (baseUser == null)
+        {
+            return null;
+        }
+        try
+        {
+            String leaderUserName = ApprovalFlowUtils.resolveDirectLeaderUserName(baseUser, sysDeptService, sysUserService);
+            return isUsableFlowUser(leaderUserName, excludes) ? leaderUserName : null;
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
+    }
+
+    private String resolveUserNameByUserNameOrNickName(String value)
+    {
+        if (StringUtils.isBlank(value))
+        {
+            return null;
+        }
+        SysUser exact = sysUserService.selectUserByUserName(value);
+        if (exact != null)
+        {
+            return exact.getUserName();
+        }
+        SysUser query = new SysUser();
+        query.setNickName(value);
+        List<SysUser> users = sysUserService.selectUserList(query);
+        if (users == null || users.isEmpty())
+        {
+            return null;
+        }
+        if (users.size() > 1)
+        {
+            throw new ServiceException("合同归属人【" + value + "】匹配到多个系统用户，请改为唯一用户名");
+        }
+        return users.get(0).getUserName();
+    }
+
+    private boolean isUsableFlowUser(String userName, String... excludes)
+    {
+        if (StringUtils.isBlank(userName))
+        {
+            return false;
+        }
+        if (excludes == null)
+        {
+            return true;
+        }
+        for (String exclude : excludes)
+        {
+            if (StringUtils.equals(userName, exclude))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void ensureDistinctFlowUsers(String applicant, String directLeader, String approver, String handler)

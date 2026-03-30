@@ -213,18 +213,15 @@
         </div>
         <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="90px" class="approval-form-card">
           <el-form-item label="直接主管">
-            <el-input :value="approvalForm.directLeaderDisplay || '提交后自动带出'" disabled />
+            <el-input :value="approvalForm.directLeaderDisplay || '提交后系统自动带出'" disabled />
           </el-form-item>
-          <el-form-item label="审批人" prop="approver">
-            <el-select v-model="approvalForm.approver" filterable clearable placeholder="请选择审批人" style="width: 100%">
-              <el-option v-for="item in userOptions" :key="item.userId" :label="formatUserOption(item)" :value="item.userName" />
-            </el-select>
+          <el-form-item label="审批人">
+            <el-input :value="approvalForm.approverDisplay || '提交后系统自动带出'" disabled />
           </el-form-item>
-          <el-form-item label="办理人" prop="handler">
-            <el-select v-model="approvalForm.handler" filterable clearable placeholder="请选择办理人" style="width: 100%">
-              <el-option v-for="item in userOptions" :key="'handler-' + item.userId" :label="formatUserOption(item)" :value="item.userName" />
-            </el-select>
+          <el-form-item label="办理人">
+            <el-input :value="approvalForm.handlerDisplay || '提交后系统自动带出'" disabled />
           </el-form-item>
+          <el-alert title="审批链由系统自动计算，发起人无需指定审批人或办理人。" type="info" :closable="false" show-icon style="margin-bottom: 18px;" />
           <el-form-item label="审批说明" prop="remark"><el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="请输入审批说明、开票依据或业务说明" /></el-form-item>
         </el-form>
       </div>
@@ -251,7 +248,6 @@
 <script>
 import { listInvoice, getInvoice, delInvoice, addInvoice, updateInvoice, importTemplate, importInvoice, submitInvoiceApproval, approveInvoice, listInvoiceLogs } from '@/api/invoice/invoice'
 import { listContractContent } from '@/api/contract/contract'
-import { listUser } from '@/api/system/user'
 import { getToken } from '@/utils/auth'
 
 const createQueryParams = () => ({
@@ -332,17 +328,14 @@ export default {
       contractLoading: false,
       contractList: [],
       contractTotal: 0,
-      userOptions: [],
       selectedContractId: null,
       selectedContract: null,
       contractQueryParams: { pageNum: 1, pageSize: 10, contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' },
       pendingDirection: null,
       selectedRow: null,
       approvalDrawerVisible: false,
-      approvalForm: { directLeaderDisplay: '', approver: '', handler: '', remark: '' },
+      approvalForm: { directLeaderDisplay: '', approverDisplay: '', handlerDisplay: '', remark: '' },
       approvalRules: {
-        approver: [{ required: true, message: '请选择审批人', trigger: 'change' }],
-        handler: [{ required: true, message: '请选择办理人', trigger: 'change' }],
         remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }]
       },
       approveActionDialogVisible: false,
@@ -365,7 +358,6 @@ export default {
   },
   created() {
     this.getList()
-    this.getUserOptions()
   },
   methods: {
     handleTabClick(tab) {
@@ -374,13 +366,6 @@ export default {
       this.queryParams.amountType = typeMap[this.activeTab]
       this.queryParams.pageNum = 1
       this.getList()
-    },
-    getUserOptions() {
-      listUser({ status: '0', pageNum: 1, pageSize: 1000 }).then(res => {
-        this.userOptions = res.rows || []
-      }).catch(() => {
-        this.userOptions = []
-      })
     },
     getList() {
       this.loading = true
@@ -495,7 +480,7 @@ export default {
     },
     openApprovalDrawer(row) {
       this.selectedRow = row
-      this.approvalForm = { directLeaderDisplay: '提交后自动带出当前登录人的直接主管', approver: row.approver || '', handler: row.handler || '', remark: '' }
+      this.approvalForm = { directLeaderDisplay: row.directLeader || '', approverDisplay: row.approver || '', handlerDisplay: row.handler || '', remark: '' }
       this.approvalDrawerVisible = true
       this.$nextTick(() => { this.$refs.approvalForm && this.$refs.approvalForm.clearValidate() })
     },
@@ -503,7 +488,7 @@ export default {
       this.$refs.approvalForm.validate(valid => {
         if (!valid || !this.selectedRow) return
         this.submitLoading = true
-        submitInvoiceApproval({ id: this.selectedRow.id, approver: this.approvalForm.approver, handler: this.approvalForm.handler, remark: this.approvalForm.remark }).then(() => {
+        submitInvoiceApproval({ id: this.selectedRow.id, remark: this.approvalForm.remark }).then(() => {
           this.$message.success('发票审批已提交')
           this.approvalDrawerVisible = false
           this.getList()
@@ -606,11 +591,6 @@ export default {
       if (value === null || value === undefined || value === '') return '-'
       const text = String(value)
       return text.includes('%') ? text : `${text}%`
-    },
-    formatUserOption(user) {
-      if (!user) return '-'
-      const label = user.nickName || user.userName || '-'
-      return user.userName && user.nickName ? `${label}（${user.userName}）` : label
     },
     parseTime(time, format = '{y}-{m}-{d}') {
       if (!time) return '-'
