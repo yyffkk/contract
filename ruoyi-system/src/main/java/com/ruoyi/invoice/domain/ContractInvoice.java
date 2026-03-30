@@ -66,6 +66,22 @@ public class ContractInvoice extends BaseEntity
     @Excel(name = "购买方税号")
     private String purchaserTaxNo;
 
+    /** 开户银行 */
+    @Excel(name = "开户银行")
+    private String bankName;
+
+    /** 银行账号 */
+    @Excel(name = "银行账号")
+    private String bankAccount;
+
+    /** 地址 */
+    @Excel(name = "地址")
+    private String bankAddress;
+
+    /** 电话 */
+    @Excel(name = "电话")
+    private String bankPhone;
+
     /** 销售方名称 */
     @Excel(name = "销售方名称")
     private String sellerName;
@@ -171,6 +187,14 @@ public class ContractInvoice extends BaseEntity
     public String getPurchaserName() { return purchaserName; }
     public void setPurchaserTaxNo(String purchaserTaxNo) { this.purchaserTaxNo = purchaserTaxNo; }
     public String getPurchaserTaxNo() { return purchaserTaxNo; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
+    public String getBankName() { return bankName; }
+    public void setBankAccount(String bankAccount) { this.bankAccount = bankAccount; }
+    public String getBankAccount() { return bankAccount; }
+    public void setBankAddress(String bankAddress) { this.bankAddress = bankAddress; }
+    public String getBankAddress() { return bankAddress; }
+    public void setBankPhone(String bankPhone) { this.bankPhone = bankPhone; }
+    public String getBankPhone() { return bankPhone; }
     public void setSellerName(String sellerName) { this.sellerName = sellerName; }
     public String getSellerName() { return sellerName; }
     public void setSellerTaxNo(String sellerTaxNo) { this.sellerTaxNo = sellerTaxNo; }
@@ -231,6 +255,10 @@ public class ContractInvoice extends BaseEntity
             .append("taxAmount", getTaxAmount())
             .append("purchaserName", getPurchaserName())
             .append("purchaserTaxNo", getPurchaserTaxNo())
+            .append("bankName", getBankName())
+            .append("bankAccount", getBankAccount())
+            .append("bankAddress", getBankAddress())
+            .append("bankPhone", getBankPhone())
             .append("sellerName", getSellerName())
             .append("sellerTaxNo", getSellerTaxNo())
             .append("project", getProject())

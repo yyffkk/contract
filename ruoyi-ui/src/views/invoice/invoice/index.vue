@@ -39,9 +39,10 @@
           <el-form-item label="发票日期" prop="invoiceDate"><el-date-picker v-model="queryParams.invoiceDate" type="date" value-format="yyyy-MM-dd" placeholder="请选择发票日期" style="width:100%" /></el-form-item>
           <el-form-item label="发票抬头" prop="purchaserName"><el-input v-model="queryParams.purchaserName" placeholder="请输入发票抬头" clearable /></el-form-item>
           <el-form-item label="纳税人识别号" prop="purchaserTaxNo"><el-input v-model="queryParams.purchaserTaxNo" placeholder="请输入纳税人识别号" clearable /></el-form-item>
+          <el-form-item label="开户银行" prop="bankName"><el-input v-model="queryParams.bankName" placeholder="请输入开户银行" clearable /></el-form-item>
+          <el-form-item label="银行账号" prop="bankAccount"><el-input v-model="queryParams.bankAccount" placeholder="请输入银行账号" clearable /></el-form-item>
           <el-form-item label="开票内容" prop="invoiceContent"><el-input v-model="queryParams.invoiceContent" placeholder="请输入开票内容" clearable /></el-form-item>
           <el-form-item label="发票金额" prop="invoiceAmount"><el-input v-model="queryParams.invoiceAmount" placeholder="请输入发票金额" clearable /></el-form-item>
-          <el-form-item label="不含税金额" prop="untaxedAmount"><el-input v-model="queryParams.untaxedAmount" placeholder="请输入不含税金额" clearable /></el-form-item>
           <el-form-item label="税率" prop="taxRate"><el-input v-model="queryParams.taxRate" placeholder="请输入税率，如13" clearable /></el-form-item>
           <el-form-item label="税额" prop="taxAmount"><el-input v-model="queryParams.taxAmount" placeholder="请输入税额" clearable /></el-form-item>
           <el-form-item label="所属项目" prop="project"><el-input v-model="queryParams.project" placeholder="请输入所属项目" clearable /></el-form-item>
@@ -72,22 +73,22 @@
 
     <el-table v-loading="loading" :data="invoiceList" @selection-change="handleSelectionChange" border stripe class="modern-table" header-cell-class-name="table-header-gray">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="发票分类" align="center" width="100">
-        <template slot-scope="scope"><el-tag :type="scope.row.amountType === '支出' ? 'warning' : 'success'" size="small">{{ scope.row.amountType === '支出' ? '进项' : '销项' }}</el-tag></template>
+      <el-table-column label="合同编码" align="center" prop="relatedContractNumber" min-width="150" show-overflow-tooltip />
+      <el-table-column label="发票类型" align="center" prop="invoiceType" width="120">
+        <template slot-scope="scope"><span>{{ formatInvoiceType(scope.row.invoiceType) }}</span></template>
       </el-table-column>
-      <el-table-column label="相对方名称" align="center" prop="counterpartyName" min-width="180" show-overflow-tooltip />
-      <el-table-column label="发起人" align="center" prop="initiator" width="120" show-overflow-tooltip />
-      <el-table-column label="申请时间" align="center" prop="applyTime" width="170"><template slot-scope="scope"><span>{{ parseTime(scope.row.applyTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span></template></el-table-column>
-      <el-table-column label="所属部门" align="center" prop="department" min-width="120" show-overflow-tooltip />
-      <el-table-column label="发票日期" align="center" prop="invoiceDate" width="120"><template slot-scope="scope"><span>{{ parseTime(scope.row.invoiceDate) }}</span></template></el-table-column>
-      <el-table-column label="发票抬头" align="center" prop="purchaserName" min-width="180" show-overflow-tooltip />
       <el-table-column label="发票金额" align="center" prop="invoiceAmount" width="120"><template slot-scope="scope"><span class="money-text">¥ {{ formatMoney(scope.row.invoiceAmount) }}</span></template></el-table-column>
-      <el-table-column label="审批状态" align="center" width="110"><template slot-scope="scope"><el-tag :type="getApprovalStatusMeta(scope.row.approvalStatus).type" size="small">{{ getApprovalStatusMeta(scope.row.approvalStatus).label }}</el-tag></template></el-table-column>
-      <el-table-column label="当前节点" align="center" width="130" show-overflow-tooltip>
-        <template slot-scope="scope">{{ getCurrentNodeLabel(scope.row) }}</template>
-      </el-table-column>
-      <el-table-column label="提交审批" align="center" width="170"><template slot-scope="scope"><span>{{ parseTime(scope.row.submitTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span></template></el-table-column>
-      <el-table-column label="关联合同" align="center" prop="relatedContractName" min-width="200" show-overflow-tooltip />
+      <el-table-column label="税额" align="center" prop="taxAmount" width="120"><template slot-scope="scope"><span>¥ {{ formatMoney(scope.row.taxAmount) }}</span></template></el-table-column>
+      <el-table-column label="税率" align="center" prop="taxRate" width="100"><template slot-scope="scope"><span>{{ formatTaxRate(scope.row.taxRate) }}</span></template></el-table-column>
+      <el-table-column label="发票日期" align="center" prop="invoiceDate" width="120"><template slot-scope="scope"><span>{{ parseTime(scope.row.invoiceDate) }}</span></template></el-table-column>
+      <el-table-column label="开票内容" align="center" prop="invoiceContent" min-width="180" show-overflow-tooltip />
+      <el-table-column label="发票抬头" align="center" prop="purchaserName" min-width="180" show-overflow-tooltip />
+      <el-table-column label="纳税人识别号" align="center" prop="purchaserTaxNo" min-width="180" show-overflow-tooltip />
+      <el-table-column label="开户银行" align="center" prop="bankName" min-width="180" show-overflow-tooltip />
+      <el-table-column label="银行账号" align="center" prop="bankAccount" min-width="180" show-overflow-tooltip />
+      <el-table-column label="地址" align="center" prop="bankAddress" min-width="180" show-overflow-tooltip />
+      <el-table-column label="电话" align="center" prop="bankPhone" min-width="140" show-overflow-tooltip />
+      <el-table-column label="备注" align="center" prop="remark" min-width="180" show-overflow-tooltip />
       <el-table-column label="操作" align="center" fixed="right" width="310">
         <template slot-scope="scope">
           <el-button size="mini" type="text" @click="openLogDrawer(scope.row)">日志</el-button>
@@ -153,6 +154,10 @@
               <el-form-item label="不含税金额" prop="untaxedAmount"><el-input v-model="form.untaxedAmount"><template slot="prepend">¥</template></el-input></el-form-item>
               <el-form-item label="发票抬头" prop="purchaserName"><el-input v-model="form.purchaserName" /></el-form-item>
               <el-form-item label="纳税人识别号" prop="purchaserTaxNo"><el-input v-model="form.purchaserTaxNo" /></el-form-item>
+              <el-form-item label="开户银行" prop="bankName"><el-input v-model="form.bankName" /></el-form-item>
+              <el-form-item label="银行账号" prop="bankAccount"><el-input v-model="form.bankAccount" /></el-form-item>
+              <el-form-item label="地址" prop="bankAddress"><el-input v-model="form.bankAddress" /></el-form-item>
+              <el-form-item label="电话" prop="bankPhone"><el-input v-model="form.bankPhone" /></el-form-item>
               <el-form-item label="销售方名称" prop="sellerName"><el-input v-model="form.sellerName" /></el-form-item>
               <el-form-item label="销售方税号" prop="sellerTaxNo"><el-input v-model="form.sellerTaxNo" /></el-form-item>
               <el-form-item label="所属项目" prop="project"><el-input v-model="form.project" /></el-form-item>
@@ -238,9 +243,10 @@ const createQueryParams = () => ({
   invoiceDate: null,
   purchaserName: null,
   purchaserTaxNo: null,
+  bankName: null,
+  bankAccount: null,
   invoiceContent: null,
   invoiceAmount: null,
-  untaxedAmount: null,
   taxRate: null,
   taxAmount: null,
   project: null,
@@ -262,6 +268,10 @@ const createForm = () => ({
   taxAmount: '',
   purchaserName: '',
   purchaserTaxNo: '',
+  bankName: '',
+  bankAccount: '',
+  bankAddress: '',
+  bankPhone: '',
   sellerName: '',
   sellerTaxNo: '',
   counterpartyName: '',
@@ -552,6 +562,14 @@ export default {
       if (action.includes('审批') || action.includes('提交')) return 'warning'
       if (action.includes('通过')) return 'success'
       return 'primary'
+    },
+    formatInvoiceType(value) {
+      return ({ vat: '增值税专票', normal: '普通发票' })[value] || value || '-'
+    },
+    formatTaxRate(value) {
+      if (value === null || value === undefined || value === '') return '-'
+      const text = String(value)
+      return text.includes('%') ? text : `${text}%`
     },
     parseTime(time, format = '{y}-{m}-{d}') {
       if (!time) return '-'

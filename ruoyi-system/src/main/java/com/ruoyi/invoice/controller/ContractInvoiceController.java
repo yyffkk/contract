@@ -94,7 +94,7 @@ public class ContractInvoiceController extends BaseController
         try (Workbook workbook = new XSSFWorkbook(); OutputStream outputStream = response.getOutputStream())
         {
             Sheet sheet = workbook.createSheet("发票导入模板");
-            String[] headers = {"发票分类", "相对方名称", "发票抬头", "纳税人识别号", "销售方名称", "销售方税号", "发票代码", "发票号码", "开票日期", "发票金额", "税率", "税额", "不含税金额", "发票类型", "发票状态", "开票内容", "所属项目", "关联合同名称", "关联合同编号", "备注"};
+            String[] headers = {"发票分类", "相对方名称", "发票抬头", "纳税人识别号", "开户银行", "银行账号", "地址", "电话", "销售方名称", "销售方税号", "发票代码", "发票号码", "开票日期", "发票金额", "税率", "税额", "不含税金额", "发票类型", "发票状态", "开票内容", "所属项目", "关联合同名称", "关联合同编号", "备注"};
 
             Font headerFont = workbook.createFont();
             headerFont.setBold(true);

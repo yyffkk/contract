@@ -396,6 +396,10 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
                 invoice.setCounterpartyName(getCellString(row, headerMap, aliases("相对方名称", "对方名称", "客户名称", "供应商名称")));
                 invoice.setPurchaserName(getCellString(row, headerMap, aliases("发票抬头", "购买方名称", "购方名称", "抬头")));
                 invoice.setPurchaserTaxNo(getCellString(row, headerMap, aliases("纳税人识别号", "购买方税号", "购方税号", "税号")));
+                invoice.setBankName(getCellString(row, headerMap, aliases("开户银行", "银行", "开户行")));
+                invoice.setBankAccount(getCellString(row, headerMap, aliases("银行账号", "账号", "开户账号")));
+                invoice.setBankAddress(getCellString(row, headerMap, aliases("地址", "开户地址", "开户地址信息")));
+                invoice.setBankPhone(getCellString(row, headerMap, aliases("电话", "联系电话")));
                 invoice.setSellerName(getCellString(row, headerMap, aliases("销售方名称", "销方名称")));
                 invoice.setSellerTaxNo(getCellString(row, headerMap, aliases("销售方税号", "销方税号")));
                 invoice.setInvoiceCode(getCellString(row, headerMap, aliases("发票代码", "票据代码")));
