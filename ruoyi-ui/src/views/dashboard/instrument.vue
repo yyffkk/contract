@@ -161,6 +161,7 @@ import * as echarts from 'echarts'
 import { listContractContent } from '@/api/contract/contract'
 import { listAccount } from '@/api/account/account'
 import { listInvoice } from '@/api/invoice/invoice'
+import { getInvoiceBizType } from '@/utils/invoiceType'
 
 const createMetrics = () => ({
   contractTotalAmount: 0,
