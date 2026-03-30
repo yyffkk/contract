@@ -79,6 +79,7 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
     @Override
     public int insertContractInvoice(ContractInvoice contractInvoice)
     {
+        normalizeInvoice(contractInvoice);
         contractInvoice.setCreateTime(DateUtils.getNowDate());
         if (StringUtils.isBlank(contractInvoice.getApprovalStatus()))
         {
@@ -752,6 +753,42 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
     }
 
     private String getNodeAssignee(ContractInvoice entity, String nodeKey)
+    {
+        if ("node1".equals(nodeKey))
+        {
+            return entity.getDirectLeader();
+        }
+        if ("node2".equals(nodeKey))
+        {
+            return entity.getApprover();
+        }
+        if ("node3".equals(nodeKey))
+        {
+            return entity.getHandler();
+        }
+        return null;
+    }
+
+    private String resolveDisplayName(String userName)
+    {
+        return StringUtils.defaultIfBlank(resolveNickName(userName), "-");
+    }
+
+    private String resolveNickName(String userName)
+    {
+        if (StringUtils.isBlank(userName))
+        {
+            return userName;
+        }
+        SysUser user = sysUserService.selectUserByUserName(userName);
+        if (user != null && StringUtils.isNotBlank(user.getNickName()))
+        {
+            return user.getNickName();
+        }
+        return userName;
+    }
+}
+)
     {
         if ("node1".equals(nodeKey))
         {

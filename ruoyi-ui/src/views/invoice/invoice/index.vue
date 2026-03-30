@@ -294,6 +294,7 @@ const createForm = () => ({
   untaxedAmount: '',
   project: '',
   amountType: '支出',
+  invoiceBizType: 'output',
   relatedContractName: '',
   relatedContractNumber: '',
   remark: ''
@@ -446,6 +447,7 @@ export default {
         ...createForm(),
         contractId: this.selectedContract.id,
         amountType: direction,
+        invoiceBizType,
         relatedContractName: this.selectedContract.contractName || '',
         relatedContractNumber: this.selectedContract.contractNumber || '',
         purchaserName: getInvoiceBizType(direction).key === 'input' ? (this.selectedContract.otherPartyName || '') : (this.selectedContract.myPartyName || ''),
@@ -679,4 +681,6 @@ export default {
 @media screen and (max-width: 1200px) { .query-form .form-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 1000px) { .dialog-grid, .contract-grid, .approval-summary { grid-template-columns: 1fr; } .invoice-layout { flex-direction: column; } .invoice-side-card { width: 100%; } }
 @media screen and (max-width: 768px) { .invoice-manage-page { padding: 12px; } .query-form .form-grid { grid-template-columns: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
+</style>
+s: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
 </style>

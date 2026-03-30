@@ -247,11 +247,11 @@ export default {
           .reduce((sum, item) => sum + this.toNumber(item.amount), 0)
 
         const yearOutputInvoiceAmount = yearInvoiceRows
-          .filter(item => item.amountType === '支出')
+          .filter(item => (item.invoiceBizType || this.getInvoiceBizType(item.amountType).key) === 'output')
           .reduce((sum, item) => sum + this.toNumber(item.invoiceAmount), 0)
 
         const yearInputInvoiceAmount = yearInvoiceRows
-          .filter(item => item.amountType === '收入')
+          .filter(item => (item.invoiceBizType || this.getInvoiceBizType(item.amountType).key) === 'input')
           .reduce((sum, item) => sum + this.toNumber(item.invoiceAmount), 0)
 
         this.metrics = {

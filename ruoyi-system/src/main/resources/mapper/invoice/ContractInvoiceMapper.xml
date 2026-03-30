@@ -207,6 +207,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="sellerTaxNo != null">seller_tax_no = #{sellerTaxNo},</if>
             <if test="relatedContractName != null">related_contract_name = #{relatedContractName},</if>
             <if test="relatedContractNumber != null">related_contract_number = #{relatedContractNumber},</if>
+            <if test="invoiceBizType != null">invoice_biz_type = #{invoiceBizType},</if>
             <if test="approvalStatus != null">approval_status = #{approvalStatus},</if>
             direct_leader = #{directLeader},
             approver = #{approver},

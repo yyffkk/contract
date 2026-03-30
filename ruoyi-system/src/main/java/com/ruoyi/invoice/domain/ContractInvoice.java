@@ -263,6 +263,7 @@ public class ContractInvoice extends BaseEntity
             .append("sellerTaxNo", getSellerTaxNo())
             .append("project", getProject())
             .append("amountType", getAmountType())
+            .append("invoiceBizType", getInvoiceBizType())
             .append("relatedContractName", getRelatedContractName())
             .append("relatedContractNumber", getRelatedContractNumber())
             .append("approvalStatus", getApprovalStatus())
@@ -281,5 +282,13 @@ public class ContractInvoice extends BaseEntity
             .append("updateTime", getUpdateTime())
             .append("delFlag", getDelFlag())
             .toString();
+    }
+}
+ime", getUpdateTime())
+            .append("delFlag", getDelFlag())
+            .toString();
+    }
+}
+tring();
     }
 }
