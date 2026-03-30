@@ -18,7 +18,9 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.system.utils.ApprovalFlowUtils;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.contract.domain.BizContractContent;
 import com.ruoyi.contract.domain.BizContractOperateLog;
+import com.ruoyi.contract.mapper.BizContractContentMapper;
 import com.ruoyi.contract.service.IBizContractOperateLogService;
 import com.ruoyi.invoice.domain.ContractInvoice;
 import com.ruoyi.invoice.mapper.ContractInvoiceMapper;
@@ -54,6 +56,9 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
 
     @Autowired
     private IBizContractOperateLogService operateLogService;
+
+    @Autowired
+    private BizContractContentMapper bizContractContentMapper;
 
     @Autowired
     private ISysUserService sysUserService;
@@ -340,6 +345,7 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
 
     private void prepareImportedInvoice(ContractInvoice invoice, String operName)
     {
+        bindContractByNumber(invoice);
         normalizeInvoice(invoice);
         if (invoice.getInvoiceDate() == null)
         {
@@ -356,6 +362,10 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         if (StringUtils.isBlank(invoice.getInvoiceContent()))
         {
             throw new ServiceException("开票内容不能为空");
+        }
+        if (StringUtils.isBlank(invoice.getRelatedContractNumber()))
+        {
+            throw new ServiceException("合同编码不能为空");
         }
         if (invoice.getUntaxedAmount() == null && invoice.getInvoiceAmount() != null)
         {
@@ -414,7 +424,7 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
                 invoice.setInvoiceContent(getCellString(row, headerMap, aliases("开票内容", "货物或应税劳务名称", "内容")));
                 invoice.setProject(getCellString(row, headerMap, aliases("所属项目", "项目")));
                 invoice.setRelatedContractName(getCellString(row, headerMap, aliases("关联合同名称", "合同名称")));
-                invoice.setRelatedContractNumber(getCellString(row, headerMap, aliases("关联合同编号", "合同编号")));
+                invoice.setRelatedContractNumber(getCellString(row, headerMap, aliases("合同编码", "关联合同编号", "合同编号")));
                 invoice.setRemark(getCellString(row, headerMap, aliases("备注", "说明")));
                 list.add(invoice);
             }
@@ -448,7 +458,8 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
             if (containsAnyHeader(headerMap, aliases("发票金额", "价税合计", "金额"))
                     && containsAnyHeader(headerMap, aliases("开票日期", "发票日期"))
                     && (containsAnyHeader(headerMap, aliases("发票抬头", "购买方名称", "购方名称"))
-                    || containsAnyHeader(headerMap, aliases("发票号码", "票据号码"))))
+                    || containsAnyHeader(headerMap, aliases("发票号码", "票据号码"))
+                    || containsAnyHeader(headerMap, aliases("合同编码", "关联合同编号", "合同编号"))))
             {
                 return i;
             }
@@ -635,6 +646,43 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
             }
         }
         return cell.toString();
+    }
+
+    private void bindContractByNumber(ContractInvoice invoice)
+    {
+        if (invoice == null || StringUtils.isBlank(invoice.getRelatedContractNumber()))
+        {
+            return;
+        }
+        BizContractContent query = new BizContractContent();
+        query.setContractNumber(invoice.getRelatedContractNumber().trim());
+        List<BizContractContent> contracts = bizContractContentMapper.selectBizContractContentList(query);
+        if (contracts == null || contracts.isEmpty())
+        {
+            throw new ServiceException("未找到对应合同编码：" + invoice.getRelatedContractNumber());
+        }
+        BizContractContent contract = contracts.get(0);
+        invoice.setContractId(contract.getId());
+        if (StringUtils.isBlank(invoice.getRelatedContractName()))
+        {
+            invoice.setRelatedContractName(contract.getContractName());
+        }
+        if (StringUtils.isBlank(invoice.getCounterpartyName()))
+        {
+            invoice.setCounterpartyName(contract.getOtherPartyName());
+        }
+        if (StringUtils.isBlank(invoice.getProject()))
+        {
+            invoice.setProject(contract.getProject());
+        }
+        if (StringUtils.isBlank(invoice.getAmountType()))
+        {
+            invoice.setAmountType(contract.getAmountType());
+        }
+        if (StringUtils.isBlank(invoice.getInvoiceContent()))
+        {
+            invoice.setInvoiceContent(contract.getContent());
+        }
     }
 
     private String buildSubmitLogDetail(ContractInvoice entity, String remark)
