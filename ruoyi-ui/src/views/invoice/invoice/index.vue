@@ -517,7 +517,12 @@ export default {
       this.invoiceLogs = []
       this.logDrawerVisible = true
       listInvoiceLogs(row.id).then(res => {
-        this.invoiceLogs = res.data || []
+        const logs = res.data || []
+        this.invoiceLogs = logs.slice().sort((a, b) => {
+          const timeA = a && a.operateTime ? new Date(a.operateTime).getTime() : 0
+          const timeB = b && b.operateTime ? new Date(b.operateTime).getTime() : 0
+          return timeA - timeB
+        })
       })
     },
     handleDelete(row) {
