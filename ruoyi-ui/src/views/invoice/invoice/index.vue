@@ -517,12 +517,7 @@ export default {
       this.invoiceLogs = []
       this.logDrawerVisible = true
       listInvoiceLogs(row.id).then(res => {
-        const logs = res.data || []
-        this.invoiceLogs = logs.slice().sort((a, b) => {
-          const timeA = a && a.operateTime ? new Date(a.operateTime).getTime() : 0
-          const timeB = b && b.operateTime ? new Date(b.operateTime).getTime() : 0
-          return timeA - timeB
-        })
+        this.invoiceLogs = res.data || []
       })
     },
     handleDelete(row) {
@@ -680,5 +675,8 @@ export default {
 ::v-deep .el-input__inner, ::v-deep .el-textarea__inner, ::v-deep .el-button { border-radius: 10px; }
 @media screen and (max-width: 1200px) { .query-form .form-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 1000px) { .dialog-grid, .contract-grid, .approval-summary { grid-template-columns: 1fr; } .invoice-layout { flex-direction: column; } .invoice-side-card { width: 100%; } }
+@media screen and (max-width: 768px) { .invoice-manage-page { padding: 12px; } .query-form .form-grid { grid-template-columns: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
+</style>
+layout { flex-direction: column; } .invoice-side-card { width: 100%; } }
 @media screen and (max-width: 768px) { .invoice-manage-page { padding: 12px; } .query-form .form-grid { grid-template-columns: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
 </style>
