@@ -163,6 +163,9 @@ public class ContractInvoice extends BaseEntity
     /** 删除标志（0代表存在 2代表删除） */
     private String delFlag;
 
+    /** 发票分类 */
+    private String invoiceBizType;
+
     public void setId(Long id) { this.id = id; }
     public Long getId() { return id; }
     public void setContractId(Long contractId) { this.contractId = contractId; }
@@ -239,6 +242,8 @@ public class ContractInvoice extends BaseEntity
     public Date getApproveTime() { return approveTime; }
     public void setDelFlag(String delFlag) { this.delFlag = delFlag; }
     public String getDelFlag() { return delFlag; }
+    public void setInvoiceBizType(String invoiceBizType) { this.invoiceBizType = invoiceBizType; }
+    public String getInvoiceBizType() { return invoiceBizType; }
 
     @Override
     public String toString() {
@@ -282,13 +287,5 @@ public class ContractInvoice extends BaseEntity
             .append("updateTime", getUpdateTime())
             .append("delFlag", getDelFlag())
             .toString();
-    }
-}
-ime", getUpdateTime())
-            .append("delFlag", getDelFlag())
-            .toString();
-    }
-}
-tring();
     }
 }
