@@ -74,13 +74,20 @@
     <el-table v-loading="loading" :data="invoiceList" @selection-change="handleSelectionChange" border stripe class="modern-table" header-cell-class-name="table-header-gray">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="合同编码" align="center" prop="relatedContractNumber" min-width="150" show-overflow-tooltip />
+      <el-table-column label="发票分类" align="center" width="100">
+        <template slot-scope="scope"><el-tag size="small" effect="plain" :type="scope.row.amountType === '支出' ? 'warning' : 'success'">{{ scope.row.amountType === '支出' ? '进项' : scope.row.amountType === '收入' ? '销项' : '-' }}</el-tag></template>
+      </el-table-column>
       <el-table-column label="发票类型" align="center" prop="invoiceType" width="120">
         <template slot-scope="scope"><span>{{ formatInvoiceType(scope.row.invoiceType) }}</span></template>
       </el-table-column>
+      <el-table-column label="发票号码" align="center" prop="invoiceNumber" min-width="150" show-overflow-tooltip />
       <el-table-column label="发票金额" align="center" prop="invoiceAmount" width="120"><template slot-scope="scope"><span class="money-text">¥ {{ formatMoney(scope.row.invoiceAmount) }}</span></template></el-table-column>
       <el-table-column label="税额" align="center" prop="taxAmount" width="120"><template slot-scope="scope"><span>¥ {{ formatMoney(scope.row.taxAmount) }}</span></template></el-table-column>
       <el-table-column label="税率" align="center" prop="taxRate" width="100"><template slot-scope="scope"><span>{{ formatTaxRate(scope.row.taxRate) }}</span></template></el-table-column>
       <el-table-column label="发票日期" align="center" prop="invoiceDate" width="120"><template slot-scope="scope"><span>{{ parseTime(scope.row.invoiceDate) }}</span></template></el-table-column>
+      <el-table-column label="发票状态" align="center" width="110"><template slot-scope="scope"><el-tag :type="getInvoiceStatusMeta(scope.row.invoiceStatus).type" size="small">{{ getInvoiceStatusMeta(scope.row.invoiceStatus).label }}</el-tag></template></el-table-column>
+      <el-table-column label="审批状态" align="center" width="110"><template slot-scope="scope"><el-tag :type="getApprovalStatusMeta(scope.row.approvalStatus).type" size="small">{{ getApprovalStatusMeta(scope.row.approvalStatus).label }}</el-tag></template></el-table-column>
+      <el-table-column label="当前节点" align="center" width="110"><template slot-scope="scope"><el-tag size="small" effect="plain" :type="getCurrentNodeMeta(scope.row.currentApprovalNode).type">{{ getCurrentNodeMeta(scope.row.currentApprovalNode).label }}</el-tag></template></el-table-column>
       <el-table-column label="开票内容" align="center" prop="invoiceContent" min-width="180" show-overflow-tooltip />
       <el-table-column label="发票抬头" align="center" prop="purchaserName" min-width="180" show-overflow-tooltip />
       <el-table-column label="纳税人识别号" align="center" prop="purchaserTaxNo" min-width="180" show-overflow-tooltip />
@@ -225,14 +232,16 @@
     </el-drawer>
 
     <el-dialog :title="approveActionTitle" :visible.sync="approveActionDialogVisible" width="620px" append-to-body custom-class="beauty-dialog">
-      <div class="approval-summary" v-if="selectedRow">
-        <div class="summary-item"><span>合同</span><strong>{{ selectedRow.relatedContractName || '-' }}</strong></div>
+      <div class="approval-summary approval-summary-extended" v-if="selectedRow">
+        <div class="summary-item"><span>关联合同</span><strong>{{ selectedRow.relatedContractName || '-' }}</strong></div>
         <div class="summary-item"><span>发票号码</span><strong>{{ selectedRow.invoiceNumber || '-' }}</strong></div>
         <div class="summary-item"><span>发票金额</span><strong>¥ {{ formatMoney(selectedRow.invoiceAmount) }}</strong></div>
-        <div class="summary-item"><span>当前审批</span><strong>{{ getApprovalStatusMeta(selectedRow.approvalStatus).label }}</strong></div>
+        <div class="summary-item"><span>当前节点</span><strong>{{ getCurrentNodeMeta(selectedRow.currentApprovalNode).label }}</strong></div>
+        <div class="summary-item"><span>审批状态</span><strong>{{ getApprovalStatusMeta(selectedRow.approvalStatus).label }}</strong></div>
+        <div class="summary-item"><span>发票状态</span><strong>{{ getInvoiceStatusMeta(selectedRow.invoiceStatus).label }}</strong></div>
       </div>
       <el-form :model="approveActionForm" ref="approveActionForm" label-width="100px">
-        <el-form-item :label="selectedApproveAction === 'agree' ? '通过意见' : '驳回意见'"><el-input v-model="approveActionForm.remark" type="textarea" :rows="4" /></el-form-item>
+        <el-form-item :label="selectedApproveAction === 'agree' ? '通过意见' : '驳回意见'"><el-input v-model="approveActionForm.remark" type="textarea" :rows="4" :placeholder="selectedApproveAction === 'agree' ? '请输入审批通过意见（可选）' : '请输入驳回原因（建议填写）'" /></el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer"><el-button @click="approveActionDialogVisible = false">取消</el-button><el-button :type="selectedApproveAction === 'agree' ? 'primary' : 'danger'" :loading="submitLoading" @click="submitApproveAction">确认</el-button></div>
     </el-dialog>
@@ -576,6 +585,12 @@ export default {
     },
     getApprovalStatusMeta(status) {
       return ({ draft: { label: '草稿', type: 'info' }, pending: { label: '审批中', type: 'warning' }, approved: { label: '审批通过', type: 'success' }, rejected: { label: '审批驳回', type: 'danger' } })[status] || { label: '草稿', type: 'info' }
+    },
+    getInvoiceStatusMeta(status) {
+      return ({ no_invoice: { label: '未开票', type: 'info' }, invoiced: { label: '已开票', type: 'success' }, voided: { label: '已作废', type: 'danger' } })[status] || { label: '-', type: 'info' }
+    },
+    getCurrentNodeMeta(node) {
+      return ({ directLeader: { label: '直接主管', type: 'warning' }, approver: { label: '审批人', type: 'warning' }, handler: { label: '办理人', type: 'primary' }, finished: { label: '已完成', type: 'success' }, rejected: { label: '已驳回', type: 'danger' } })[node] || { label: '-', type: 'info' }
     },
     getLogType(action) {
       if (!action) return 'primary'
