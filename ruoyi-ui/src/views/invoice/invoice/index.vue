@@ -75,9 +75,9 @@
     <el-table v-loading="loading" :data="invoiceList" @selection-change="handleSelectionChange" border stripe class="modern-table" header-cell-class-name="table-header-gray">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="合同编码" align="center" prop="relatedContractNumber" min-width="150" show-overflow-tooltip />
-      <el-table-column label="发票分类" align="center" width="100">
+      <!-- <el-table-column label="发票分类" align="center" width="100">
         <template slot-scope="scope"><el-tag size="small" effect="plain" :type="scope.row.amountType === '支出' ? 'warning' : 'success'">{{ scope.row.amountType === '支出' ? '进项' : scope.row.amountType === '收入' ? '销项' : '-' }}</el-tag></template>
-      </el-table-column>
+      </el-table-column> -->
       <el-table-column label="发票类型" align="center" prop="invoiceType" width="120">
         <template slot-scope="scope"><span>{{ formatInvoiceType(scope.row.invoiceType) }}</span></template>
       </el-table-column>
@@ -512,14 +512,16 @@ export default {
         this.getList()
       }).finally(() => { this.submitLoading = false })
     },
-    openLogDrawer(row) {
-      this.selectedRow = row
-      this.invoiceLogs = []
-      this.logDrawerVisible = true
-      listInvoiceLogs(row.id).then(res => {
-        this.invoiceLogs = res.data || []
-      })
-    },
+ openLogDrawer(row) {
+  this.selectedRow = row
+  this.invoiceLogs = []
+  this.logDrawerVisible = true
+  listInvoiceLogs(row.id).then(res => {
+    this.invoiceLogs = (res.data || [])
+      .filter(item => item.action !== '导入发票')  // 👈 关键
+      .reverse()
+  })
+},
     handleDelete(row) {
       const ids = row && row.id ? row.id : this.ids
       if (!ids || (Array.isArray(ids) && ids.length === 0)) return this.$message.warning('请选择要删除的数据')
@@ -675,8 +677,5 @@ export default {
 ::v-deep .el-input__inner, ::v-deep .el-textarea__inner, ::v-deep .el-button { border-radius: 10px; }
 @media screen and (max-width: 1200px) { .query-form .form-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 1000px) { .dialog-grid, .contract-grid, .approval-summary { grid-template-columns: 1fr; } .invoice-layout { flex-direction: column; } .invoice-side-card { width: 100%; } }
-@media screen and (max-width: 768px) { .invoice-manage-page { padding: 12px; } .query-form .form-grid { grid-template-columns: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
-</style>
-layout { flex-direction: column; } .invoice-side-card { width: 100%; } }
 @media screen and (max-width: 768px) { .invoice-manage-page { padding: 12px; } .query-form .form-grid { grid-template-columns: 1fr; } .toolbar { flex-direction: column; align-items: stretch; } }
 </style>
