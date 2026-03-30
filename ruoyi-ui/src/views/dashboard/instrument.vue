@@ -39,14 +39,14 @@
         <div class="metric-card output-invoice">
           <div class="metric-label">年度销项开票</div>
           <div class="metric-value">¥ {{ formatMoney(metrics.yearOutputInvoiceAmount) }}</div>
-          <div class="metric-sub">发票分类：销项 / 收入</div>
+          <div class="metric-sub">发票分类：销项 / 支出</div>
         </div>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="4">
         <div class="metric-card input-invoice">
           <div class="metric-label">年度进项开票</div>
           <div class="metric-value">¥ {{ formatMoney(metrics.yearInputInvoiceAmount) }}</div>
-          <div class="metric-sub">发票分类：进项 / 支出</div>
+          <div class="metric-sub">发票分类：进项 / 收入</div>
         </div>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="4">
@@ -148,7 +148,7 @@
       <div class="detail-list">
         <div class="detail-item">1. 合同总额：按合同申请时间 / 创建时间归属到所选年份后汇总。</div>
         <div class="detail-item">2. 收款 / 付款：按账款日期归属年份，收入计收款，支出计付款。</div>
-        <div class="detail-item">3. 发票：按发票日期归属年份，收入计销项，支出计进项。</div>
+        <div class="detail-item">3. 发票：按发票日期归属年份，支出计销项，收入计进项（按你当前业务口径）。</div>
         <div class="detail-item">4. 待收 / 已收、待付 / 已付、待开票 / 已开票：按合同列表中的金额字段汇总，并用年度合同总额作为分母。</div>
         <div class="detail-item">5. 如果你后面要把口径改成“按合同生效时间”或“按审批通过时间”，我可以再帮你切。</div>
       </div>
@@ -246,11 +246,11 @@ export default {
           .reduce((sum, item) => sum + this.toNumber(item.amount), 0)
 
         const yearOutputInvoiceAmount = yearInvoiceRows
-          .filter(item => item.amountType === '收入')
+          .filter(item => item.amountType === '支出')
           .reduce((sum, item) => sum + this.toNumber(item.invoiceAmount), 0)
 
         const yearInputInvoiceAmount = yearInvoiceRows
-          .filter(item => item.amountType === '支出')
+          .filter(item => item.amountType === '收入')
           .reduce((sum, item) => sum + this.toNumber(item.invoiceAmount), 0)
 
         this.metrics = {
@@ -378,7 +378,7 @@ export default {
         }] : [{
           type: 'group',
           left: 'center',
-          top: '36%',
+          top: '34%',
           children: [
             {
               type: 'text',
@@ -388,7 +388,7 @@ export default {
                 fill: '#909399',
                 fontSize: 14
               },
-              left: -32,
+              left: -36,
               top: 0
             },
             {
@@ -400,18 +400,29 @@ export default {
                 fontSize: 18,
                 fontWeight: 700
               },
-              left: -58,
+              left: -64,
               top: 24
             }
           ]
         }],
         series: [{
           type: 'pie',
-          radius: ['56%', '76%'],
-          center: ['50%', '44%'],
-          avoidLabelOverlap: false,
-          label: { show: false },
-          labelLine: { show: false },
+          radius: ['50%', '76%'],
+          center: ['50%', '42%'],
+          avoidLabelOverlap: true,
+          minAngle: total === 0 ? 0 : 8,
+          label: {
+            show: total !== 0,
+            formatter: params => `${params.name}\n¥ ${this.formatMoney(params.value)}\n${params.percent}%`,
+            color: '#303133',
+            fontSize: 12,
+            lineHeight: 18
+          },
+          labelLine: {
+            show: total !== 0,
+            length: 16,
+            length2: 10
+          },
           data: displayData
         }]
       }
