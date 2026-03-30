@@ -1,35 +1,35 @@
-<template>
+﻿<template>
   <div class="app-container account-manage-page">
     <div class="page-header">
       <div>
-        <h2 class="page-title">账款管理</h2>
-        <p class="page-desc">统一管理账款记录、账款计划、收付款申请与审批流转</p>
+        <h2 class="page-title">璐︽绠＄悊</h2>
+        <p class="page-desc">缁熶竴绠＄悊璐︽璁板綍銆佽处娆捐鍒掋€佹敹浠樻鐢宠涓庡鎵规祦杞?/p>
       </div>
     </div>
 
     <div class="nav-panel">
       <div class="nav-card" :class="{ active: currentNav === 'account' }" @click="handleNavClick('account')">
         <div class="nav-card-icon account"><i class="el-icon-document"></i></div>
-        <div class="nav-card-content"><div class="nav-card-title">账款记录</div><div class="nav-card-desc">收付款申请、审批跟踪、到账状态管理</div></div>
+        <div class="nav-card-content"><div class="nav-card-title">璐︽璁板綍</div><div class="nav-card-desc">鏀朵粯娆剧敵璇枫€佸鎵硅窡韪€佸埌璐︾姸鎬佺鐞?/div></div>
       </div>
       <div class="nav-card" :class="{ active: currentNav === 'plan' }" @click="handleNavClick('plan')">
         <div class="nav-card-icon plan"><i class="el-icon-date"></i></div>
-        <div class="nav-card-content"><div class="nav-card-title">账款计划</div><div class="nav-card-desc">账款计划编排、执行跟踪与计划维护</div></div>
+        <div class="nav-card-content"><div class="nav-card-title">璐︽璁″垝</div><div class="nav-card-desc">璐︽璁″垝缂栨帓銆佹墽琛岃窡韪笌璁″垝缁存姢</div></div>
       </div>
     </div>
 
     <el-card shadow="never" class="scope-card">
       <div class="scope-wrap">
         <div class="scope-left">
-          <span class="scope-label">查看范围</span>
+          <span class="scope-label">鏌ョ湅鑼冨洿</span>
           <el-radio-group v-model="scopeFilter" size="small" @change="handleScopeChange">
-            <el-radio-button label="mine">我的</el-radio-button>
-            <el-radio-button label="dept">我部门的</el-radio-button>
-            <el-radio-button label="all">所有的</el-radio-button>
+            <el-radio-button label="mine">鎴戠殑</el-radio-button>
+            <el-radio-button label="dept">鎴戦儴闂ㄧ殑</el-radio-button>
+            <el-radio-button label="all">鎵€鏈夌殑</el-radio-button>
           </el-radio-group>
         </div>
         <div class="scope-right">
-          <el-tag size="small" type="primary">{{ currentNav === 'account' ? '账款记录' : '账款计划' }}</el-tag>
+          <el-tag size="small" type="primary">{{ currentNav === 'account' ? '璐︽璁板綍' : '璐︽璁″垝' }}</el-tag>
           <el-tag size="small" effect="plain">{{ scopeFilterLabel }}</el-tag>
           <el-tag v-if="currentNav === 'account' && warningType !== 'all'" size="small" type="danger">{{ warningTypeLabel }}</el-tag>
         </div>
@@ -39,131 +39,131 @@
     <div class="main-content">
       <el-card shadow="never" class="tab-card">
         <el-tabs v-model="activeTab" @tab-click="handleTabClick">
-          <el-tab-pane label="全部" name="all"></el-tab-pane>
-          <el-tab-pane :label="currentNav === 'account' ? '收款' : '收款计划'" name="receive"></el-tab-pane>
-          <el-tab-pane :label="currentNav === 'account' ? '付款' : '付款计划'" name="pay"></el-tab-pane>
+          <el-tab-pane label="鍏ㄩ儴" name="all"></el-tab-pane>
+          <el-tab-pane :label="currentNav === 'account' ? '鏀舵' : '鏀舵璁″垝'" name="receive"></el-tab-pane>
+          <el-tab-pane :label="currentNav === 'account' ? '浠樻' : '浠樻璁″垝'" name="pay"></el-tab-pane>
         </el-tabs>
         <div v-if="currentNav === 'account'" class="warning-filter-bar">
           <el-radio-group v-model="warningType" size="small" @change="handleWarningTypeChange">
-            <el-radio-button label="all">全部</el-radio-button>
-            <el-radio-button label="receive_overdue">收款已逾期</el-radio-button>
-            <el-radio-button label="receive_overdue_3d">收款逾期1-3天</el-radio-button>
-            <el-radio-button label="receive_overdue_7d">收款逾期4-7天</el-radio-button>
-            <el-radio-button label="receive_overdue_30d">收款逾期8-30天</el-radio-button>
-            <el-radio-button label="receive_overdue_30p">收款逾期30天以上</el-radio-button>
-            <el-radio-button label="pay_overdue">付款已逾期</el-radio-button>
-            <el-radio-button label="pay_overdue_3d">付款逾期1-3天</el-radio-button>
-            <el-radio-button label="pay_overdue_7d">付款逾期4-7天</el-radio-button>
-            <el-radio-button label="pay_overdue_30d">付款逾期8-30天</el-radio-button>
-            <el-radio-button label="pay_overdue_30p">付款逾期30天以上</el-radio-button>
-            <el-radio-button label="receive_due_today">收款今日到期</el-radio-button>
-            <el-radio-button label="receive_due_1d">收款明日到期</el-radio-button>
-            <el-radio-button label="receive_due_3d">收款2-3天内</el-radio-button>
-            <el-radio-button label="receive_due_7d">收款4-7天内</el-radio-button>
-            <el-radio-button label="receive_due_15d">收款8-15天内</el-radio-button>
-            <el-radio-button label="receive_due_30d">收款16-30天内</el-radio-button>
-            <el-radio-button label="pay_due_today">付款今日到期</el-radio-button>
-            <el-radio-button label="pay_due_1d">付款明日到期</el-radio-button>
-            <el-radio-button label="pay_due_3d">付款2-3天内</el-radio-button>
-            <el-radio-button label="pay_due_7d">付款4-7天内</el-radio-button>
-            <el-radio-button label="pay_due_15d">付款8-15天内</el-radio-button>
-            <el-radio-button label="pay_due_30d">付款16-30天内</el-radio-button>
-            <el-radio-button label="normal">正常</el-radio-button>
+            <el-radio-button label="all">鍏ㄩ儴</el-radio-button>
+            <el-radio-button label="receive_overdue">鏀舵宸查€炬湡</el-radio-button>
+            <el-radio-button label="receive_overdue_3d">鏀舵閫炬湡1-3澶?/el-radio-button>
+            <el-radio-button label="receive_overdue_7d">鏀舵閫炬湡4-7澶?/el-radio-button>
+            <el-radio-button label="receive_overdue_30d">鏀舵閫炬湡8-30澶?/el-radio-button>
+            <el-radio-button label="receive_overdue_30p">鏀舵閫炬湡30澶╀互涓?/el-radio-button>
+            <el-radio-button label="pay_overdue">浠樻宸查€炬湡</el-radio-button>
+            <el-radio-button label="pay_overdue_3d">浠樻閫炬湡1-3澶?/el-radio-button>
+            <el-radio-button label="pay_overdue_7d">浠樻閫炬湡4-7澶?/el-radio-button>
+            <el-radio-button label="pay_overdue_30d">浠樻閫炬湡8-30澶?/el-radio-button>
+            <el-radio-button label="pay_overdue_30p">浠樻閫炬湡30澶╀互涓?/el-radio-button>
+            <el-radio-button label="receive_due_today">鏀舵浠婃棩鍒版湡</el-radio-button>
+            <el-radio-button label="receive_due_1d">鏀舵鏄庢棩鍒版湡</el-radio-button>
+            <el-radio-button label="receive_due_3d">鏀舵2-3澶╁唴</el-radio-button>
+            <el-radio-button label="receive_due_7d">鏀舵4-7澶╁唴</el-radio-button>
+            <el-radio-button label="receive_due_15d">鏀舵8-15澶╁唴</el-radio-button>
+            <el-radio-button label="receive_due_30d">鏀舵16-30澶╁唴</el-radio-button>
+            <el-radio-button label="pay_due_today">浠樻浠婃棩鍒版湡</el-radio-button>
+            <el-radio-button label="pay_due_1d">浠樻鏄庢棩鍒版湡</el-radio-button>
+            <el-radio-button label="pay_due_3d">浠樻2-3澶╁唴</el-radio-button>
+            <el-radio-button label="pay_due_7d">浠樻4-7澶╁唴</el-radio-button>
+            <el-radio-button label="pay_due_15d">浠樻8-15澶╁唴</el-radio-button>
+            <el-radio-button label="pay_due_30d">浠樻16-30澶╁唴</el-radio-button>
+            <el-radio-button label="normal">姝ｅ父</el-radio-button>
           </el-radio-group>
         </div>
       </el-card>
 
       <el-card shadow="never" class="search-card">
         <div class="search-header">
-          <div class="search-title"><i class="el-icon-search"></i><span>筛选条件</span></div>
-          <el-button type="text" @click="showSearch = !showSearch">{{ showSearch ? '收起' : '展开' }}<i :class="showSearch ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></el-button>
+          <div class="search-title"><i class="el-icon-search"></i><span>绛涢€夋潯浠?/span></div>
+          <el-button type="text" @click="showSearch = !showSearch">{{ showSearch ? '鏀惰捣' : '灞曞紑' }}<i :class="showSearch ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></el-button>
         </div>
         <el-form v-show="showSearch" :model="queryParams" ref="queryForm" size="small" :inline="true" label-width="90px" class="query-form">
           <template v-if="currentNav === 'account'">
-            <el-form-item label="合同编号" prop="contractId"><el-input v-model="queryParams.contractId" clearable style="width:180px"/></el-form-item>
-            <el-form-item label="单据号" prop="orderNo"><el-input v-model="queryParams.orderNo" clearable style="width:180px"/></el-form-item>
-            <el-form-item label="金额类型" prop="amountType"><el-select v-model="queryParams.amountType" clearable style="width:180px"><el-option label="收入" value="income"/><el-option label="支出" value="expense"/></el-select></el-form-item>
-            <el-form-item label="主体名称" prop="partyName"><el-input v-model="queryParams.partyName" clearable style="width:180px"/></el-form-item>
+            <el-form-item label="鍚堝悓缂栧彿" prop="contractId"><el-input v-model="queryParams.contractId" clearable style="width:180px"/></el-form-item>
+            <el-form-item label="鍗曟嵁鍙? prop="orderNo"><el-input v-model="queryParams.orderNo" clearable style="width:180px"/></el-form-item>
+            <el-form-item label="閲戦绫诲瀷" prop="amountType"><el-select v-model="queryParams.amountType" clearable style="width:180px"><el-option label="鏀跺叆" value="income"/><el-option label="鏀嚭" value="expense"/></el-select></el-form-item>
+            <el-form-item label="涓讳綋鍚嶇О" prop="partyName"><el-input v-model="queryParams.partyName" clearable style="width:180px"/></el-form-item>
           </template>
           <template v-else>
-            <el-form-item label="计划名称" prop="planName"><el-input v-model="queryParams.planName" clearable style="width:180px"/></el-form-item>
-            <el-form-item label="计划编号" prop="planNo"><el-input v-model="queryParams.planNo" clearable style="width:180px"/></el-form-item>
+            <el-form-item label="璁″垝鍚嶇О" prop="planName"><el-input v-model="queryParams.planName" clearable style="width:180px"/></el-form-item>
+            <el-form-item label="璁″垝缂栧彿" prop="planNo"><el-input v-model="queryParams.planNo" clearable style="width:180px"/></el-form-item>
           </template>
-          <el-form-item><el-button type="primary" @click="handleQuery">搜索</el-button><el-button @click="resetQuery">重置</el-button></el-form-item>
+          <el-form-item><el-button type="primary" @click="handleQuery">鎼滅储</el-button><el-button @click="resetQuery">閲嶇疆</el-button></el-form-item>
         </el-form>
       </el-card>
 
       <div class="toolbar">
         <div class="toolbar-left">
           <template v-if="currentNav === 'account'">
-            <el-button type="primary" icon="el-icon-s-promotion" @click="handleApplyReceive" v-if="activeTab !== 'pay'">申请收款</el-button>
-            <el-button type="success" icon="el-icon-s-promotion" @click="handleApplyPay" v-if="activeTab !== 'receive'">申请付款</el-button>
-            <el-button plain icon="el-icon-setting" @click="openFlowSetting">审批流设置</el-button>
-            <el-button type="info" plain icon="el-icon-download" :loading="downloadLoading" @click="handleDownloadTemplate">下载模板</el-button>
-            <el-button type="primary" plain icon="el-icon-upload2" :loading="importLoading" @click="handleImport">导入</el-button>
+            <el-button type="primary" icon="el-icon-s-promotion" @click="handleApplyReceive" v-if="activeTab !== 'pay'">鐢宠鏀舵</el-button>
+            <el-button type="success" icon="el-icon-s-promotion" @click="handleApplyPay" v-if="activeTab !== 'receive'">鐢宠浠樻</el-button>
+            <el-button plain icon="el-icon-setting" @click="openFlowSetting">瀹℃壒娴佽缃?/el-button>
+            <el-button type="info" plain icon="el-icon-download" :loading="downloadLoading" @click="handleDownloadTemplate">涓嬭浇妯℃澘</el-button>
+            <el-button type="primary" plain icon="el-icon-upload2" :loading="importLoading" @click="handleImport">瀵煎叆</el-button>
             <input ref="importInput" type="file" accept=".xls,.xlsx" style="display:none" @change="handleImportFileChange" />
           </template>
           <template v-else>
-            <el-button type="primary" icon="el-icon-plus" @click="handleAddPlan">添加账款计划</el-button>
+            <el-button type="primary" icon="el-icon-plus" @click="handleAddPlan">娣诲姞璐︽璁″垝</el-button>
           </template>
         </div>
         <div v-if="currentNav === 'account'" class="toolbar-tip">
-          <el-alert title="申请收款/付款前，请先在下方列表勾选一条账款记录。" type="info" :closable="false" show-icon />
+          <el-alert title="鐢宠鏀舵/浠樻鍓嶏紝璇峰厛鍦ㄤ笅鏂瑰垪琛ㄥ嬀閫変竴鏉¤处娆捐褰曘€? type="info" :closable="false" show-icon />
         </div>
       </div>
 
       <el-table v-if="currentNav === 'account'" v-loading="loading" :data="accountList" @selection-change="handleSelectionChange" border header-cell-class-name="table-header-gray" class="account-table">
         <el-table-column type="selection" width="55" align="center"/>
-        <el-table-column label="关联合同名称" prop="relatedContractName" min-width="180" show-overflow-tooltip />
-        <el-table-column label="账款日期" width="120" align="center"><template slot-scope="scope">{{ parseTime(scope.row.accountDate) }}</template></el-table-column>
-        <el-table-column label="预警状态" width="120" align="center"><template slot-scope="scope"><el-tag :type="getWarningMeta(scope.row).tagType" size="small">{{ getWarningMeta(scope.row).label }}</el-tag></template></el-table-column>
-        <el-table-column label="账款金额" width="140" align="right"><template slot-scope="scope">¥{{ formatAmount(scope.row.amount) }}</template></el-table-column>
-        <el-table-column label="金额类型" width="100" align="center"><template slot-scope="scope"><el-tag :type="scope.row.amountType === 'income' ? 'success' : 'danger'" size="small">{{ scope.row.amountType === 'income' ? '收入' : '支出' }}</el-tag></template></el-table-column>
-        <el-table-column label="单据号" prop="orderNo" width="140"/>
-        <el-table-column label="关联合同编号" prop="relatedContractNumber" width="160"/>
-        <el-table-column label="状态" width="120" align="center"><template slot-scope="scope"><el-tag :type="getAccountStatusType(scope.row.status)" size="small">{{ getAccountStatusLabel(scope.row.status) }}</el-tag></template></el-table-column>
-        <el-table-column label="当前节点" width="120" align="center"><template slot-scope="scope"><el-tag :type="getCurrentNodeMeta(scope.row).type" size="small">{{ getCurrentNodeMeta(scope.row).label }}</el-tag></template></el-table-column>
-        <el-table-column label="当前处理人" min-width="130" align="center"><template slot-scope="scope">{{ getCurrentNodeAssignee(scope.row) }}</template></el-table-column>
-        <el-table-column label="操作" width="360" fixed="right" align="center" class-name="action-column">
+        <el-table-column label="鍏宠仈鍚堝悓鍚嶇О" prop="relatedContractName" min-width="180" show-overflow-tooltip />
+        <el-table-column label="璐︽鏃ユ湡" width="120" align="center"><template slot-scope="scope">{{ parseTime(scope.row.accountDate) }}</template></el-table-column>
+        <el-table-column label="棰勮鐘舵€? width="120" align="center"><template slot-scope="scope"><el-tag :type="getWarningMeta(scope.row).tagType" size="small">{{ getWarningMeta(scope.row).label }}</el-tag></template></el-table-column>
+        <el-table-column label="璐︽閲戦" width="140" align="right"><template slot-scope="scope">楼{{ formatAmount(scope.row.amount) }}</template></el-table-column>
+        <el-table-column label="閲戦绫诲瀷" width="100" align="center"><template slot-scope="scope"><el-tag :type="scope.row.amountType === 'income' ? 'success' : 'danger'" size="small">{{ scope.row.amountType === 'income' ? '鏀跺叆' : '鏀嚭' }}</el-tag></template></el-table-column>
+        <el-table-column label="鍗曟嵁鍙? prop="orderNo" width="140"/>
+        <el-table-column label="鍏宠仈鍚堝悓缂栧彿" prop="relatedContractNumber" width="160"/>
+        <el-table-column label="鐘舵€? width="120" align="center"><template slot-scope="scope"><el-tag :type="getAccountStatusType(scope.row.status)" size="small">{{ getAccountStatusLabel(scope.row.status) }}</el-tag></template></el-table-column>
+        <el-table-column label="褰撳墠鑺傜偣" width="120" align="center"><template slot-scope="scope"><el-tag :type="getCurrentNodeMeta(scope.row).type" size="small">{{ getCurrentNodeMeta(scope.row).label }}</el-tag></template></el-table-column>
+        <el-table-column label="褰撳墠澶勭悊浜? min-width="130" align="center"><template slot-scope="scope">{{ getCurrentNodeAssignee(scope.row) }}</template></el-table-column>
+        <el-table-column label="鎿嶄綔" width="360" fixed="right" align="center" class-name="action-column">
           <template slot-scope="scope">
-            <el-button size="mini" type="text" class="action-btn" @click="handleDetail(scope.row)">详情</el-button>
-            <el-button v-if="showApprovalEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row, scope.row.amountType === 'expense' ? 'pay' : 'receive')">发起审批</el-button>
-            <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn" @click="openApproveActionDialog(scope.row, 'agree')">通过</el-button>
-            <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn danger-text" @click="openApproveActionDialog(scope.row, 'reject')">驳回</el-button>
-            <el-button size="mini" type="text" class="action-btn danger-text" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button size="mini" type="text" class="action-btn" @click="handleDetail(scope.row)">璇︽儏</el-button>
+            <el-button v-if="showApprovalEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row, scope.row.amountType === 'expense' ? 'pay' : 'receive')">鍙戣捣瀹℃壒</el-button>
+            <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn" @click="openApproveActionDialog(scope.row, 'agree')">閫氳繃</el-button>
+            <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn danger-text" @click="openApproveActionDialog(scope.row, 'reject')">椹冲洖</el-button>
+            <el-button size="mini" type="text" class="action-btn danger-text" @click="handleDelete(scope.row)">鍒犻櫎</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <el-table v-else v-loading="loading" :data="planList" border header-cell-class-name="table-header-gray">
-        <el-table-column label="计划名称" prop="planName" min-width="180"/>
-        <el-table-column label="计划编号" prop="planNo" width="140"/>
-        <el-table-column label="计划类型" width="120" align="center"><template slot-scope="scope"><el-tag :type="scope.row.planType === 'receive' ? 'success' : 'danger'">{{ scope.row.planType === 'receive' ? '收款计划' : '付款计划' }}</el-tag></template></el-table-column>
-        <el-table-column label="计划金额" width="140" align="right"><template slot-scope="scope">¥{{ formatAmount(scope.row.planAmount) }}</template></el-table-column>
+        <el-table-column label="璁″垝鍚嶇О" prop="planName" min-width="180"/>
+        <el-table-column label="璁″垝缂栧彿" prop="planNo" width="140"/>
+        <el-table-column label="璁″垝绫诲瀷" width="120" align="center"><template slot-scope="scope"><el-tag :type="scope.row.planType === 'receive' ? 'success' : 'danger'">{{ scope.row.planType === 'receive' ? '鏀舵璁″垝' : '浠樻璁″垝' }}</el-tag></template></el-table-column>
+        <el-table-column label="璁″垝閲戦" width="140" align="right"><template slot-scope="scope">楼{{ formatAmount(scope.row.planAmount) }}</template></el-table-column>
       </el-table>
 
       <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" class="page-pagination" />
     </div>
 
-    <el-drawer title="账款详情" :visible.sync="detailDrawerVisible" direction="rtl" size="560px" custom-class="detail-drawer">
+    <el-drawer title="璐︽璇︽儏" :visible.sync="detailDrawerVisible" direction="rtl" size="560px" custom-class="detail-drawer">
       <div class="detail-drawer-body" v-if="detailData">
         <div class="detail-summary-card">
-          <div class="detail-summary-title">{{ detailData.relatedContractName || '账款信息' }}</div>
-          <div class="detail-summary-desc">关联合同编号：{{ detailData.relatedContractNumber || '-' }}</div>
+          <div class="detail-summary-title">{{ detailData.relatedContractName || '璐︽淇℃伅' }}</div>
+          <div class="detail-summary-desc">鍏宠仈鍚堝悓缂栧彿锛歿{ detailData.relatedContractNumber || '-' }}</div>
           <el-tag :type="getAccountStatusType(detailData.status)" size="small">{{ getAccountStatusLabel(detailData.status) }}</el-tag>
         </div>
         <div class="detail-grid">
-          <div class="detail-item"><span>账款名称</span><strong>{{ detailData.accountName || '-' }}</strong></div>
-          <div class="detail-item"><span>账款日期</span><strong>{{ parseTime(detailData.accountDate) }}</strong></div>
-          <div class="detail-item"><span>账款金额</span><strong>¥ {{ formatAmount(detailData.amount) }}</strong></div>
-          <div class="detail-item"><span>金额类型</span><strong>{{ detailData.amountType === 'income' ? '收入' : '支出' }}</strong></div>
-          <div class="detail-item"><span>单据号</span><strong>{{ detailData.orderNo || '-' }}</strong></div>
-          <div class="detail-item"><span>我方主体</span><strong>{{ detailData.ourParty || '-' }}</strong></div>
-          <div class="detail-item"><span>对方主体</span><strong>{{ detailData.otherParty || '-' }}</strong></div>
-          <div class="detail-item"><span>预警状态</span><strong>{{ getWarningMeta(detailData).label }}</strong></div>
+          <div class="detail-item"><span>璐︽鍚嶇О</span><strong>{{ detailData.accountName || '-' }}</strong></div>
+          <div class="detail-item"><span>璐︽鏃ユ湡</span><strong>{{ parseTime(detailData.accountDate) }}</strong></div>
+          <div class="detail-item"><span>璐︽閲戦</span><strong>楼 {{ formatAmount(detailData.amount) }}</strong></div>
+          <div class="detail-item"><span>閲戦绫诲瀷</span><strong>{{ detailData.amountType === 'income' ? '鏀跺叆' : '鏀嚭' }}</strong></div>
+          <div class="detail-item"><span>鍗曟嵁鍙?/span><strong>{{ detailData.orderNo || '-' }}</strong></div>
+          <div class="detail-item"><span>鎴戞柟涓讳綋</span><strong>{{ detailData.ourParty || '-' }}</strong></div>
+          <div class="detail-item"><span>瀵规柟涓讳綋</span><strong>{{ detailData.otherParty || '-' }}</strong></div>
+          <div class="detail-item"><span>棰勮鐘舵€?/span><strong>{{ getWarningMeta(detailData).label }}</strong></div>
         </div>
         <el-card shadow="never" class="timeline-card">
-          <div slot="header">审批时间线</div>
+          <div slot="header">瀹℃壒鏃堕棿绾?/div>
           <el-timeline>
             <el-timeline-item v-for="(item, index) in approvalTimeline" :key="index" :timestamp="item.time" :type="item.type">
               <div class="timeline-item-title">{{ item.title }}</div>
@@ -172,8 +172,8 @@
           </el-timeline>
         </el-card>
         <el-card shadow="never" class="detail-remark-card">
-          <div slot="header">备注 / 审批记录</div>
-          <div class="detail-remark-content">{{ detailData.remark || '暂无备注' }}</div>
+          <div slot="header">澶囨敞 / 瀹℃壒璁板綍</div>
+          <div class="detail-remark-content">{{ detailData.remark || '鏆傛棤澶囨敞' }}</div>
         </el-card>
       </div>
     </el-drawer>
@@ -181,55 +181,55 @@
     <el-drawer :title="approvalDrawerTitle" :visible.sync="approvalDrawerVisible" direction="rtl" size="520px" custom-class="approval-drawer">
       <div class="approval-drawer-body" v-if="selectedRow">
         <div class="approval-header-card">
-          <div class="approval-header-title">{{ selectedApplyType === 'pay' ? '付款审批流程' : '收款审批流程' }}</div>
-          <div class="approval-header-desc">按钉钉式流程流转：发起申请 → 直接主管 → 审批人 → 办理人。</div>
+          <div class="approval-header-title">{{ selectedApplyType === 'pay' ? '浠樻瀹℃壒娴佺▼' : '鏀舵瀹℃壒娴佺▼' }}</div>
+          <div class="approval-header-desc">鎸夊鎵规祦璁剧疆涓殑涓茶鑺傜偣椤哄簭娴佽浆銆?/div>
         </div>
         <div class="approval-summary approval-summary-extended">
-          <div class="summary-item"><span>申请日期</span><strong>{{ parseTime(selectedRow.accountDate) }}</strong></div>
-          <div class="summary-item"><span>金额类型</span><strong>{{ selectedRow.amountType === 'income' ? '收入' : selectedRow.amountType === 'expense' ? '支出' : (selectedRow.amountType || '-') }}</strong></div>
-          <div class="summary-item"><span>金额</span><strong>¥ {{ formatAmount(selectedRow.amount) }}</strong></div>
-          <div class="summary-item"><span>归属人</span><strong>{{ selectedRow.owner || '-' }}</strong></div>
-          <div class="summary-item"><span>关联合同</span><strong>{{ selectedRow.relatedContractName || '-' }}{{ selectedRow.relatedContractNumber ? ' / ' + selectedRow.relatedContractNumber : '' }}</strong></div>
-          <div class="summary-item"><span>供应商</span><strong>{{ selectedRow.supplierName || selectedRow.otherParty || '-' }}</strong></div>
-          <div class="summary-item summary-item-attachment"><span>附件</span>
+          <div class="summary-item"><span>鐢宠鏃ユ湡</span><strong>{{ parseTime(selectedRow.accountDate) }}</strong></div>
+          <div class="summary-item"><span>閲戦绫诲瀷</span><strong>{{ selectedRow.amountType === 'income' ? '鏀跺叆' : selectedRow.amountType === 'expense' ? '鏀嚭' : (selectedRow.amountType || '-') }}</strong></div>
+          <div class="summary-item"><span>閲戦</span><strong>楼 {{ formatAmount(selectedRow.amount) }}</strong></div>
+          <div class="summary-item"><span>褰掑睘浜?/span><strong>{{ selectedRow.owner || '-' }}</strong></div>
+          <div class="summary-item"><span>鍏宠仈鍚堝悓</span><strong>{{ selectedRow.relatedContractName || '-' }}{{ selectedRow.relatedContractNumber ? ' / ' + selectedRow.relatedContractNumber : '' }}</strong></div>
+          <div class="summary-item"><span>渚涘簲鍟?/span><strong>{{ selectedRow.supplierName || selectedRow.otherParty || '-' }}</strong></div>
+          <div class="summary-item summary-item-attachment"><span>闄勪欢</span>
             <div class="attachment-list" v-if="getAttachmentList(selectedRow.attachments).length">
               <el-tag v-for="(file, index) in getAttachmentList(selectedRow.attachments)" :key="index" size="mini" effect="plain">{{ getAttachmentName(file) }}</el-tag>
             </div>
             <strong v-else>-</strong>
           </div>
-          <div class="summary-item"><span>申请类型</span><strong>{{ selectedApplyType === 'pay' ? '付款申请' : '收款申请' }}</strong></div>
+          <div class="summary-item"><span>鐢宠绫诲瀷</span><strong>{{ selectedApplyType === 'pay' ? '浠樻鐢宠' : '鏀舵鐢宠' }}</strong></div>
         </div>
         <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="90px" class="approval-form-card">
-          <el-form-item label="审批流">
-            <el-input value="按审批流设置自动匹配节点处理人" disabled />
+          <el-form-item label="瀹℃壒娴?>
+            <el-input value="鎸夊鎵规祦璁剧疆鑷姩鍖归厤鑺傜偣澶勭悊浜? disabled />
           </el-form-item>
-          <el-alert title="账款审批将严格按照“审批流设置”中的节点顺序执行。" type="info" :closable="false" show-icon style="margin-bottom: 18px;" />
-          <el-form-item label="审批说明" prop="remark">
-            <el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="请输入审批说明、付款依据或收款说明" />
+          <el-alert title="璐︽瀹℃壒灏嗕弗鏍兼寜鐓р€滃鎵规祦璁剧疆鈥濅腑鐨勮妭鐐归『搴忔墽琛屻€? type="info" :closable="false" show-icon style="margin-bottom: 18px;" />
+          <el-form-item label="瀹℃壒璇存槑" prop="remark">
+            <el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="璇疯緭鍏ュ鎵硅鏄庛€佷粯娆句緷鎹垨鏀舵璇存槑" />
           </el-form-item>
         </el-form>
       </div>
       <div class="drawer-footer">
-        <el-button @click="approvalDrawerVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="submitApprovalFlow">提交审批</el-button>
+        <el-button @click="approvalDrawerVisible = false">鍙栨秷</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="submitApprovalFlow">鎻愪氦瀹℃壒</el-button>
       </div>
     </el-drawer>
 
     <el-dialog :title="approveActionTitle" :visible.sync="approveActionDialogVisible" width="620px" append-to-body custom-class="beauty-dialog">
       <div class="approval-summary" v-if="selectedRow">
-        <div class="summary-item"><span>合同</span><strong>{{ selectedRow.relatedContractName || '-' }}</strong></div>
-        <div class="summary-item"><span>单据号</span><strong>{{ selectedRow.orderNo || '-' }}</strong></div>
-        <div class="summary-item"><span>金额</span><strong>¥ {{ formatAmount(selectedRow.amount) }}</strong></div>
-        <div class="summary-item"><span>当前状态</span><strong>{{ getAccountStatusLabel(selectedRow.status) }}</strong></div>
+        <div class="summary-item"><span>鍚堝悓</span><strong>{{ selectedRow.relatedContractName || '-' }}</strong></div>
+        <div class="summary-item"><span>鍗曟嵁鍙?/span><strong>{{ selectedRow.orderNo || '-' }}</strong></div>
+        <div class="summary-item"><span>閲戦</span><strong>楼 {{ formatAmount(selectedRow.amount) }}</strong></div>
+        <div class="summary-item"><span>褰撳墠鐘舵€?/span><strong>{{ getAccountStatusLabel(selectedRow.status) }}</strong></div>
       </div>
       <el-form :model="approveActionForm" ref="approveActionForm" label-width="100px">
-        <el-form-item :label="selectedApproveAction === 'agree' ? '通过意见' : '驳回意见'">
-          <el-input v-model="approveActionForm.remark" type="textarea" :rows="4" :placeholder="selectedApproveAction === 'agree' ? '请输入审批通过意见（可选）' : '请输入驳回原因（建议填写）'" />
+        <el-form-item :label="selectedApproveAction === 'agree' ? '閫氳繃鎰忚' : '椹冲洖鎰忚'">
+          <el-input v-model="approveActionForm.remark" type="textarea" :rows="4" :placeholder="selectedApproveAction === 'agree' ? '璇疯緭鍏ュ鎵归€氳繃鎰忚锛堝彲閫夛級' : '璇疯緭鍏ラ┏鍥炲師鍥狅紙寤鸿濉啓锛?" />
         </el-form-item>
       </el-form>
-      <div slot="footer" class="dialog-footer"><el-button @click="approveActionDialogVisible = false">取消</el-button><el-button :type="selectedApproveAction === 'agree' ? 'primary' : 'danger'" :loading="submitLoading" @click="submitApproveAction">确认</el-button></div>
+      <div slot="footer" class="dialog-footer"><el-button @click="approveActionDialogVisible = false">鍙栨秷</el-button><el-button :type="selectedApproveAction === 'agree' ? 'primary' : 'danger'" :loading="submitLoading" @click="submitApproveAction">纭</el-button></div>
     </el-dialog>
-    <approval-flow-setting :visible.sync="flowSettingVisible" business-type="account" title="账款管理" @saved="handleFlowSaved" />
+    <approval-flow-setting :visible.sync="flowSettingVisible" business-type="account" title="璐︽绠＄悊" @saved="handleFlowSaved" />
   </div>
 </template>
 
@@ -246,12 +246,12 @@ export default {
     return {
       currentNav: 'account', scopeFilter: 'mine', activeTab: 'all', warningType: 'all', showSearch: true, loading: false, total: 0,
       ids: [], selectedRows: [], selectedRow: null, selectedApplyType: 'receive', selectedApproveAction: 'agree',
-      accountList: [], planList: [{ id: 1, planName: '示例收款计划', planNo: 'PLAN001', planType: 'receive', planAmount: 100000 }],
+      accountList: [], planList: [{ id: 1, planName: '绀轰緥鏀舵璁″垝', planNo: 'PLAN001', planType: 'receive', planAmount: 100000 }],
       userOptions: [],
       queryParams: { pageNum: 1, pageSize: 10, contractId: null, orderNo: null, amountType: null, partyName: null, warningType: 'all', planName: null, planNo: null, scope: 'mine' },
       detailDrawerVisible: false, detailData: null,
-      approvalDrawerVisible: false, approvalDrawerTitle: '提交审批申请',
-      approveActionDialogVisible: false, approveActionTitle: '审批操作',
+      approvalDrawerVisible: false, approvalDrawerTitle: '鎻愪氦瀹℃壒鐢宠',
+      approveActionDialogVisible: false, approveActionTitle: '瀹℃壒鎿嶄綔',
       importLoading: false, downloadLoading: false, submitLoading: false,
       approvalForm: { directLeaderDisplay: '', approver: '', handler: '', remark: '' },
       approveActionForm: { remark: '' },
@@ -263,19 +263,19 @@ export default {
   },
   computed: {
     ...mapGetters(['name', 'nickName']),
-    scopeFilterLabel() { return { mine: '我的', dept: '我部门的', all: '所有的' }[this.scopeFilter] },
+    scopeFilterLabel() { return { mine: '鎴戠殑', dept: '鎴戦儴闂ㄧ殑', all: '鎵€鏈夌殑' }[this.scopeFilter] },
     warningTypeLabel() { return { all: '全部', receive_overdue: '收款已逾期', receive_overdue_3d: '收款逾期1-3天', receive_overdue_7d: '收款逾期4-7天', receive_overdue_30d: '收款逾期8-30天', receive_overdue_30p: '收款逾期30天以上', pay_overdue: '付款已逾期', pay_overdue_3d: '付款逾期1-3天', pay_overdue_7d: '付款逾期4-7天', pay_overdue_30d: '付款逾期8-30天', pay_overdue_30p: '付款逾期30天以上', receive_due_today: '收款今日到期', receive_due_1d: '收款明日到期', receive_due_3d: '收款2-3天内到期', receive_due_7d: '收款4-7天内到期', receive_due_15d: '收款8-15天内到期', receive_due_30d: '收款16-30天内到期', pay_due_today: '付款今日到期', pay_due_1d: '付款明日到期', pay_due_3d: '付款2-3天内到期', pay_due_7d: '付款4-7天内到期', pay_due_15d: '付款8-15天内到期', pay_due_30d: '付款16-30天内到期', normal: '正常' }[this.warningType] },
     approvalTimeline() {
       if (!this.detailData) return []
       const remark = this.detailData.remark || ''
       const items = []
-      items.push({ title: '创建账款', desc: '账款记录已创建', time: this.parseTime(this.detailData.createTime || this.detailData.accountDate), type: 'primary' })
-      if (remark.includes('[审批申请]')) items.push({ title: '提交审批', desc: this.extractRemarkSection(remark, '审批申请'), time: this.parseTime(this.detailData.updateTime || this.detailData.accountDate), type: 'warning' })
-      if (remark.includes('[审批结果]')) {
+      items.push({ title: '鍒涘缓璐︽', desc: '璐︽璁板綍宸插垱寤?, time: this.parseTime(this.detailData.createTime || this.detailData.accountDate), type: 'primary' })
+      if (remark.includes('[瀹℃壒鐢宠]')) items.push({ title: '鎻愪氦瀹℃壒', desc: this.extractRemarkSection(remark, '瀹℃壒鐢宠'), time: this.parseTime(this.detailData.updateTime || this.detailData.accountDate), type: 'warning' })
+      if (remark.includes('[瀹℃壒缁撴灉]')) {
         const pieces = remark.split('；').filter(item => item.includes('[审批结果]'))
         pieces.forEach(piece => {
-          const desc = piece.replace('[审批结果]', '').trim()
-          items.push({ title: desc.includes('驳回') ? '审批驳回' : '审批通过', desc, time: this.parseTime(this.detailData.updateTime || this.detailData.accountDate), type: desc.includes('驳回') ? 'danger' : 'success' })
+          const desc = piece.replace('[瀹℃壒缁撴灉]', '').trim()
+          items.push({ title: desc.includes('椹冲洖') ? '瀹℃壒椹冲洖' : '瀹℃壒閫氳繃', desc, time: this.parseTime(this.detailData.updateTime || this.detailData.accountDate), type: desc.includes('椹冲洖') ? 'danger' : 'success' })
         })
       }
       return items
@@ -463,34 +463,34 @@ export default {
       delAccount(id).then(() => { this.$message.success('删除成功'); this.getList() })
     },
     getWarningMeta(row) {
-      if (!row) return { key: 'normal', label: '正常', tagType: 'success' }
-      if (row.status === 'approved' || row.status === 'done') return { key: 'normal', label: '正常', tagType: 'success' }
-      if (!row.accountDate) return { key: 'normal', label: '正常', tagType: 'success' }
+      if (!row) return { key: 'normal', label: '姝ｅ父', tagType: 'success' }
+      if (row.status === 'approved' || row.status === 'done') return { key: 'normal', label: '姝ｅ父', tagType: 'success' }
+      if (!row.accountDate) return { key: 'normal', label: '姝ｅ父', tagType: 'success' }
       const target = new Date(row.accountDate)
       const today = new Date()
       const current = new Date(today.getFullYear(), today.getMonth(), today.getDate())
       const due = new Date(target.getFullYear(), target.getMonth(), target.getDate())
       const diff = Math.floor((due - current) / 86400000)
       const receive = row.amountType === 'income'
-      const prefix = receive ? '收款' : '付款'
+      const prefix = receive ? '鏀舵' : '浠樻'
       if (diff < 0) {
         const overdueDays = Math.abs(diff)
-        if (overdueDays <= 3) return { key: receive ? 'receive_overdue_3d' : 'pay_overdue_3d', label: `${prefix}逾期1-3天`, tagType: 'danger' }
-        if (overdueDays <= 7) return { key: receive ? 'receive_overdue_7d' : 'pay_overdue_7d', label: `${prefix}逾期4-7天`, tagType: 'danger' }
-        if (overdueDays <= 30) return { key: receive ? 'receive_overdue_30d' : 'pay_overdue_30d', label: `${prefix}逾期8-30天`, tagType: 'danger' }
-        return { key: receive ? 'receive_overdue_30p' : 'pay_overdue_30p', label: `${prefix}逾期30天+`, tagType: 'danger' }
+        if (overdueDays <= 3) return { key: receive ? 'receive_overdue_3d' : 'pay_overdue_3d', label: `${prefix}閫炬湡1-3澶ー, tagType: 'danger' }
+        if (overdueDays <= 7) return { key: receive ? 'receive_overdue_7d' : 'pay_overdue_7d', label: `${prefix}閫炬湡4-7澶ー, tagType: 'danger' }
+        if (overdueDays <= 30) return { key: receive ? 'receive_overdue_30d' : 'pay_overdue_30d', label: `${prefix}閫炬湡8-30澶ー, tagType: 'danger' }
+        return { key: receive ? 'receive_overdue_30p' : 'pay_overdue_30p', label: `${prefix}逾期30天以上`, tagType: 'danger' }
       }
-      if (diff === 0) return { key: receive ? 'receive_due_today' : 'pay_due_today', label: `${prefix}今日到期`, tagType: 'warning' }
-      if (diff === 1) return { key: receive ? 'receive_due_1d' : 'pay_due_1d', label: `${prefix}明日到期`, tagType: 'warning' }
-      if (diff <= 3) return { key: receive ? 'receive_due_3d' : 'pay_due_3d', label: `${prefix}2-3天内`, tagType: 'warning' }
-      if (diff <= 7) return { key: receive ? 'receive_due_7d' : 'pay_due_7d', label: `${prefix}4-7天内`, tagType: 'warning' }
-      if (diff <= 15) return { key: receive ? 'receive_due_15d' : 'pay_due_15d', label: `${prefix}8-15天内`, tagType: 'warning' }
-      if (diff <= 30) return { key: receive ? 'receive_due_30d' : 'pay_due_30d', label: `${prefix}16-30天内`, tagType: 'warning' }
-      return { key: 'normal', label: '正常', tagType: 'success' }
+      if (diff === 0) return { key: receive ? 'receive_due_today' : 'pay_due_today', label: `${prefix}浠婃棩鍒版湡`, tagType: 'warning' }
+      if (diff === 1) return { key: receive ? 'receive_due_1d' : 'pay_due_1d', label: `${prefix}鏄庢棩鍒版湡`, tagType: 'warning' }
+      if (diff <= 3) return { key: receive ? 'receive_due_3d' : 'pay_due_3d', label: `${prefix}2-3澶╁唴`, tagType: 'warning' }
+      if (diff <= 7) return { key: receive ? 'receive_due_7d' : 'pay_due_7d', label: `${prefix}4-7澶╁唴`, tagType: 'warning' }
+      if (diff <= 15) return { key: receive ? 'receive_due_15d' : 'pay_due_15d', label: `${prefix}8-15澶╁唴`, tagType: 'warning' }
+      if (diff <= 30) return { key: receive ? 'receive_due_30d' : 'pay_due_30d', label: `${prefix}16-30澶╁唴`, tagType: 'warning' }
+      return { key: 'normal', label: '姝ｅ父', tagType: 'success' }
     },
     extractRemarkSection(remark, tag) {
-      const match = remark.match(new RegExp(`\\[${tag}\\]([^；]+)`))
-      return match ? match[1].trim() : `${tag}记录`
+      const match = remark.match(new RegExp(`\\[${tag}\\]([^锛沒+)`))
+      return match ? match[1].trim() : `${tag}璁板綍`
     },
     formatUserOption(user) {
       if (!user) return '-'
@@ -518,7 +518,7 @@ export default {
     formatAmount(v) { if (v === null || v === undefined || v === '') return '0.00'; const n = Number(v); return isNaN(n) ? v : n.toFixed(2) },
     parseTime(v) { if (!v) return '-'; const d = new Date(v); if (isNaN(d.getTime())) return v; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` },
     getAccountStatusType(status) { return ({ pending: 'info', approving: 'warning', approved: 'success', rejected: 'danger', partial: 'warning', done: 'success' })[status] || 'info' },
-    getAccountStatusLabel(status) { return ({ pending: '待处理', approving: '审批中', approved: '审批通过', rejected: '审批驳回', partial: '部分完成', done: '已完成' })[status] || '待处理' }
+    getAccountStatusLabel(status) { return ({ pending: '寰呭鐞?, approving: '瀹℃壒涓?, approved: '瀹℃壒閫氳繃', rejected: '瀹℃壒椹冲洖', partial: '閮ㄥ垎瀹屾垚', done: '宸插畬鎴? })[status] || '寰呭鐞? }
   }
 }
 </script>
@@ -579,3 +579,5 @@ export default {
 @media (max-width: 1000px) { .nav-panel, .detail-grid, .approval-summary { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .toolbar { flex-direction: column; align-items: stretch; } .scope-wrap, .search-header { align-items: flex-start; } }
 </style>
+
+

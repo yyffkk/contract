@@ -1,96 +1,96 @@
-<template>
+﻿<template>
   <div class="app-container borrow-manage-page">
     <div class="page-header">
       <div>
-        <h2 class="page-title">合同借阅</h2>
-        <p class="page-desc">统一管理合同借阅申请、审批流转、归还登记与超期跟踪</p>
+        <h2 class="page-title">鍚堝悓鍊熼槄</h2>
+        <p class="page-desc">缁熶竴绠＄悊鍚堝悓鍊熼槄鐢宠銆佸鎵规祦杞€佸綊杩樼櫥璁颁笌瓒呮湡璺熻釜</p>
       </div>
     </div>
 
     <el-card shadow="never" class="scope-card tab-card">
       <div class="scope-wrap">
         <div class="scope-left">
-          <span class="scope-label">借阅状态</span>
+          <span class="scope-label">鍊熼槄鐘舵€?/span>
           <el-tabs v-model="activeTab" @tab-click="handleTabClick">
-            <el-tab-pane label="全部" name="all" />
-            <el-tab-pane label="审批中" name="pending" />
-            <el-tab-pane label="借阅中" name="borrowing" />
-            <el-tab-pane label="已归还" name="returned" />
-            <el-tab-pane label="已逾期" name="overdue" />
+            <el-tab-pane label="鍏ㄩ儴" name="all" />
+            <el-tab-pane label="瀹℃壒涓? name="pending" />
+            <el-tab-pane label="鍊熼槄涓? name="borrowing" />
+            <el-tab-pane label="宸插綊杩? name="returned" />
+            <el-tab-pane label="宸查€炬湡" name="overdue" />
           </el-tabs>
         </div>
         <div class="scope-right">
           <el-tag size="small" type="primary">{{ activeTabLabel }}</el-tag>
-          <el-tag size="small" effect="plain">共 {{ total }} 条</el-tag>
+          <el-tag size="small" effect="plain">鍏?{{ total }} 鏉?/el-tag>
         </div>
       </div>
     </el-card>
 
     <el-card shadow="never" class="search-card">
       <div class="search-header">
-        <div class="search-title"><i class="el-icon-search"></i><span>筛选条件</span></div>
-        <el-button type="text" @click="showSearch = !showSearch">{{ showSearch ? '收起' : '展开' }}<i :class="showSearch ? 'el-icon-arrow-up' : 'el-icon-arrow-down'" /></el-button>
+        <div class="search-title"><i class="el-icon-search"></i><span>绛涢€夋潯浠?/span></div>
+        <el-button type="text" @click="showSearch = !showSearch">{{ showSearch ? '鏀惰捣' : '灞曞紑' }}<i :class="showSearch ? 'el-icon-arrow-up' : 'el-icon-arrow-down'" /></el-button>
       </div>
       <el-form v-show="showSearch" :model="queryParams" ref="queryForm" size="small" label-width="90px" class="query-form">
         <div class="form-grid">
-          <el-form-item label="借阅单号" prop="borrowNo"><el-input v-model="queryParams.borrowNo" clearable placeholder="请输入借阅单号" /></el-form-item>
-          <el-form-item label="借阅人" prop="borrower"><el-input v-model="queryParams.borrower" clearable placeholder="请输入借阅人" /></el-form-item>
-          <el-form-item label="借阅部门" prop="borrowDepartment"><el-input v-model="queryParams.borrowDepartment" clearable placeholder="请输入借阅部门" /></el-form-item>
-          <el-form-item label="合同名称" prop="contractName"><el-input v-model="queryParams.contractName" clearable placeholder="请输入合同名称" /></el-form-item>
-          <el-form-item label="合同编号" prop="contractNumber"><el-input v-model="queryParams.contractNumber" clearable placeholder="请输入合同编号" /></el-form-item>
-          <el-form-item label="借阅日期" prop="borrowDate"><el-date-picker v-model="queryParams.borrowDate" type="date" value-format="yyyy-MM-dd" style="width:100%" placeholder="请选择借阅日期" /></el-form-item>
-          <el-form-item label="预计归还" prop="expectedReturnDate"><el-date-picker v-model="queryParams.expectedReturnDate" type="date" value-format="yyyy-MM-dd" style="width:100%" placeholder="请选择预计归还日期" /></el-form-item>
-          <el-form-item label="审批状态" prop="approvalStatus"><el-select v-model="queryParams.approvalStatus" clearable style="width:100%"><el-option label="草稿" value="draft"/><el-option label="审批中" value="pending"/><el-option label="审批通过" value="approved"/><el-option label="审批驳回" value="rejected"/></el-select></el-form-item>
+          <el-form-item label="鍊熼槄鍗曞彿" prop="borrowNo"><el-input v-model="queryParams.borrowNo" clearable placeholder="璇疯緭鍏ュ€熼槄鍗曞彿" /></el-form-item>
+          <el-form-item label="鍊熼槄浜? prop="borrower"><el-input v-model="queryParams.borrower" clearable placeholder="璇疯緭鍏ュ€熼槄浜? /></el-form-item>
+          <el-form-item label="鍊熼槄閮ㄩ棬" prop="borrowDepartment"><el-input v-model="queryParams.borrowDepartment" clearable placeholder="璇疯緭鍏ュ€熼槄閮ㄩ棬" /></el-form-item>
+          <el-form-item label="鍚堝悓鍚嶇О" prop="contractName"><el-input v-model="queryParams.contractName" clearable placeholder="璇疯緭鍏ュ悎鍚屽悕绉? /></el-form-item>
+          <el-form-item label="鍚堝悓缂栧彿" prop="contractNumber"><el-input v-model="queryParams.contractNumber" clearable placeholder="璇疯緭鍏ュ悎鍚岀紪鍙? /></el-form-item>
+          <el-form-item label="鍊熼槄鏃ユ湡" prop="borrowDate"><el-date-picker v-model="queryParams.borrowDate" type="date" value-format="yyyy-MM-dd" style="width:100%" placeholder="璇烽€夋嫨鍊熼槄鏃ユ湡" /></el-form-item>
+          <el-form-item label="棰勮褰掕繕" prop="expectedReturnDate"><el-date-picker v-model="queryParams.expectedReturnDate" type="date" value-format="yyyy-MM-dd" style="width:100%" placeholder="璇烽€夋嫨棰勮褰掕繕鏃ユ湡" /></el-form-item>
+          <el-form-item label="瀹℃壒鐘舵€? prop="approvalStatus"><el-select v-model="queryParams.approvalStatus" clearable style="width:100%"><el-option label="鑽夌" value="draft"/><el-option label="瀹℃壒涓? value="pending"/><el-option label="瀹℃壒閫氳繃" value="approved"/><el-option label="瀹℃壒椹冲洖" value="rejected"/></el-select></el-form-item>
         </div>
-        <div class="search-actions"><el-button type="primary" icon="el-icon-search" @click="handleQuery">查询</el-button><el-button icon="el-icon-refresh" @click="resetQuery">重置</el-button></div>
+        <div class="search-actions"><el-button type="primary" icon="el-icon-search" @click="handleQuery">鏌ヨ</el-button><el-button icon="el-icon-refresh" @click="resetQuery">閲嶇疆</el-button></div>
       </el-form>
     </el-card>
 
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-button type="primary" icon="el-icon-plus" @click="handleAddBorrow">发起借阅</el-button>
-        <el-button plain icon="el-icon-setting" @click="openFlowSetting">审批流设置</el-button>
+        <el-button type="primary" icon="el-icon-plus" @click="handleAddBorrow">鍙戣捣鍊熼槄</el-button>
+        <el-button plain icon="el-icon-setting" @click="openFlowSetting">瀹℃壒娴佽缃?/el-button>
       </div>
       <div class="toolbar-tip">
-        <el-alert title="建议先选择合同，再填写借阅信息并提交审批；审批通过后进入借阅中。" type="info" :closable="false" show-icon />
+        <el-alert title="寤鸿鍏堥€夋嫨鍚堝悓锛屽啀濉啓鍊熼槄淇℃伅骞舵彁浜ゅ鎵癸紱瀹℃壒閫氳繃鍚庤繘鍏ュ€熼槄涓€? type="info" :closable="false" show-icon />
       </div>
     </div>
 
     <el-table v-loading="loading" :data="borrowList" @selection-change="handleSelectionChange" border stripe class="modern-table" header-cell-class-name="table-header-gray">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="借阅单号" prop="borrowNo" width="140" align="center" />
-      <el-table-column label="合同名称" prop="contractName" min-width="180" show-overflow-tooltip />
-      <el-table-column label="合同编号" prop="contractNumber" width="160" show-overflow-tooltip />
-      <el-table-column label="借阅人" prop="borrower" width="110" align="center" />
-      <el-table-column label="借阅部门" prop="borrowDepartment" min-width="120" align="center" show-overflow-tooltip />
-      <el-table-column label="借阅日期" width="120" align="center"><template slot-scope="scope">{{ parseDate(scope.row.borrowDate) }}</template></el-table-column>
-      <el-table-column label="预计归还" width="120" align="center"><template slot-scope="scope">{{ parseDate(scope.row.expectedReturnDate) }}</template></el-table-column>
-      <el-table-column label="合同金额" width="130" align="right"><template slot-scope="scope">¥ {{ formatMoney(scope.row.contractAmount) }}</template></el-table-column>
-      <el-table-column label="借阅状态" width="110" align="center"><template slot-scope="scope"><el-tag :type="getBorrowStatusMeta(scope.row).type" size="small">{{ getBorrowStatusMeta(scope.row).label }}</el-tag></template></el-table-column>
-      <el-table-column label="审批状态" width="110" align="center"><template slot-scope="scope"><el-tag :type="getApprovalStatusMeta(scope.row.approvalStatus).type" size="small">{{ getApprovalStatusMeta(scope.row.approvalStatus).label }}</el-tag></template></el-table-column>
-      <el-table-column label="操作" align="center" fixed="right" width="320">
+      <el-table-column label="鍊熼槄鍗曞彿" prop="borrowNo" width="140" align="center" />
+      <el-table-column label="鍚堝悓鍚嶇О" prop="contractName" min-width="180" show-overflow-tooltip />
+      <el-table-column label="鍚堝悓缂栧彿" prop="contractNumber" width="160" show-overflow-tooltip />
+      <el-table-column label="鍊熼槄浜? prop="borrower" width="110" align="center" />
+      <el-table-column label="鍊熼槄閮ㄩ棬" prop="borrowDepartment" min-width="120" align="center" show-overflow-tooltip />
+      <el-table-column label="鍊熼槄鏃ユ湡" width="120" align="center"><template slot-scope="scope">{{ parseDate(scope.row.borrowDate) }}</template></el-table-column>
+      <el-table-column label="棰勮褰掕繕" width="120" align="center"><template slot-scope="scope">{{ parseDate(scope.row.expectedReturnDate) }}</template></el-table-column>
+      <el-table-column label="鍚堝悓閲戦" width="130" align="right"><template slot-scope="scope">楼 {{ formatMoney(scope.row.contractAmount) }}</template></el-table-column>
+      <el-table-column label="鍊熼槄鐘舵€? width="110" align="center"><template slot-scope="scope"><el-tag :type="getBorrowStatusMeta(scope.row).type" size="small">{{ getBorrowStatusMeta(scope.row).label }}</el-tag></template></el-table-column>
+      <el-table-column label="瀹℃壒鐘舵€? width="110" align="center"><template slot-scope="scope"><el-tag :type="getApprovalStatusMeta(scope.row.approvalStatus).type" size="small">{{ getApprovalStatusMeta(scope.row.approvalStatus).label }}</el-tag></template></el-table-column>
+      <el-table-column label="鎿嶄綔" align="center" fixed="right" width="320">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" class="action-btn" @click="handleDetail(scope.row)">详情</el-button>
-          <el-button v-if="showApprovalEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row)">发起审批</el-button>
-          <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn" @click="openApproveDialog(scope.row, 'agree')">通过</el-button>
-          <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn danger-text" @click="openApproveDialog(scope.row, 'reject')">驳回</el-button>
-          <el-button v-if="showReturnEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openReturnDialog(scope.row)">登记归还</el-button>
-          <el-button size="mini" type="text" class="action-btn danger-text" @click="handleDelete(scope.row)">删除</el-button>
+          <el-button size="mini" type="text" class="action-btn" @click="handleDetail(scope.row)">璇︽儏</el-button>
+          <el-button v-if="showApprovalEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openApprovalDrawer(scope.row)">鍙戣捣瀹℃壒</el-button>
+          <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn" @click="openApproveDialog(scope.row, 'agree')">閫氳繃</el-button>
+          <el-button v-if="canHandleCurrentNode(scope.row)" size="mini" type="text" class="action-btn danger-text" @click="openApproveDialog(scope.row, 'reject')">椹冲洖</el-button>
+          <el-button v-if="showReturnEntry(scope.row)" size="mini" type="text" class="action-btn" @click="openReturnDialog(scope.row)">鐧昏褰掕繕</el-button>
+          <el-button size="mini" type="text" class="action-btn danger-text" @click="handleDelete(scope.row)">鍒犻櫎</el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" class="page-pagination" />
 
-    <el-dialog title="选择合同" :visible.sync="contractDialogVisible" width="980px" append-to-body custom-class="beauty-dialog large-dialog">
+    <el-dialog title="閫夋嫨鍚堝悓" :visible.sync="contractDialogVisible" width="980px" append-to-body custom-class="beauty-dialog large-dialog">
       <el-form :model="contractQueryParams" ref="contractQueryForm" class="contract-query-form">
         <div class="form-grid contract-grid">
-          <el-form-item label="合同名称"><el-input v-model="contractQueryParams.contractName" clearable /></el-form-item>
-          <el-form-item label="合同编号"><el-input v-model="contractQueryParams.contractNumber" clearable /></el-form-item>
-          <el-form-item label="对方主体"><el-input v-model="contractQueryParams.otherPartyName" clearable /></el-form-item>
-          <el-form-item label="我方主体"><el-input v-model="contractQueryParams.myPartyName" clearable /></el-form-item>
+          <el-form-item label="鍚堝悓鍚嶇О"><el-input v-model="contractQueryParams.contractName" clearable /></el-form-item>
+          <el-form-item label="鍚堝悓缂栧彿"><el-input v-model="contractQueryParams.contractNumber" clearable /></el-form-item>
+          <el-form-item label="瀵规柟涓讳綋"><el-input v-model="contractQueryParams.otherPartyName" clearable /></el-form-item>
+          <el-form-item label="鎴戞柟涓讳綋"><el-input v-model="contractQueryParams.myPartyName" clearable /></el-form-item>
         </div>
-        <div class="search-actions"><el-button type="primary" @click="loadContractList">查询</el-button><el-button @click="resetContractQuery">重置</el-button></div>
+        <div class="search-actions"><el-button type="primary" @click="loadContractList">鏌ヨ</el-button><el-button @click="resetContractQuery">閲嶇疆</el-button></div>
       </el-form>
       <div class="dialog-table-wrap">
         <el-table v-loading="contractLoading" :data="contractList" border stripe highlight-current-row>
@@ -99,68 +99,68 @@
               <el-radio v-model="selectedContractId" :label="scope.row.id" @change="selectContractRow(scope.row)"><span style="display:none">{{ scope.row.id }}</span></el-radio>
             </template>
           </el-table-column>
-          <el-table-column label="合同名称" prop="contractName" min-width="200" show-overflow-tooltip/>
-          <el-table-column label="合同编号" prop="contractNumber" width="160"/>
-          <el-table-column label="合同类型" prop="category" width="130" show-overflow-tooltip/>
-          <el-table-column label="对方主体" prop="otherPartyName" min-width="160" show-overflow-tooltip/>
-          <el-table-column label="我方主体" prop="myPartyName" min-width="160" show-overflow-tooltip/>
-          <el-table-column label="合同金额" prop="totalAmount" width="130"><template slot-scope="scope">¥ {{ formatMoney(scope.row.totalAmount) }}</template></el-table-column>
+          <el-table-column label="鍚堝悓鍚嶇О" prop="contractName" min-width="200" show-overflow-tooltip/>
+          <el-table-column label="鍚堝悓缂栧彿" prop="contractNumber" width="160"/>
+          <el-table-column label="鍚堝悓绫诲瀷" prop="category" width="130" show-overflow-tooltip/>
+          <el-table-column label="瀵规柟涓讳綋" prop="otherPartyName" min-width="160" show-overflow-tooltip/>
+          <el-table-column label="鎴戞柟涓讳綋" prop="myPartyName" min-width="160" show-overflow-tooltip/>
+          <el-table-column label="鍚堝悓閲戦" prop="totalAmount" width="130"><template slot-scope="scope">楼 {{ formatMoney(scope.row.totalAmount) }}</template></el-table-column>
         </el-table>
       </div>
       <pagination v-show="contractTotal > 0" :total="contractTotal" :page.sync="contractQueryParams.pageNum" :limit.sync="contractQueryParams.pageSize" @pagination="loadContractList" class="page-pagination contract-pagination" />
-      <div slot="footer" class="dialog-footer"><el-button @click="contractDialogVisible = false">取消</el-button><el-button type="primary" :disabled="!selectedContractId" @click="confirmContractSelection">确认并继续</el-button></div>
+      <div slot="footer" class="dialog-footer"><el-button @click="contractDialogVisible = false">鍙栨秷</el-button><el-button type="primary" :disabled="!selectedContractId" @click="confirmContractSelection">纭骞剁户缁?/el-button></div>
     </el-dialog>
 
     <el-dialog :title="dialogTitle" :visible.sync="open" width="920px" append-to-body custom-class="beauty-dialog borrow-dialog">
       <div class="borrow-layout">
         <div class="borrow-side-card" v-if="selectedContract || form.contractName">
-          <div class="side-card-title">合同信息</div>
-          <div class="side-info-item"><span>合同名称</span><strong>{{ (selectedContract && selectedContract.contractName) || form.contractName || '-' }}</strong></div>
-          <div class="side-info-item"><span>合同编号</span><strong>{{ (selectedContract && selectedContract.contractNumber) || form.contractNumber || '-' }}</strong></div>
-          <div class="side-info-item"><span>合同类型</span><strong>{{ (selectedContract && selectedContract.category) || form.contractType || '-' }}</strong></div>
-          <div class="side-info-item"><span>我方主体</span><strong>{{ (selectedContract && selectedContract.myPartyName) || form.ourParty || '-' }}</strong></div>
-          <div class="side-info-item"><span>对方主体</span><strong>{{ (selectedContract && selectedContract.otherPartyName) || form.otherParty || '-' }}</strong></div>
-          <div class="side-info-item"><span>合同金额</span><strong>¥ {{ formatMoney((selectedContract && selectedContract.totalAmount) || form.contractAmount) }}</strong></div>
+          <div class="side-card-title">鍚堝悓淇℃伅</div>
+          <div class="side-info-item"><span>鍚堝悓鍚嶇О</span><strong>{{ (selectedContract && selectedContract.contractName) || form.contractName || '-' }}</strong></div>
+          <div class="side-info-item"><span>鍚堝悓缂栧彿</span><strong>{{ (selectedContract && selectedContract.contractNumber) || form.contractNumber || '-' }}</strong></div>
+          <div class="side-info-item"><span>鍚堝悓绫诲瀷</span><strong>{{ (selectedContract && selectedContract.category) || form.contractType || '-' }}</strong></div>
+          <div class="side-info-item"><span>鎴戞柟涓讳綋</span><strong>{{ (selectedContract && selectedContract.myPartyName) || form.ourParty || '-' }}</strong></div>
+          <div class="side-info-item"><span>瀵规柟涓讳綋</span><strong>{{ (selectedContract && selectedContract.otherPartyName) || form.otherParty || '-' }}</strong></div>
+          <div class="side-info-item"><span>鍚堝悓閲戦</span><strong>楼 {{ formatMoney((selectedContract && selectedContract.totalAmount) || form.contractAmount) }}</strong></div>
         </div>
         <div class="borrow-form-panel">
           <div class="borrow-panel-header">
             <div class="panel-title">{{ dialogTitle }}</div>
-            <div class="panel-desc">先选择合同，再填写借阅人、借阅部门、借阅原因和预计归还日期</div>
+            <div class="panel-desc">鍏堥€夋嫨鍚堝悓锛屽啀濉啓鍊熼槄浜恒€佸€熼槄閮ㄩ棬銆佸€熼槄鍘熷洜鍜岄璁″綊杩樻棩鏈?/div>
           </div>
           <el-form :model="form" ref="form" :rules="rules" label-width="110px" class="dialog-form">
             <div class="dialog-grid">
-              <el-form-item label="借阅单号" prop="borrowNo"><el-input v-model="form.borrowNo" /></el-form-item>
-              <el-form-item label="借阅人" prop="borrower"><el-input v-model="form.borrower" /></el-form-item>
-              <el-form-item label="借阅部门" prop="borrowDepartment"><el-input v-model="form.borrowDepartment" /></el-form-item>
-              <el-form-item label="借阅日期" prop="borrowDate"><el-date-picker v-model="form.borrowDate" type="date" value-format="yyyy-MM-dd" style="width:100%" /></el-form-item>
-              <el-form-item label="预计归还日期" prop="expectedReturnDate"><el-date-picker v-model="form.expectedReturnDate" type="date" value-format="yyyy-MM-dd" style="width:100%" /></el-form-item>
-              <el-form-item label="借阅状态" prop="status"><el-select v-model="form.status" style="width:100%"><el-option label="草稿" value="draft"/><el-option label="借阅中" value="borrowing"/><el-option label="已归还" value="returned"/><el-option label="已逾期" value="overdue"/></el-select></el-form-item>
+              <el-form-item label="鍊熼槄鍗曞彿" prop="borrowNo"><el-input v-model="form.borrowNo" /></el-form-item>
+              <el-form-item label="鍊熼槄浜? prop="borrower"><el-input v-model="form.borrower" /></el-form-item>
+              <el-form-item label="鍊熼槄閮ㄩ棬" prop="borrowDepartment"><el-input v-model="form.borrowDepartment" /></el-form-item>
+              <el-form-item label="鍊熼槄鏃ユ湡" prop="borrowDate"><el-date-picker v-model="form.borrowDate" type="date" value-format="yyyy-MM-dd" style="width:100%" /></el-form-item>
+              <el-form-item label="棰勮褰掕繕鏃ユ湡" prop="expectedReturnDate"><el-date-picker v-model="form.expectedReturnDate" type="date" value-format="yyyy-MM-dd" style="width:100%" /></el-form-item>
+              <el-form-item label="鍊熼槄鐘舵€? prop="status"><el-select v-model="form.status" style="width:100%"><el-option label="鑽夌" value="draft"/><el-option label="鍊熼槄涓? value="borrowing"/><el-option label="宸插綊杩? value="returned"/><el-option label="宸查€炬湡" value="overdue"/></el-select></el-form-item>
             </div>
-            <el-form-item label="借阅原因" prop="borrowReason"><el-input v-model="form.borrowReason" type="textarea" :rows="4" /></el-form-item>
-            <el-form-item label="备注" prop="remark"><el-input v-model="form.remark" type="textarea" :rows="3" /></el-form-item>
+            <el-form-item label="鍊熼槄鍘熷洜" prop="borrowReason"><el-input v-model="form.borrowReason" type="textarea" :rows="4" /></el-form-item>
+            <el-form-item label="澶囨敞" prop="remark"><el-input v-model="form.remark" type="textarea" :rows="3" /></el-form-item>
           </el-form>
         </div>
       </div>
-      <div slot="footer" class="dialog-footer"><el-button @click="open = false">取消</el-button><el-button type="primary" :loading="submitLoading" @click="submitForm">保存借阅单</el-button></div>
+      <div slot="footer" class="dialog-footer"><el-button @click="open = false">鍙栨秷</el-button><el-button type="primary" :loading="submitLoading" @click="submitForm">淇濆瓨鍊熼槄鍗?/el-button></div>
     </el-dialog>
 
-    <el-drawer title="借阅详情" :visible.sync="detailDrawerVisible" direction="rtl" size="560px" custom-class="detail-drawer">
+    <el-drawer title="鍊熼槄璇︽儏" :visible.sync="detailDrawerVisible" direction="rtl" size="560px" custom-class="detail-drawer">
       <div class="detail-drawer-body" v-if="detailData">
         <div class="detail-summary-card">
-          <div class="detail-summary-title">{{ detailData.contractName || '借阅详情' }}</div>
-          <div class="detail-summary-desc">借阅单号：{{ detailData.borrowNo || '-' }}</div>
+          <div class="detail-summary-title">{{ detailData.contractName || '鍊熼槄璇︽儏' }}</div>
+          <div class="detail-summary-desc">鍊熼槄鍗曞彿锛歿{ detailData.borrowNo || '-' }}</div>
           <el-tag :type="getApprovalStatusMeta(detailData.approvalStatus).type" size="small">{{ getApprovalStatusMeta(detailData.approvalStatus).label }}</el-tag>
         </div>
         <div class="detail-grid">
-          <div class="detail-item"><span>借阅人</span><strong>{{ detailData.borrower || '-' }}</strong></div>
-          <div class="detail-item"><span>借阅部门</span><strong>{{ detailData.borrowDepartment || '-' }}</strong></div>
-          <div class="detail-item"><span>借阅日期</span><strong>{{ parseDate(detailData.borrowDate) }}</strong></div>
-          <div class="detail-item"><span>预计归还</span><strong>{{ parseDate(detailData.expectedReturnDate) }}</strong></div>
-          <div class="detail-item"><span>实际归还</span><strong>{{ parseDate(detailData.actualReturnDate) }}</strong></div>
-          <div class="detail-item"><span>借阅状态</span><strong>{{ getBorrowStatusMeta(detailData).label }}</strong></div>
+          <div class="detail-item"><span>鍊熼槄浜?/span><strong>{{ detailData.borrower || '-' }}</strong></div>
+          <div class="detail-item"><span>鍊熼槄閮ㄩ棬</span><strong>{{ detailData.borrowDepartment || '-' }}</strong></div>
+          <div class="detail-item"><span>鍊熼槄鏃ユ湡</span><strong>{{ parseDate(detailData.borrowDate) }}</strong></div>
+          <div class="detail-item"><span>棰勮褰掕繕</span><strong>{{ parseDate(detailData.expectedReturnDate) }}</strong></div>
+          <div class="detail-item"><span>瀹為檯褰掕繕</span><strong>{{ parseDate(detailData.actualReturnDate) }}</strong></div>
+          <div class="detail-item"><span>鍊熼槄鐘舵€?/span><strong>{{ getBorrowStatusMeta(detailData).label }}</strong></div>
         </div>
         <el-card shadow="never" class="timeline-card">
-          <div slot="header">借阅审批时间线</div>
+          <div slot="header">鍊熼槄瀹℃壒鏃堕棿绾?/div>
           <el-timeline>
             <el-timeline-item v-for="(item, index) in borrowTimeline" :key="index" :timestamp="item.time" :type="item.type">
               <div class="timeline-item-title">{{ item.title }}</div>
@@ -169,8 +169,8 @@
           </el-timeline>
         </el-card>
         <el-card shadow="never" class="detail-remark-card">
-          <div slot="header">借阅说明 / 审批记录</div>
-          <div class="detail-remark-content">{{ detailData.remark || '暂无备注' }}</div>
+          <div slot="header">鍊熼槄璇存槑 / 瀹℃壒璁板綍</div>
+          <div class="detail-remark-content">{{ detailData.remark || '鏆傛棤澶囨敞' }}</div>
         </el-card>
       </div>
     </el-drawer>
@@ -178,45 +178,46 @@
     <el-drawer :title="approvalDrawerTitle" :visible.sync="approvalDrawerVisible" direction="rtl" size="520px" custom-class="approval-drawer">
       <div class="approval-drawer-body" v-if="selectedRow">
         <div class="approval-header-card">
-          <div class="approval-header-title">合同借阅审批</div>
-          <div class="approval-header-desc">按钉钉式流程流转：申请人 → 直接主管 → 审批人 → 办理人。</div>
+          <div class="approval-header-title">鍚堝悓鍊熼槄瀹℃壒</div>
+          <div class="approval-header-desc">按审批流设置中的串行节点顺序流转。</div>
         </div>
         <div class="approval-summary">
-          <div class="summary-item"><span>合同</span><strong>{{ selectedRow.contractName || '-' }}</strong></div>
-          <div class="summary-item"><span>合同编号</span><strong>{{ selectedRow.contractNumber || '-' }}</strong></div>
-          <div class="summary-item"><span>借阅人</span><strong>{{ selectedRow.borrower || '-' }}</strong></div>
-          <div class="summary-item"><span>预计归还</span><strong>{{ parseDate(selectedRow.expectedReturnDate) }}</strong></div>
+          <div class="summary-item"><span>鍚堝悓</span><strong>{{ selectedRow.contractName || '-' }}</strong></div>
+          <div class="summary-item"><span>鍚堝悓缂栧彿</span><strong>{{ selectedRow.contractNumber || '-' }}</strong></div>
+          <div class="summary-item"><span>鍊熼槄浜?/span><strong>{{ selectedRow.borrower || '-' }}</strong></div>
+          <div class="summary-item"><span>棰勮褰掕繕</span><strong>{{ parseDate(selectedRow.expectedReturnDate) }}</strong></div>
         </div>
         <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="90px" class="approval-form-card">
-          <el-form-item label="审批流">
-            <el-input value="按审批流设置自动匹配节点处理人" disabled />
+          <el-form-item label="瀹℃壒娴?>
+            <el-input value="鎸夊鎵规祦璁剧疆鑷姩鍖归厤鑺傜偣澶勭悊浜? disabled />
           </el-form-item>
-          <el-alert title="借阅审批将严格按照“审批流设置”中的节点顺序执行。" type="info" :closable="false" show-icon style="margin-bottom: 18px;" />
-          <el-form-item label="审批说明" prop="remark"><el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="请输入审批说明" /></el-form-item>
+          <el-alert title="鍊熼槄瀹℃壒灏嗕弗鏍兼寜鐓р€滃鎵规祦璁剧疆鈥濅腑鐨勮妭鐐归『搴忔墽琛屻€? type="info" :closable="false" show-icon style="margin-bottom: 18px;" />
+          <el-form-item label="瀹℃壒璇存槑" prop="remark"><el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="璇疯緭鍏ュ鎵硅鏄? /></el-form-item>
         </el-form>
       </div>
-      <div class="drawer-footer"><el-button @click="approvalDrawerVisible = false">取消</el-button><el-button type="primary" :loading="submitLoading" @click="submitApproval">提交审批</el-button></div>
+      <div class="drawer-footer"><el-button @click="approvalDrawerVisible = false">鍙栨秷</el-button><el-button type="primary" :loading="submitLoading" @click="submitApproval">鎻愪氦瀹℃壒</el-button></div>
     </el-drawer>
 
     <el-dialog :title="approveActionTitle" :visible.sync="approveActionDialogVisible" width="620px" append-to-body custom-class="beauty-dialog">
       <div class="approval-summary" v-if="selectedRow">
-        <div class="summary-item"><span>合同</span><strong>{{ selectedRow.contractName || '-' }}</strong></div>
-        <div class="summary-item"><span>借阅单号</span><strong>{{ selectedRow.borrowNo || '-' }}</strong></div>
-        <div class="summary-item"><span>借阅人</span><strong>{{ selectedRow.borrower || '-' }}</strong></div>
-        <div class="summary-item"><span>当前审批</span><strong>{{ getApprovalStatusMeta(selectedRow.approvalStatus).label }}</strong></div>
+        <div class="summary-item"><span>鍚堝悓</span><strong>{{ selectedRow.contractName || '-' }}</strong></div>
+        <div class="summary-item"><span>鍊熼槄鍗曞彿</span><strong>{{ selectedRow.borrowNo || '-' }}</strong></div>
+        <div class="summary-item"><span>鍊熼槄浜?/span><strong>{{ selectedRow.borrower || '-' }}</strong></div>
+        <div class="summary-item"><span>褰撳墠瀹℃壒</span><strong>{{ getApprovalStatusMeta(selectedRow.approvalStatus).label }}</strong></div>
       </div>
       <el-form :model="approveActionForm" ref="approveActionForm" label-width="100px">
-        <el-form-item :label="selectedApproveAction === 'agree' ? '通过意见' : '驳回意见'"><el-input v-model="approveActionForm.remark" type="textarea" :rows="4" /></el-form-item>
+        <el-form-item :label="selectedApproveAction === 'agree' ? '閫氳繃鎰忚' : '椹冲洖鎰忚'"><el-input v-model="approveActionForm.remark" type="textarea" :rows="4" /></el-form-item>
       </el-form>
-      <div slot="footer" class="dialog-footer"><el-button @click="approveActionDialogVisible = false">取消</el-button><el-button :type="selectedApproveAction === 'agree' ? 'primary' : 'danger'" :loading="submitLoading" @click="submitApproveAction">确认</el-button></div>
+      <div slot="footer" class="dialog-footer"><el-button @click="approveActionDialogVisible = false">鍙栨秷</el-button><el-button :type="selectedApproveAction === 'agree' ? 'primary' : 'danger'" :loading="submitLoading" @click="submitApproveAction">纭</el-button></div>
     </el-dialog>
 
-    <el-dialog title="登记归还" :visible.sync="returnDialogVisible" width="560px" append-to-body custom-class="beauty-dialog">
+    <el-dialog title="鐧昏褰掕繕" :visible.sync="returnDialogVisible" width="560px" append-to-body custom-class="beauty-dialog">
       <el-form :model="returnForm" ref="returnForm" :rules="returnRules" label-width="100px">
-        <el-form-item label="归还说明" prop="remark"><el-input v-model="returnForm.remark" type="textarea" :rows="4" placeholder="请输入归还说明" /></el-form-item>
+        <el-form-item label="褰掕繕璇存槑" prop="remark"><el-input v-model="returnForm.remark" type="textarea" :rows="4" placeholder="璇疯緭鍏ュ綊杩樿鏄? /></el-form-item>
       </el-form>
-      <div slot="footer" class="dialog-footer"><el-button @click="returnDialogVisible = false">取消</el-button><el-button type="primary" :loading="submitLoading" @click="submitReturn">确认归还</el-button></div>
+      <div slot="footer" class="dialog-footer"><el-button @click="returnDialogVisible = false">鍙栨秷</el-button><el-button type="primary" :loading="submitLoading" @click="submitReturn">纭褰掕繕</el-button></div>
     </el-dialog>
+    <approval-flow-setting :visible.sync="flowSettingVisible" business-type="borrow" title="鍊熼槄绠＄悊" @saved="handleFlowSaved" />
   </div>
 </template>
 
@@ -230,44 +231,45 @@ const createForm = () => ({ id: null, contractId: null, borrowNo: '', borrower: 
 
 export default {
   name: 'Borrow',
+  components: { ApprovalFlowSetting },
   data() {
     return {
       loading: false, total: 0, showSearch: true, activeTab: 'all', ids: [], borrowList: [],
-      queryParams: createQueryParams(), open: false, dialogTitle: '发起借阅', submitLoading: false,
+      queryParams: createQueryParams(), open: false, dialogTitle: '鍙戣捣鍊熼槄', submitLoading: false,
       form: createForm(),
       rules: {
-        contractId: [{ required: true, message: '请选择合同', trigger: 'change' }],
-        borrowNo: [{ required: true, message: '请输入借阅单号', trigger: 'blur' }],
-        borrower: [{ required: true, message: '请输入借阅人', trigger: 'blur' }],
-        borrowDepartment: [{ required: true, message: '请输入借阅部门', trigger: 'blur' }],
-        borrowDate: [{ required: true, message: '请选择借阅日期', trigger: 'change' }],
-        expectedReturnDate: [{ required: true, message: '请选择预计归还日期', trigger: 'change' }],
-        borrowReason: [{ required: true, message: '请输入借阅原因', trigger: 'blur' }]
+        contractId: [{ required: true, message: '璇烽€夋嫨鍚堝悓', trigger: 'change' }],
+        borrowNo: [{ required: true, message: '璇疯緭鍏ュ€熼槄鍗曞彿', trigger: 'blur' }],
+        borrower: [{ required: true, message: '璇疯緭鍏ュ€熼槄浜?, trigger: 'blur' }],
+        borrowDepartment: [{ required: true, message: '璇疯緭鍏ュ€熼槄閮ㄩ棬', trigger: 'blur' }],
+        borrowDate: [{ required: true, message: '璇烽€夋嫨鍊熼槄鏃ユ湡', trigger: 'change' }],
+        expectedReturnDate: [{ required: true, message: '璇烽€夋嫨棰勮褰掕繕鏃ユ湡', trigger: 'change' }],
+        borrowReason: [{ required: true, message: '璇疯緭鍏ュ€熼槄鍘熷洜', trigger: 'blur' }]
       },
       contractDialogVisible: false, contractLoading: false, contractList: [], contractTotal: 0,
       contractQueryParams: { pageNum: 1, pageSize: 10, contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' },
       selectedContractId: null, selectedContract: null,
       detailDrawerVisible: false, detailData: null,
-      approvalDrawerVisible: false, approvalDrawerTitle: '提交借阅审批', approvalForm: { directLeaderDisplay: '按审批流设置自动匹配', approver: '', handler: '', remark: '' }, approvalRules: { remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }] },
-      approveActionDialogVisible: false, approveActionTitle: '审批操作', selectedApproveAction: 'agree', approveActionForm: { remark: '' },
-      returnDialogVisible: false, returnForm: { remark: '' }, returnRules: { remark: [{ required: true, message: '请输入归还说明', trigger: 'blur' }] },
+      approvalDrawerVisible: false, approvalDrawerTitle: '鎻愪氦鍊熼槄瀹℃壒', approvalForm: { directLeaderDisplay: '鎸夊鎵规祦璁剧疆鑷姩鍖归厤', approver: '', handler: '', remark: '' }, approvalRules: { remark: [{ required: true, message: '璇疯緭鍏ュ鎵硅鏄?, trigger: 'blur' }] },
+      approveActionDialogVisible: false, approveActionTitle: '瀹℃壒鎿嶄綔', selectedApproveAction: 'agree', approveActionForm: { remark: '' },
+      returnDialogVisible: false, returnForm: { remark: '' }, returnRules: { remark: [{ required: true, message: '璇疯緭鍏ュ綊杩樿鏄?, trigger: 'blur' }] },
       selectedRow: null,
       flowSettingVisible: false
     }
   },
   computed: {
-    activeTabLabel() { return { all: '全部', pending: '审批中', borrowing: '借阅中', returned: '已归还', overdue: '已逾期' }[this.activeTab] },
+    activeTabLabel() { return { all: '鍏ㄩ儴', pending: '瀹℃壒涓?, borrowing: '鍊熼槄涓?, returned: '宸插綊杩?, overdue: '宸查€炬湡' }[this.activeTab] },
     borrowTimeline() {
       if (!this.detailData) return []
       const items = []
-      items.push({ title: '创建借阅单', desc: '借阅申请已创建', time: this.parseDateTime(this.detailData.createTime || this.detailData.borrowDate), type: 'primary' })
+      items.push({ title: '鍒涘缓鍊熼槄鍗?, desc: '鍊熼槄鐢宠宸插垱寤?, time: this.parseDateTime(this.detailData.createTime || this.detailData.borrowDate), type: 'primary' })
       const remark = this.detailData.remark || ''
-      if (remark.includes('[审批申请]')) items.push({ title: '提交审批', desc: this.extractRemarkSection(remark, '审批申请'), time: this.parseDateTime(this.detailData.updateTime || this.detailData.borrowDate), type: 'warning' })
-      if (remark.includes('[审批结果]')) {
-        const desc = this.extractRemarkSection(remark, '审批结果')
-        items.push({ title: desc.includes('驳回') ? '审批驳回' : '审批通过', desc, time: this.parseDateTime(this.detailData.updateTime || this.detailData.borrowDate), type: desc.includes('驳回') ? 'danger' : 'success' })
+      if (remark.includes('[瀹℃壒鐢宠]')) items.push({ title: '鎻愪氦瀹℃壒', desc: this.extractRemarkSection(remark, '瀹℃壒鐢宠'), time: this.parseDateTime(this.detailData.updateTime || this.detailData.borrowDate), type: 'warning' })
+      if (remark.includes('[瀹℃壒缁撴灉]')) {
+        const desc = this.extractRemarkSection(remark, '瀹℃壒缁撴灉')
+        items.push({ title: desc.includes('椹冲洖') ? '瀹℃壒椹冲洖' : '瀹℃壒閫氳繃', desc, time: this.parseDateTime(this.detailData.updateTime || this.detailData.borrowDate), type: desc.includes('椹冲洖') ? 'danger' : 'success' })
       }
-      if (this.detailData.actualReturnDate) items.push({ title: '登记归还', desc: '合同借阅已归还', time: this.parseDateTime(this.detailData.actualReturnDate), type: 'success' })
+      if (this.detailData.actualReturnDate) items.push({ title: '鐧昏褰掕繕', desc: '鍚堝悓鍊熼槄宸插綊杩?, time: this.parseDateTime(this.detailData.actualReturnDate), type: 'success' })
       return items
     }
   },
@@ -315,7 +317,7 @@ export default {
     },
     selectContractRow(row) { this.selectedContract = row },
     confirmContractSelection() {
-      if (!this.selectedContract) return this.$message.warning('请先选择一个合同')
+      if (!this.selectedContract) return this.$message.warning('璇峰厛閫夋嫨涓€涓悎鍚?)
       this.form = {
         ...createForm(),
         contractId: this.selectedContract.id,
@@ -329,7 +331,7 @@ export default {
         borrowDate: this.formatDateValue(new Date())
       }
       this.contractDialogVisible = false
-      this.dialogTitle = '发起借阅'
+      this.dialogTitle = '鍙戣捣鍊熼槄'
       this.open = true
       this.$nextTick(() => { this.$refs.form && this.$refs.form.clearValidate() })
     },
@@ -341,9 +343,9 @@ export default {
     },
     handleDelete(row) {
       const id = row && row.id ? row.id : this.ids[0]
-      if (!id) return this.$message.warning('请选择要删除的数据')
-      this.$modal.confirm('是否确认删除选中的借阅记录？').then(() => delBorrow(id)).then(() => {
-        this.$modal.msgSuccess('删除成功')
+      if (!id) return this.$message.warning('璇烽€夋嫨瑕佸垹闄ょ殑鏁版嵁')
+      this.$modal.confirm('鏄惁纭鍒犻櫎閫変腑鐨勫€熼槄璁板綍锛?).then(() => delBorrow(id)).then(() => {
+        this.$modal.msgSuccess('鍒犻櫎鎴愬姛')
         this.getList()
       }).catch(() => {})
     },
@@ -353,7 +355,7 @@ export default {
         this.submitLoading = true
         const request = this.form.id ? updateBorrow(this.form) : addBorrow(this.form)
         request.then(() => {
-          this.$modal.msgSuccess(this.form.id ? '修改成功' : '新增成功')
+          this.$modal.msgSuccess(this.form.id ? '淇敼鎴愬姛' : '鏂板鎴愬姛')
           this.open = false
           this.getList()
         }).finally(() => { this.submitLoading = false })
@@ -362,9 +364,9 @@ export default {
     showApprovalEntry(row) { return row && row.approvalStatus !== 'pending' && row.approvalStatus !== 'approved' },
     getCurrentNodeUser(row) {
       if (!row) return ''
-      if (row.currentApprovalNode === 'directLeader') return row.directLeader || ''
-      if (row.currentApprovalNode === 'approver') return row.approver || ''
-      if (row.currentApprovalNode === 'handler') return row.handler || ''
+      if (row.currentApprovalNode === 'node1') return row.directLeader || ''
+      if (row.currentApprovalNode === 'node2') return row.approver || ''
+      if (row.currentApprovalNode === 'node3') return row.handler || ''
       return ''
     },
     canHandleCurrentNode(row) {
@@ -378,7 +380,7 @@ export default {
     },
     openApprovalDrawer(row) {
       this.selectedRow = row
-      this.approvalForm = { directLeaderDisplay: '提交后自动匹配当前登录人的直接主管', approver: row.approver || '', handler: row.handler || '', remark: '' }
+      this.approvalForm = { directLeaderDisplay: '鎸夊鎵规祦璁剧疆鑷姩鍖归厤', approver: '', handler: '', remark: '' }
       this.approvalDrawerVisible = true
       this.$nextTick(() => { this.$refs.approvalForm && this.$refs.approvalForm.clearValidate() })
     },
@@ -387,7 +389,7 @@ export default {
         if (!valid || !this.selectedRow) return
         this.submitLoading = true
         submitBorrowApproval({ id: this.selectedRow.id, remark: this.approvalForm.remark }).then(() => {
-          this.$message.success('借阅审批已提交')
+          this.$message.success('鍊熼槄瀹℃壒宸叉彁浜?)
           this.approvalDrawerVisible = false
           this.getList()
         }).finally(() => { this.submitLoading = false })
@@ -396,7 +398,7 @@ export default {
     openApproveDialog(row, action) {
       this.selectedRow = row
       this.selectedApproveAction = action
-      this.approveActionTitle = action === 'agree' ? '审批通过' : '审批驳回'
+      this.approveActionTitle = action === 'agree' ? '瀹℃壒閫氳繃' : '瀹℃壒椹冲洖'
       this.approveActionForm = { remark: '' }
       this.approveActionDialogVisible = true
     },
@@ -404,7 +406,7 @@ export default {
       if (!this.selectedRow) return
       this.submitLoading = true
       approveBorrow({ id: this.selectedRow.id, action: this.selectedApproveAction, remark: this.approveActionForm.remark }).then(() => {
-        this.$message.success(this.selectedApproveAction === 'agree' ? '审批已通过' : '审批已驳回')
+        this.$message.success(this.selectedApproveAction === 'agree' ? '瀹℃壒宸查€氳繃' : '瀹℃壒宸查┏鍥?)
         this.approveActionDialogVisible = false
         this.getList()
       }).finally(() => { this.submitLoading = false })
@@ -420,31 +422,31 @@ export default {
         if (!valid || !this.selectedRow) return
         this.submitLoading = true
         returnBorrow({ id: this.selectedRow.id, remark: this.returnForm.remark }).then(() => {
-          this.$message.success('已完成归还登记')
+          this.$message.success('宸插畬鎴愬綊杩樼櫥璁?)
           this.returnDialogVisible = false
           this.getList()
         }).finally(() => { this.submitLoading = false })
       })
     },
     getApprovalStatusMeta(status) {
-      return ({ draft: { label: '草稿', type: 'info' }, pending: { label: '审批中', type: 'warning' }, approved: { label: '审批通过', type: 'success' }, rejected: { label: '审批驳回', type: 'danger' } })[status] || { label: '草稿', type: 'info' }
+      return ({ draft: { label: '鑽夌', type: 'info' }, pending: { label: '瀹℃壒涓?, type: 'warning' }, approved: { label: '瀹℃壒閫氳繃', type: 'success' }, rejected: { label: '瀹℃壒椹冲洖', type: 'danger' } })[status] || { label: '鑽夌', type: 'info' }
     },
     getBorrowStatusMeta(row) {
-      if (!row) return { key: 'draft', label: '草稿', type: 'info' }
-      if (row.actualReturnDate || row.status === 'returned') return { key: 'returned', label: '已归还', type: 'success' }
-      if (row.approvalStatus !== 'approved') return { key: 'draft', label: '待借出', type: 'info' }
+      if (!row) return { key: 'draft', label: '鑽夌', type: 'info' }
+      if (row.actualReturnDate || row.status === 'returned') return { key: 'returned', label: '宸插綊杩?, type: 'success' }
+      if (row.approvalStatus !== 'approved') return { key: 'draft', label: '寰呭€熷嚭', type: 'info' }
       if (row.expectedReturnDate) {
         const due = new Date(row.expectedReturnDate)
         const now = new Date()
         const dueOnly = new Date(due.getFullYear(), due.getMonth(), due.getDate())
         const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        if (todayOnly > dueOnly) return { key: 'overdue', label: '已逾期', type: 'danger' }
+        if (todayOnly > dueOnly) return { key: 'overdue', label: '宸查€炬湡', type: 'danger' }
       }
-      return { key: 'borrowing', label: '借阅中', type: 'warning' }
+      return { key: 'borrowing', label: '鍊熼槄涓?, type: 'warning' }
     },
     extractRemarkSection(remark, tag) {
-      const match = remark.match(new RegExp(`\\[${tag}\\]([^；]+)`))
-      return match ? match[1].trim() : `${tag}记录`
+      const match = remark.match(new RegExp(`\\[${tag}\\]([^锛沒+)`))
+      return match ? match[1].trim() : `${tag}璁板綍`
     },
     formatMoney(value) { if (value === null || value === undefined || value === '') return '0.00'; const num = Number(value); return isNaN(num) ? value : num.toFixed(2) },
     parseDate(value) { if (!value) return '-'; const d = new Date(value); if (isNaN(d.getTime())) return value; return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` },
@@ -513,3 +515,4 @@ export default {
 @media (max-width: 1000px) { .dialog-grid, .contract-grid, .detail-grid, .approval-summary { grid-template-columns: 1fr; } .borrow-layout { flex-direction: column; } .borrow-side-card { width: 100%; } }
 @media (max-width: 768px) { .borrow-manage-page { padding: 12px; } .toolbar { flex-direction: column; align-items: stretch; } .scope-wrap, .search-header { align-items: flex-start; } .query-form .form-grid { grid-template-columns: 1fr; } }
 </style>
+
