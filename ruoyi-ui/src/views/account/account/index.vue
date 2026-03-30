@@ -98,6 +98,7 @@
           <template v-if="currentNav === 'account'">
             <el-button type="primary" icon="el-icon-s-promotion" @click="handleApplyReceive" v-if="activeTab !== 'pay'">申请收款</el-button>
             <el-button type="success" icon="el-icon-s-promotion" @click="handleApplyPay" v-if="activeTab !== 'receive'">申请付款</el-button>
+            <el-button plain icon="el-icon-setting" @click="openFlowSetting">审批流设置</el-button>
             <el-button type="info" plain icon="el-icon-download" :loading="downloadLoading" @click="handleDownloadTemplate">下载模板</el-button>
             <el-button type="primary" plain icon="el-icon-upload2" :loading="importLoading" @click="handleImport">导入</el-button>
             <input ref="importInput" type="file" accept=".xls,.xlsx" style="display:none" @change="handleImportFileChange" />
@@ -199,19 +200,10 @@
           <div class="summary-item"><span>申请类型</span><strong>{{ selectedApplyType === 'pay' ? '付款申请' : '收款申请' }}</strong></div>
         </div>
         <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="90px" class="approval-form-card">
-          <el-form-item label="直接主管">
-            <el-input :value="approvalForm.directLeaderDisplay || '提交后自动带出'" disabled />
+          <el-form-item label="审批流">
+            <el-input value="按审批流设置自动匹配节点处理人" disabled />
           </el-form-item>
-          <el-form-item label="审批人" prop="approver">
-            <el-select v-model="approvalForm.approver" filterable clearable placeholder="请选择审批人" style="width: 100%">
-              <el-option v-for="item in userOptions" :key="item.userId" :label="formatUserOption(item)" :value="item.userName" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="办理人" prop="handler">
-            <el-select v-model="approvalForm.handler" filterable clearable placeholder="请选择办理人" style="width: 100%">
-              <el-option v-for="item in userOptions" :key="'handler-' + item.userId" :label="formatUserOption(item)" :value="item.userName" />
-            </el-select>
-          </el-form-item>
+          <el-alert title="账款审批将严格按照“审批流设置”中的节点顺序执行。" type="info" :closable="false" show-icon style="margin-bottom: 18px;" />
           <el-form-item label="审批说明" prop="remark">
             <el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="请输入审批说明、付款依据或收款说明" />
           </el-form-item>
@@ -237,6 +229,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer"><el-button @click="approveActionDialogVisible = false">取消</el-button><el-button :type="selectedApproveAction === 'agree' ? 'primary' : 'danger'" :loading="submitLoading" @click="submitApproveAction">确认</el-button></div>
     </el-dialog>
+    <approval-flow-setting :visible.sync="flowSettingVisible" business-type="account" title="账款管理" @saved="handleFlowSaved" />
   </div>
 </template>
 
@@ -244,9 +237,11 @@
 import { mapGetters } from 'vuex'
 import { listAccount, delAccount, importAccount, downloadAccountTemplate, submitAccountApproval, approveAccount } from '@/api/account/account'
 import { listUser } from '@/api/system/user'
+import ApprovalFlowSetting from '@/components/ApprovalFlowSetting'
 
 export default {
   name: 'Account',
+  components: { ApprovalFlowSetting },
   data() {
     return {
       currentNav: 'account', scopeFilter: 'mine', activeTab: 'all', warningType: 'all', showSearch: true, loading: false, total: 0,
@@ -260,9 +255,8 @@ export default {
       importLoading: false, downloadLoading: false, submitLoading: false,
       approvalForm: { directLeaderDisplay: '', approver: '', handler: '', remark: '' },
       approveActionForm: { remark: '' },
+      flowSettingVisible: false,
       approvalRules: {
-        approver: [{ required: true, message: '请选择审批人', trigger: 'change' }],
-        handler: [{ required: true, message: '请选择办理人', trigger: 'change' }],
         remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }]
       }
     }
@@ -290,6 +284,8 @@ export default {
   created() { this.applyRouteQuery(); this.getList(); this.getUserOptions() },
   watch: { '$route.query': { deep: true, handler() { this.applyRouteQuery() } } },
   methods: {
+    openFlowSetting() { this.flowSettingVisible = true },
+    handleFlowSaved() { this.getList() },
     applyRouteQuery() {
       const query = (this.$route && this.$route.query) || {}
       if (query.nav && ['account', 'plan'].includes(query.nav)) this.currentNav = query.nav
@@ -364,9 +360,9 @@ export default {
     },
     getCurrentNodeAssigneeUserName(row) {
       if (!row) return ''
-      if (row.currentApprovalNode === 'directLeader') return row.directLeader || ''
-      if (row.currentApprovalNode === 'approver') return row.approver || ''
-      if (row.currentApprovalNode === 'handler') return row.handler || ''
+      if (row.currentApprovalNode === 'node1') return row.directLeader || ''
+      if (row.currentApprovalNode === 'node2') return row.approver || ''
+      if (row.currentApprovalNode === 'node3') return row.handler || ''
       return ''
     },
     getCurrentNodeAssignee(row) {
@@ -375,13 +371,13 @@ export default {
     },
     getCurrentNodeMeta(row) {
       const node = row && row.currentApprovalNode
-      return ({ directLeader: { label: '直接主管', type: 'warning' }, approver: { label: '审批人', type: 'warning' }, handler: { label: '办理人', type: 'primary' }, finished: { label: '已完成', type: 'success' }, rejected: { label: '已驳回', type: 'danger' } })[node] || { label: '-', type: 'info' }
+      return ({ node1: { label: '审批节点1', type: 'warning' }, node2: { label: '审批节点2', type: 'warning' }, node3: { label: '审批节点3', type: 'primary' }, finished: { label: '已完成', type: 'success' }, rejected: { label: '已驳回', type: 'danger' } })[node] || { label: '-', type: 'info' }
     },
     openApprovalDrawer(row, applyType) {
       this.selectedRow = row
       this.selectedApplyType = applyType
       this.approvalDrawerTitle = applyType === 'pay' ? '提交付款审批' : '提交收款审批'
-      this.approvalForm = { directLeaderDisplay: '提交后自动匹配当前登录人的直接主管', approver: row.approver || '', handler: row.handler || '', remark: '' }
+      this.approvalForm = { directLeaderDisplay: '按审批流设置自动匹配', approver: '', handler: '', remark: '' }
       this.approvalDrawerVisible = true
       this.$nextTick(() => { this.$refs.approvalForm && this.$refs.approvalForm.clearValidate() })
     },
@@ -389,7 +385,7 @@ export default {
       this.$refs.approvalForm.validate(valid => {
         if (!valid || !this.selectedRow) return
         this.submitLoading = true
-        submitAccountApproval({ id: this.selectedRow.id, applyType: this.selectedApplyType, approver: this.approvalForm.approver, handler: this.approvalForm.handler, remark: this.approvalForm.remark }).then(() => {
+        submitAccountApproval({ id: this.selectedRow.id, applyType: this.selectedApplyType, remark: this.approvalForm.remark }).then(() => {
           this.$message.success(this.selectedApplyType === 'pay' ? '付款审批已提交' : '收款审批已提交')
           this.approvalDrawerVisible = false
           this.getList()

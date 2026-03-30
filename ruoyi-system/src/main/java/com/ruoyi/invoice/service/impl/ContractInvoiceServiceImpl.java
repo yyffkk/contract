@@ -12,12 +12,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import com.ruoyi.common.core.domain.entity.SysUser;
-import com.ruoyi.common.core.domain.entity.SysDept;
-import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.exception.ServiceException;
-import com.ruoyi.system.utils.ApprovalFlowUtils;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.flow.service.IApprovalFlowConfigService;
 import com.ruoyi.contract.domain.BizContractContent;
 import com.ruoyi.contract.domain.BizContractOperateLog;
 import com.ruoyi.contract.mapper.BizContractContentMapper;
@@ -64,7 +62,7 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
     private ISysUserService sysUserService;
 
     @Autowired
-    private ISysDeptService sysDeptService;
+    private IApprovalFlowConfigService approvalFlowConfigService;
 
     @Override
     public ContractInvoice selectContractInvoiceById(Long id)
@@ -199,23 +197,13 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         {
             throw new ServiceException("该发票已审批通过，无需重复提交");
         }
+        List<String> assignees = approvalFlowConfigService.resolveAssignees("invoice");
         String currentUser = SecurityUtils.getUsername();
-        SysUser current = sysUserService.selectUserByUserName(currentUser);
-        String directLeader = ApprovalFlowUtils.resolveDirectLeaderUserName(current, sysDeptService, sysUserService);
-        String normalizedApprover = normalizeAssignee(approver, "审批人");
-        String normalizedHandler = normalizeAssignee(handler, "办理人");
-        if (StringUtils.isBlank(normalizedApprover) || StringUtils.isBlank(normalizedHandler))
-        {
-            String[] autoFlowUsers = resolveAutoFlowUsers(entity, currentUser, directLeader, normalizedApprover, normalizedHandler);
-            normalizedApprover = autoFlowUsers[0];
-            normalizedHandler = autoFlowUsers[1];
-        }
-        ensureDistinctFlowUsers(currentUser, directLeader, normalizedApprover, normalizedHandler);
         entity.setApprovalStatus("pending");
-        entity.setDirectLeader(directLeader);
-        entity.setApprover(normalizedApprover);
-        entity.setHandler(normalizedHandler);
-        entity.setCurrentApprovalNode("directLeader");
+        entity.setDirectLeader(getFlowAssignee(assignees, 0));
+        entity.setApprover(getFlowAssignee(assignees, 1));
+        entity.setHandler(getFlowAssignee(assignees, 2));
+        entity.setCurrentApprovalNode("node1");
         entity.setCc(StringUtils.trimToNull(cc));
         entity.setSubmitter(resolveNickName(currentUser));
         entity.setSubmitTime(DateUtils.getNowDate());
@@ -225,7 +213,7 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         int rows = contractInvoiceMapper.updateContractInvoice(entity);
         if (rows > 0)
         {
-            operateLogService.addSystemLog(id, LOG_TYPE, "提交审批", buildSubmitLogDetail(entity, remark));
+            operateLogService.addSystemLog(id, LOG_TYPE, "提交审批", buildSubmitLogDetail(entity, remark, assignees));
         }
         return rows;
     }
@@ -239,7 +227,7 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         {
             throw new ServiceException("当前发票不在审批中");
         }
-        String currentNode = ApprovalFlowUtils.normalizeNode(entity.getCurrentApprovalNode());
+        String currentNode = StringUtils.trimToEmpty(entity.getCurrentApprovalNode());
         String currentUser = SecurityUtils.getUsername();
         validateCurrentNodeOperator(entity, currentNode, currentUser);
         if ("reject".equals(action))
@@ -250,23 +238,17 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         }
         else if ("agree".equals(action))
         {
-            if ("directLeader".equals(currentNode))
+            String nextNode = nextNodeKey(currentNode);
+            String nextUser = getNodeAssignee(entity, nextNode);
+            if (StringUtils.isNotBlank(nextNode) && StringUtils.isNotBlank(nextUser))
             {
-                entity.setCurrentApprovalNode("approver");
+                entity.setCurrentApprovalNode(nextNode);
             }
-            else if ("approver".equals(currentNode))
-            {
-                entity.setCurrentApprovalNode("handler");
-            }
-            else if ("handler".equals(currentNode))
+            else
             {
                 entity.setApprovalStatus("approved");
                 entity.setCurrentApprovalNode("finished");
                 entity.setApproveTime(DateUtils.getNowDate());
-            }
-            else
-            {
-                throw new ServiceException("当前审批节点无效");
             }
         }
         else
@@ -691,28 +673,19 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         }
     }
 
-    private String buildSubmitLogDetail(ContractInvoice entity, String remark)
+    private String buildSubmitLogDetail(ContractInvoice entity, String remark, List<String> assignees)
     {
         StringBuilder sb = new StringBuilder();
         sb.append("发起人：").append(StringUtils.defaultString(entity.getSubmitter(), "-")).append("；");
-        sb.append("直接主管：").append(resolveDisplayName(entity.getDirectLeader())).append("；");
-        sb.append("审批人：").append(resolveDisplayName(entity.getApprover())).append("；");
-        sb.append("办理人：").append(resolveDisplayName(entity.getHandler())).append("；");
+        sb.append("流程：").append(buildFlowSummary("invoice", assignees)).append("；");
         sb.append("抄送人：").append(StringUtils.defaultString(entity.getCc(), "-")).append("；");
-        if (StringUtils.isNotBlank(remark))
-        {
-            sb.append("说明：").append(remark.trim());
-        }
-        else
-        {
-            sb.append("说明：提交发票审批");
-        }
+        sb.append("说明：").append(StringUtils.isNotBlank(remark) ? remark.trim() : "提交发票审批");
         return sb.toString();
     }
 
     private String buildApproveLogDetail(ContractInvoice entity, String currentNode, String action, String remark)
     {
-        String nodeName = getNodeName(currentNode);
+        String nodeName = getNodeName("invoice", currentNode);
         String actionName = "agree".equals(action) ? "审批通过" : "审批驳回";
         String approverName = resolveNickName(SecurityUtils.getUsername());
         StringBuilder sb = new StringBuilder();
@@ -723,15 +696,7 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         }
         if ("agree".equals(action))
         {
-            String nextUser = null;
-            if ("directLeader".equals(currentNode))
-            {
-                nextUser = entity.getApprover();
-            }
-            else if ("approver".equals(currentNode))
-            {
-                nextUser = entity.getHandler();
-            }
+            String nextUser = getNodeAssignee(entity, nextNodeKey(currentNode));
             if (StringUtils.isNotBlank(nextUser))
             {
                 sb.append("；流转至：").append(resolveDisplayName(nextUser));
@@ -740,170 +705,12 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         return sb.toString();
     }
 
-    private String normalizeAssignee(String userName, String roleName)
-    {
-        if (StringUtils.isBlank(userName))
-        {
-            return null;
-        }
-        SysUser user = sysUserService.selectUserByUserName(userName.trim());
-        if (user == null)
-        {
-            throw new ServiceException(roleName + "不存在：" + userName);
-        }
-        return user.getUserName();
-    }
-
-    private String[] resolveAutoFlowUsers(ContractInvoice entity, String applicant, String directLeader, String approver, String handler)
-    {
-        String resolvedApprover = approver;
-        String resolvedHandler = handler;
-        BizContractContent contract = entity.getContractId() == null ? null : bizContractContentMapper.selectBizContractContentById(entity.getContractId());
-        if (StringUtils.isBlank(resolvedApprover))
-        {
-            resolvedApprover = resolveContractOwnerUserName(contract);
-            if (!isUsableFlowUser(resolvedApprover, applicant, directLeader))
-            {
-                resolvedApprover = resolveUpperLeaderUserName(directLeader, applicant, directLeader);
-            }
-        }
-        if (StringUtils.isBlank(resolvedHandler))
-        {
-            resolvedHandler = resolveUpperLeaderUserName(resolvedApprover, applicant, directLeader, resolvedApprover);
-            if (!isUsableFlowUser(resolvedHandler, applicant, directLeader, resolvedApprover))
-            {
-                String contractOwner = resolveContractOwnerUserName(contract);
-                if (isUsableFlowUser(contractOwner, applicant, directLeader, resolvedApprover))
-                {
-                    resolvedHandler = contractOwner;
-                }
-            }
-        }
-        if (StringUtils.isBlank(resolvedApprover))
-        {
-            throw new ServiceException("未能自动确定审批人，请检查合同归属人或上级主管配置");
-        }
-        if (StringUtils.isBlank(resolvedHandler))
-        {
-            throw new ServiceException("未能自动确定办理人，请检查审批链上级主管配置");
-        }
-        return new String[] { resolvedApprover, resolvedHandler };
-    }
-
-    private String resolveContractOwnerUserName(BizContractContent contract)
-    {
-        if (contract == null || StringUtils.isBlank(contract.getOwner()))
-        {
-            return null;
-        }
-        return resolveUserNameByUserNameOrNickName(contract.getOwner().trim());
-    }
-
-    private String resolveUpperLeaderUserName(String baseUserName, String... excludes)
-    {
-        if (StringUtils.isBlank(baseUserName))
-        {
-            return null;
-        }
-        SysUser baseUser = sysUserService.selectUserByUserName(baseUserName);
-        if (baseUser == null)
-        {
-            return null;
-        }
-        try
-        {
-            String leaderUserName = ApprovalFlowUtils.resolveDirectLeaderUserName(baseUser, sysDeptService, sysUserService);
-            return isUsableFlowUser(leaderUserName, excludes) ? leaderUserName : null;
-        }
-        catch (Exception ex)
-        {
-            return null;
-        }
-    }
-
-    private String resolveUserNameByUserNameOrNickName(String value)
-    {
-        if (StringUtils.isBlank(value))
-        {
-            return null;
-        }
-        SysUser exact = sysUserService.selectUserByUserName(value);
-        if (exact != null)
-        {
-            return exact.getUserName();
-        }
-        SysUser query = new SysUser();
-        query.setNickName(value);
-        List<SysUser> users = sysUserService.selectUserList(query);
-        if (users == null || users.isEmpty())
-        {
-            return null;
-        }
-        if (users.size() > 1)
-        {
-            throw new ServiceException("合同归属人【" + value + "】匹配到多个系统用户，请改为唯一用户名");
-        }
-        return users.get(0).getUserName();
-    }
-
-    private boolean isUsableFlowUser(String userName, String... excludes)
-    {
-        if (StringUtils.isBlank(userName))
-        {
-            return false;
-        }
-        if (excludes == null)
-        {
-            return true;
-        }
-        for (String exclude : excludes)
-        {
-            if (StringUtils.equals(userName, exclude))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void ensureDistinctFlowUsers(String applicant, String directLeader, String approver, String handler)
-    {
-        if (StringUtils.equalsAny(applicant, approver, handler))
-        {
-            throw new ServiceException("审批人和办理人不能与申请人相同");
-        }
-        if (StringUtils.equals(directLeader, approver))
-        {
-            throw new ServiceException("审批人不能与直接主管相同");
-        }
-        if (StringUtils.equalsAny(handler, directLeader, approver))
-        {
-            throw new ServiceException("办理人不能与直接主管或审批人相同");
-        }
-    }
-
     private void validateCurrentNodeOperator(ContractInvoice entity, String currentNode, String currentUser)
     {
-        String expectedUser = null;
-        if ("directLeader".equals(currentNode))
-        {
-            expectedUser = entity.getDirectLeader();
-        }
-        else if ("approver".equals(currentNode))
-        {
-            expectedUser = entity.getApprover();
-        }
-        else if ("handler".equals(currentNode))
-        {
-            expectedUser = entity.getHandler();
-        }
-        else
-        {
-            throw new ServiceException("当前审批节点无效");
-        }
+        String expectedUser = getNodeAssignee(entity, currentNode);
         if (StringUtils.isBlank(expectedUser))
         {
-            throw new ServiceException(getNodeName(currentNode) + "未配置处理人");
+            throw new ServiceException(getNodeName("invoice", currentNode) + "未配置处理人");
         }
         if (!StringUtils.equals(expectedUser, currentUser))
         {
@@ -911,34 +718,59 @@ public class ContractInvoiceServiceImpl implements IContractInvoiceService
         }
     }
 
-    private String getNodeName(String node)
+    private String getNodeName(String businessType, String node)
     {
-        if ("directLeader".equals(node))
+        return approvalFlowConfigService.getNodeName(businessType, node);
+    }
+
+    private String buildFlowSummary(String businessType, List<String> assignees)
+    {
+        List<String> parts = new ArrayList<>();
+        for (int i = 0; i < assignees.size(); i++)
         {
-            return "直接主管";
+            parts.add(getNodeName(businessType, "node" + (i + 1)) + "(" + resolveDisplayName(assignees.get(i)) + ")");
         }
-        if ("approver".equals(node))
+        return String.join(" → ", parts);
+    }
+
+    private String getFlowAssignee(List<String> assignees, int index)
+    {
+        return index < assignees.size() ? assignees.get(index) : null;
+    }
+
+    private String nextNodeKey(String currentNode)
+    {
+        if ("node1".equals(currentNode))
         {
-            return "审批人";
+            return "node2";
         }
-        if ("handler".equals(node))
+        if ("node2".equals(currentNode))
         {
-            return "办理人";
+            return "node3";
         }
-        if ("finished".equals(node))
+        return null;
+    }
+
+    private String getNodeAssignee(ContractInvoice entity, String nodeKey)
+    {
+        if ("node1".equals(nodeKey))
         {
-            return "已完成";
+            return entity.getDirectLeader();
         }
-        if ("rejected".equals(node))
+        if ("node2".equals(nodeKey))
         {
-            return "已驳回";
+            return entity.getApprover();
         }
-        return "审批节点";
+        if ("node3".equals(nodeKey))
+        {
+            return entity.getHandler();
+        }
+        return null;
     }
 
     private String resolveDisplayName(String userName)
     {
-        return ApprovalFlowUtils.resolveDisplayNameByUserName(userName, sysUserService);
+        return StringUtils.defaultIfBlank(resolveNickName(userName), "-");
     }
 
     private String resolveNickName(String userName)

@@ -64,6 +64,7 @@
       <div class="toolbar-left">
         <el-button type="primary" icon="el-icon-plus" @click="handleAddInvoice">录发票</el-button>
         <el-button type="success" plain icon="el-icon-upload2" @click="handleImport">导入</el-button>
+        <el-button plain icon="el-icon-setting" @click="openFlowSetting">审批流设置</el-button>
         <el-button plain icon="el-icon-download" @click="handleDownloadTemplate">下载模板</el-button>
       </div>
       <div class="toolbar-tip">
@@ -199,7 +200,7 @@
       <div class="approval-drawer-body" v-if="selectedRow">
         <div class="approval-header-card">
           <div class="approval-header-title">发票审批流程</div>
-          <div class="approval-header-desc">按钉钉式流程流转：申请人 → 直接主管 → 审批人 → 办理人。</div>
+          <div class="approval-header-desc">按审批流设置中的串行节点顺序流转。</div>
         </div>
         <div class="approval-summary approval-summary-extended">
           <div class="summary-item"><span>开票日期</span><strong>{{ parseTime(selectedRow.invoiceDate) }}</strong></div>
@@ -212,16 +213,10 @@
           <div class="summary-item"><span>开票内容</span><strong>{{ selectedRow.invoiceContent || '-' }}</strong></div>
         </div>
         <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="90px" class="approval-form-card">
-          <el-form-item label="直接主管">
-            <el-input :value="approvalForm.directLeaderDisplay || '提交后系统自动带出'" disabled />
+          <el-form-item label="审批流">
+            <el-input value="按审批流设置自动匹配节点处理人" disabled />
           </el-form-item>
-          <el-form-item label="审批人">
-            <el-input :value="approvalForm.approverDisplay || '提交后系统自动带出'" disabled />
-          </el-form-item>
-          <el-form-item label="办理人">
-            <el-input :value="approvalForm.handlerDisplay || '提交后系统自动带出'" disabled />
-          </el-form-item>
-          <el-alert title="审批链由系统自动计算，发起人无需指定审批人或办理人。" type="info" :closable="false" show-icon style="margin-bottom: 18px;" />
+          <el-alert title="发票审批将严格按照“审批流设置”中的节点顺序执行。" type="info" :closable="false" show-icon style="margin-bottom: 18px;" />
           <el-form-item label="审批说明" prop="remark"><el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="请输入审批说明、开票依据或业务说明" /></el-form-item>
         </el-form>
       </div>
@@ -242,6 +237,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer"><el-button @click="approveActionDialogVisible = false">取消</el-button><el-button :type="selectedApproveAction === 'agree' ? 'primary' : 'danger'" :loading="submitLoading" @click="submitApproveAction">确认</el-button></div>
     </el-dialog>
+    <approval-flow-setting :visible.sync="flowSettingVisible" business-type="invoice" title="发票管理" @saved="handleFlowSaved" />
   </div>
 </template>
 
@@ -249,6 +245,7 @@
 import { listInvoice, getInvoice, delInvoice, addInvoice, updateInvoice, importTemplate, importInvoice, submitInvoiceApproval, approveInvoice, listInvoiceLogs } from '@/api/invoice/invoice'
 import { listContractContent } from '@/api/contract/contract'
 import { getToken } from '@/utils/auth'
+import ApprovalFlowSetting from '@/components/ApprovalFlowSetting'
 
 const createQueryParams = () => ({
   pageNum: 1,
@@ -303,6 +300,7 @@ const createForm = () => ({
 
 export default {
   name: 'Invoice',
+  components: { ApprovalFlowSetting },
   data() {
     return {
       loading: false,
@@ -344,6 +342,7 @@ export default {
       approveActionForm: { remark: '' },
       logDrawerVisible: false,
       invoiceLogs: [],
+      flowSettingVisible: false,
       upload: {
         isUploading: false,
         headers: { Authorization: 'Bearer ' + getToken() },
@@ -360,6 +359,8 @@ export default {
     this.getList()
   },
   methods: {
+    openFlowSetting() { this.flowSettingVisible = true },
+    handleFlowSaved() { this.getList() },
     handleTabClick(tab) {
       this.activeTab = tab.name
       const typeMap = { all: null, input: '支出', output: '收入' }
@@ -395,9 +396,9 @@ export default {
     },
     getCurrentNodeUser(row) {
       if (!row) return ''
-      if (row.currentApprovalNode === 'directLeader') return row.directLeader || ''
-      if (row.currentApprovalNode === 'approver') return row.approver || ''
-      if (row.currentApprovalNode === 'handler') return row.handler || ''
+      if (row.currentApprovalNode === 'node1') return row.directLeader || ''
+      if (row.currentApprovalNode === 'node2') return row.approver || ''
+      if (row.currentApprovalNode === 'node3') return row.handler || ''
       return ''
     },
     canHandleCurrentNode(row) {
@@ -407,7 +408,7 @@ export default {
     },
     getCurrentNodeLabel(row) {
       const node = row && row.currentApprovalNode
-      return ({ directLeader: '直接主管', approver: '审批人', handler: '办理人', finished: '已完成', rejected: '已驳回' })[node] || '-'
+      return ({ node1: '审批节点1', node2: '审批节点2', node3: '审批节点3', finished: '已完成', rejected: '已驳回' })[node] || '-'
     },
     handleAddInvoice() {
       const defaultDirection = this.activeTab === 'input' ? '支出' : this.activeTab === 'output' ? '收入' : null
@@ -480,7 +481,7 @@ export default {
     },
     openApprovalDrawer(row) {
       this.selectedRow = row
-      this.approvalForm = { directLeaderDisplay: row.directLeader || '', approverDisplay: row.approver || '', handlerDisplay: row.handler || '', remark: '' }
+      this.approvalForm = { directLeaderDisplay: '按审批流设置自动匹配', approverDisplay: '', handlerDisplay: '', remark: '' }
       this.approvalDrawerVisible = true
       this.$nextTick(() => { this.$refs.approvalForm && this.$refs.approvalForm.clearValidate() })
     },
@@ -575,7 +576,7 @@ export default {
       return ({ no_invoice: { label: '未开票', type: 'info' }, invoiced: { label: '已开票', type: 'success' }, voided: { label: '已作废', type: 'danger' } })[status] || { label: '-', type: 'info' }
     },
     getCurrentNodeMeta(node) {
-      return ({ directLeader: { label: '直接主管', type: 'warning' }, approver: { label: '审批人', type: 'warning' }, handler: { label: '办理人', type: 'primary' }, finished: { label: '已完成', type: 'success' }, rejected: { label: '已驳回', type: 'danger' } })[node] || { label: '-', type: 'info' }
+      return ({ node1: { label: '审批节点1', type: 'warning' }, node2: { label: '审批节点2', type: 'warning' }, node3: { label: '审批节点3', type: 'primary' }, finished: { label: '已完成', type: 'success' }, rejected: { label: '已驳回', type: 'danger' } })[node] || { label: '-', type: 'info' }
     },
     getLogType(action) {
       if (!action) return 'primary'

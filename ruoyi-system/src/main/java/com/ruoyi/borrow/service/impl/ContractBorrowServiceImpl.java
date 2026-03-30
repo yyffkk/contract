@@ -3,68 +3,42 @@ package com.ruoyi.borrow.service.impl;
 import java.util.Date;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
-import com.ruoyi.common.core.domain.entity.SysUser;
-import com.ruoyi.common.exception.ServiceException;
-import com.ruoyi.system.utils.ApprovalFlowUtils;
-import com.ruoyi.common.utils.DateUtils;
-import com.ruoyi.common.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.ruoyi.borrow.mapper.ContractBorrowMapper;
 import com.ruoyi.borrow.domain.ContractBorrow;
+import com.ruoyi.borrow.mapper.ContractBorrowMapper;
 import com.ruoyi.borrow.service.IContractBorrowService;
-import com.ruoyi.system.service.ISysDeptService;
-import com.ruoyi.system.service.ISysUserService;
+import com.ruoyi.common.core.domain.entity.SysUser;
+import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.flow.service.IApprovalFlowConfigService;
 
 /**
  * 合同借阅Service业务层处理
- * 
- * @author ruoyi
- * @date 2026-03-26
  */
 @Service
-public class ContractBorrowServiceImpl implements IContractBorrowService 
+public class ContractBorrowServiceImpl implements IContractBorrowService
 {
     @Autowired
     private ContractBorrowMapper contractBorrowMapper;
 
     @Autowired
-    private ISysUserService sysUserService;
+    private IApprovalFlowConfigService approvalFlowConfigService;
 
-    @Autowired
-    private ISysDeptService sysDeptService;
-
-    /**
-     * 查询合同借阅
-     * 
-     * @param id 合同借阅主键
-     * @return 合同借阅
-     */
     @Override
     public ContractBorrow selectContractBorrowById(Long id)
     {
         return contractBorrowMapper.selectContractBorrowById(id);
     }
 
-    /**
-     * 查询合同借阅列表
-     * 
-     * @param contractBorrow 合同借阅
-     * @return 合同借阅
-     */
     @Override
     public List<ContractBorrow> selectContractBorrowList(ContractBorrow contractBorrow)
     {
         return contractBorrowMapper.selectContractBorrowList(contractBorrow);
     }
 
-    /**
-     * 新增合同借阅
-     * 
-     * @param contractBorrow 合同借阅
-     * @return 结果
-     */
     @Override
     public int insertContractBorrow(ContractBorrow contractBorrow)
     {
@@ -84,12 +58,6 @@ public class ContractBorrowServiceImpl implements IContractBorrowService
         return contractBorrowMapper.insertContractBorrow(contractBorrow);
     }
 
-    /**
-     * 修改合同借阅
-     * 
-     * @param contractBorrow 合同借阅
-     * @return 结果
-     */
     @Override
     public int updateContractBorrow(ContractBorrow contractBorrow)
     {
@@ -97,24 +65,12 @@ public class ContractBorrowServiceImpl implements IContractBorrowService
         return contractBorrowMapper.updateContractBorrow(contractBorrow);
     }
 
-    /**
-     * 批量删除合同借阅
-     * 
-     * @param ids 需要删除的合同借阅主键
-     * @return 结果
-     */
     @Override
     public int deleteContractBorrowByIds(Long[] ids)
     {
         return contractBorrowMapper.deleteContractBorrowByIds(ids);
     }
 
-    /**
-     * 删除合同借阅信息
-     * 
-     * @param id 合同借阅主键
-     * @return 结果
-     */
     @Override
     public int deleteContractBorrowById(Long id)
     {
@@ -134,19 +90,15 @@ public class ContractBorrowServiceImpl implements IContractBorrowService
         {
             throw new ServiceException("该借阅单已在审批中");
         }
+        List<String> assignees = approvalFlowConfigService.resolveAssignees("borrow");
         String currentUser = SecurityUtils.getUsername();
-        SysUser user = sysUserService.selectUserByUserName(currentUser);
-        String directLeader = ApprovalFlowUtils.resolveDirectLeaderUserName(user, sysDeptService, sysUserService);
-        String normalizedApprover = normalizeAssignee(approver, "审批人");
-        String normalizedHandler = normalizeAssignee(handler, "办理人");
-        ensureDistinctFlowUsers(currentUser, directLeader, normalizedApprover, normalizedHandler);
         entity.setApprovalStatus("pending");
         entity.setStatus("draft");
-        entity.setDirectLeader(directLeader);
-        entity.setApprover(normalizedApprover);
-        entity.setHandler(normalizedHandler);
-        entity.setCurrentApprovalNode("directLeader");
-        entity.setRemark(appendRemark(entity.getRemark(), "审批申请", buildApplyRemark(entity, remark, directLeader, normalizedApprover, normalizedHandler)));
+        entity.setDirectLeader(getFlowAssignee(assignees, 0));
+        entity.setApprover(getFlowAssignee(assignees, 1));
+        entity.setHandler(getFlowAssignee(assignees, 2));
+        entity.setCurrentApprovalNode("node1");
+        entity.setRemark(appendRemark(entity.getRemark(), "审批申请", buildApplyRemark(entity, remark, assignees)));
         entity.setUpdateBy(currentUser);
         entity.setUpdateTime(DateUtils.getNowDate());
         return contractBorrowMapper.updateContractBorrow(entity);
@@ -161,31 +113,24 @@ public class ContractBorrowServiceImpl implements IContractBorrowService
         {
             throw new ServiceException("当前借阅单不在审批中");
         }
-        String currentNode = ApprovalFlowUtils.normalizeNode(entity.getCurrentApprovalNode());
+        String currentNode = StringUtils.trimToEmpty(entity.getCurrentApprovalNode());
         String currentUser = SecurityUtils.getUsername();
         validateCurrentNodeOperator(entity, currentNode, currentUser);
         if ("agree".equals(action))
         {
-            if ("directLeader".equals(currentNode))
+            String nextNode = nextNodeKey(currentNode);
+            String nextUser = getNodeAssignee(entity, nextNode);
+            if (StringUtils.isNotBlank(nextNode) && StringUtils.isNotBlank(nextUser))
             {
-                entity.setCurrentApprovalNode("approver");
-                entity.setRemark(appendRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark(currentNode, action, remark, entity.getApprover())));
+                entity.setCurrentApprovalNode(nextNode);
+                entity.setRemark(appendRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark("borrow", currentNode, action, remark, nextUser)));
             }
-            else if ("approver".equals(currentNode))
-            {
-                entity.setCurrentApprovalNode("handler");
-                entity.setRemark(appendRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark(currentNode, action, remark, entity.getHandler())));
-            }
-            else if ("handler".equals(currentNode))
+            else
             {
                 entity.setApprovalStatus("approved");
                 entity.setStatus(resolveBorrowStatus(entity));
                 entity.setCurrentApprovalNode("finished");
-                entity.setRemark(appendRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark(currentNode, action, remark, null)));
-            }
-            else
-            {
-                throw new ServiceException("当前审批节点无效");
+                entity.setRemark(appendRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark("borrow", currentNode, action, remark, null)));
             }
         }
         else if ("reject".equals(action))
@@ -193,7 +138,7 @@ public class ContractBorrowServiceImpl implements IContractBorrowService
             entity.setApprovalStatus("rejected");
             entity.setStatus("draft");
             entity.setCurrentApprovalNode("rejected");
-            entity.setRemark(appendRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark(currentNode, action, remark, null)));
+            entity.setRemark(appendRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark("borrow", currentNode, action, remark, null)));
         }
         else
         {
@@ -234,44 +179,30 @@ public class ContractBorrowServiceImpl implements IContractBorrowService
     private String resolveBorrowStatus(ContractBorrow entity)
     {
         Date expected = entity.getExpectedReturnDate();
-        if (expected != null)
+        if (expected != null && DateUtils.getNowDate().after(expected))
         {
-            Date now = DateUtils.getNowDate();
-            if (now.after(expected))
-            {
-                return "overdue";
-            }
+            return "overdue";
         }
         return "borrowing";
     }
 
-    private String buildApplyRemark(ContractBorrow entity, String remark, String directLeader, String approver, String handler)
+    private String buildApplyRemark(ContractBorrow entity, String remark, List<String> assignees)
     {
-        String currentUser = SecurityUtils.getUsername();
-        SysUser user = sysUserService.selectUserByUserName(currentUser);
-        String applicantName = user != null ? user.getNickName() : currentUser;
         StringBuilder sb = new StringBuilder();
-        sb.append("借阅申请，申请人：").append(applicantName);
-        sb.append("，借阅单号：").append(StringUtils.defaultString(entity.getBorrowNo(), "-"));
-        sb.append("，直接主管：").append(resolveDisplayName(directLeader));
-        sb.append("，审批人：").append(resolveDisplayName(approver));
-        sb.append("，办理人：").append(resolveDisplayName(handler));
+        sb.append("合同：").append(StringUtils.defaultIfBlank(entity.getContractName(), "-"));
+        sb.append("；借阅人：").append(StringUtils.defaultIfBlank(entity.getBorrower(), "-"));
+        sb.append("；流程：").append(buildFlowSummary("borrow", assignees));
         if (StringUtils.isNotBlank(remark))
         {
-            sb.append("，说明：").append(remark.trim());
+            sb.append("；说明：").append(remark.trim());
         }
         return sb.toString();
     }
 
-    private String buildNodeApprovalRemark(String node, String action, String remark, String nextUser)
+    private String buildNodeApprovalRemark(String businessType, String node, String action, String remark, String nextUser)
     {
-        String currentUser = SecurityUtils.getUsername();
-        SysUser user = sysUserService.selectUserByUserName(currentUser);
-        String approverName = user != null ? user.getNickName() : currentUser;
-        String nodeName = getNodeName(node);
-        String actionName = "agree".equals(action) ? "审批通过" : "审批驳回";
         StringBuilder sb = new StringBuilder();
-        sb.append(nodeName).append(actionName).append("，处理人：").append(approverName);
+        sb.append(getNodeName(businessType, node)).append("agree".equals(action) ? "审批通过" : "审批驳回");
         if (StringUtils.isNotBlank(remark))
         {
             sb.append("，意见：").append(remark.trim());
@@ -283,58 +214,12 @@ public class ContractBorrowServiceImpl implements IContractBorrowService
         return sb.toString();
     }
 
-    private String normalizeAssignee(String userName, String roleName)
-    {
-        if (StringUtils.isBlank(userName))
-        {
-            throw new ServiceException(roleName + "不能为空");
-        }
-        SysUser user = sysUserService.selectUserByUserName(userName.trim());
-        if (user == null)
-        {
-            throw new ServiceException(roleName + "不存在：" + userName);
-        }
-        return user.getUserName();
-    }
-
-    private void ensureDistinctFlowUsers(String applicant, String directLeader, String approver, String handler)
-    {
-        if (StringUtils.equalsAny(applicant, approver, handler))
-        {
-            throw new ServiceException("审批人和办理人不能与申请人相同");
-        }
-        if (StringUtils.equals(directLeader, approver))
-        {
-            throw new ServiceException("审批人不能与直接主管相同");
-        }
-        if (StringUtils.equalsAny(handler, directLeader, approver))
-        {
-            throw new ServiceException("办理人不能与直接主管或审批人相同");
-        }
-    }
-
     private void validateCurrentNodeOperator(ContractBorrow entity, String currentNode, String currentUser)
     {
-        String expectedUser = null;
-        if ("directLeader".equals(currentNode))
-        {
-            expectedUser = entity.getDirectLeader();
-        }
-        else if ("approver".equals(currentNode))
-        {
-            expectedUser = entity.getApprover();
-        }
-        else if ("handler".equals(currentNode))
-        {
-            expectedUser = entity.getHandler();
-        }
-        else
-        {
-            throw new ServiceException("当前审批节点无效");
-        }
+        String expectedUser = getNodeAssignee(entity, currentNode);
         if (StringUtils.isBlank(expectedUser))
         {
-            throw new ServiceException(getNodeName(currentNode) + "未配置处理人");
+            throw new ServiceException(getNodeName("borrow", currentNode) + "未配置处理人");
         }
         if (!StringUtils.equals(expectedUser, currentUser))
         {
@@ -342,19 +227,63 @@ public class ContractBorrowServiceImpl implements IContractBorrowService
         }
     }
 
-    private String getNodeName(String node)
+    private String getNodeName(String businessType, String node)
     {
-        if ("directLeader".equals(node)) return "直接主管";
-        if ("approver".equals(node)) return "审批人";
-        if ("handler".equals(node)) return "办理人";
-        if ("finished".equals(node)) return "已完成";
-        if ("rejected".equals(node)) return "已驳回";
-        return "审批节点";
+        return approvalFlowConfigService.getNodeName(businessType, node);
+    }
+
+    private String buildFlowSummary(String businessType, List<String> assignees)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < assignees.size(); i++)
+        {
+            if (i > 0)
+            {
+                sb.append(" → ");
+            }
+            sb.append(getNodeName(businessType, "node" + (i + 1))).append("(").append(resolveDisplayName(assignees.get(i))).append(")");
+        }
+        return sb.toString();
+    }
+
+    private String getFlowAssignee(List<String> assignees, int index)
+    {
+        return index < assignees.size() ? assignees.get(index) : null;
+    }
+
+    private String nextNodeKey(String currentNode)
+    {
+        if ("node1".equals(currentNode))
+        {
+            return "node2";
+        }
+        if ("node2".equals(currentNode))
+        {
+            return "node3";
+        }
+        return null;
+    }
+
+    private String getNodeAssignee(ContractBorrow entity, String nodeKey)
+    {
+        if ("node1".equals(nodeKey))
+        {
+            return entity.getDirectLeader();
+        }
+        if ("node2".equals(nodeKey))
+        {
+            return entity.getApprover();
+        }
+        if ("node3".equals(nodeKey))
+        {
+            return entity.getHandler();
+        }
+        return null;
     }
 
     private String resolveDisplayName(String userName)
     {
-        return ApprovalFlowUtils.resolveDisplayNameByUserName(userName, sysUserService);
+        return StringUtils.defaultIfBlank(userName, "-");
     }
 
     private String appendRemark(String oldRemark, String tag, String content)
@@ -363,7 +292,7 @@ public class ContractBorrowServiceImpl implements IContractBorrowService
         {
             return oldRemark;
         }
-        String piece = "[" + tag + "] " + content;
+        String piece = String.format("[%s] %s", tag, content);
         if (StringUtils.isBlank(oldRemark))
         {
             return piece;

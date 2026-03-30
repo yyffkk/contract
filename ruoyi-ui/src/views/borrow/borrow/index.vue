@@ -49,6 +49,7 @@
     <div class="toolbar">
       <div class="toolbar-left">
         <el-button type="primary" icon="el-icon-plus" @click="handleAddBorrow">发起借阅</el-button>
+        <el-button plain icon="el-icon-setting" @click="openFlowSetting">审批流设置</el-button>
       </div>
       <div class="toolbar-tip">
         <el-alert title="建议先选择合同，再填写借阅信息并提交审批；审批通过后进入借阅中。" type="info" :closable="false" show-icon />
@@ -187,11 +188,10 @@
           <div class="summary-item"><span>预计归还</span><strong>{{ parseDate(selectedRow.expectedReturnDate) }}</strong></div>
         </div>
         <el-form :model="approvalForm" ref="approvalForm" :rules="approvalRules" label-width="90px" class="approval-form-card">
-          <el-form-item label="直接主管">
-            <el-input :value="approvalForm.directLeaderDisplay || '提交后自动匹配'" disabled />
+          <el-form-item label="审批流">
+            <el-input value="按审批流设置自动匹配节点处理人" disabled />
           </el-form-item>
-          <el-form-item label="审批人" prop="approver"><el-input v-model="approvalForm.approver" placeholder="请输入系统用户名，如 zhangsan" /></el-form-item>
-          <el-form-item label="办理人" prop="handler"><el-input v-model="approvalForm.handler" placeholder="请输入系统用户名，如 lisi" /></el-form-item>
+          <el-alert title="借阅审批将严格按照“审批流设置”中的节点顺序执行。" type="info" :closable="false" show-icon style="margin-bottom: 18px;" />
           <el-form-item label="审批说明" prop="remark"><el-input v-model="approvalForm.remark" type="textarea" :rows="5" placeholder="请输入审批说明" /></el-form-item>
         </el-form>
       </div>
@@ -223,6 +223,7 @@
 <script>
 import { listBorrow, getBorrow, delBorrow, addBorrow, updateBorrow, submitBorrowApproval, approveBorrow, returnBorrow } from '@/api/borrow/borrow'
 import { listContractContent } from '@/api/contract/contract'
+import ApprovalFlowSetting from '@/components/ApprovalFlowSetting'
 
 const createQueryParams = () => ({ pageNum: 1, pageSize: 10, borrowNo: null, borrower: null, borrowDepartment: null, borrowDate: null, expectedReturnDate: null, contractName: null, contractNumber: null, approvalStatus: null })
 const createForm = () => ({ id: null, contractId: null, borrowNo: '', borrower: '', borrowDepartment: '', borrowDate: '', expectedReturnDate: '', actualReturnDate: '', borrowReason: '', contractName: '', contractNumber: '', contractType: '', contractAmount: '', ourParty: '', otherParty: '', status: 'draft', approvalStatus: 'draft', remark: '', delFlag: '0' })
@@ -247,10 +248,11 @@ export default {
       contractQueryParams: { pageNum: 1, pageSize: 10, contractName: '', contractNumber: '', otherPartyName: '', myPartyName: '' },
       selectedContractId: null, selectedContract: null,
       detailDrawerVisible: false, detailData: null,
-      approvalDrawerVisible: false, approvalDrawerTitle: '提交借阅审批', approvalForm: { directLeaderDisplay: '', approver: '', handler: '', remark: '' }, approvalRules: { approver: [{ required: true, message: '请输入审批人', trigger: 'blur' }], handler: [{ required: true, message: '请输入办理人', trigger: 'blur' }], remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }] },
+      approvalDrawerVisible: false, approvalDrawerTitle: '提交借阅审批', approvalForm: { directLeaderDisplay: '按审批流设置自动匹配', approver: '', handler: '', remark: '' }, approvalRules: { remark: [{ required: true, message: '请输入审批说明', trigger: 'blur' }] },
       approveActionDialogVisible: false, approveActionTitle: '审批操作', selectedApproveAction: 'agree', approveActionForm: { remark: '' },
       returnDialogVisible: false, returnForm: { remark: '' }, returnRules: { remark: [{ required: true, message: '请输入归还说明', trigger: 'blur' }] },
-      selectedRow: null
+      selectedRow: null,
+      flowSettingVisible: false
     }
   },
   computed: {
@@ -271,6 +273,8 @@ export default {
   },
   created() { this.getList() },
   methods: {
+    openFlowSetting() { this.flowSettingVisible = true },
+    handleFlowSaved() { this.getList() },
     handleTabClick(tab) {
       this.activeTab = tab.name
       this.queryParams.pageNum = 1
@@ -382,7 +386,7 @@ export default {
       this.$refs.approvalForm.validate(valid => {
         if (!valid || !this.selectedRow) return
         this.submitLoading = true
-        submitBorrowApproval({ id: this.selectedRow.id, approver: this.approvalForm.approver, handler: this.approvalForm.handler, remark: this.approvalForm.remark }).then(() => {
+        submitBorrowApproval({ id: this.selectedRow.id, remark: this.approvalForm.remark }).then(() => {
           this.$message.success('借阅审批已提交')
           this.approvalDrawerVisible = false
           this.getList()

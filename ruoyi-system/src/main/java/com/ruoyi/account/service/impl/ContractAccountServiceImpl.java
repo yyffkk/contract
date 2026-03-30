@@ -26,14 +26,12 @@ import com.ruoyi.account.domain.ContractAccount;
 import com.ruoyi.account.mapper.ContractAccountMapper;
 import com.ruoyi.account.service.IContractAccountService;
 import com.ruoyi.common.exception.ServiceException;
-import com.ruoyi.system.utils.ApprovalFlowUtils;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.contract.domain.BizContractContent;
 import com.ruoyi.contract.mapper.BizContractContentMapper;
 import com.ruoyi.common.core.domain.entity.SysUser;
-import com.ruoyi.system.service.ISysDeptService;
-import com.ruoyi.system.service.ISysUserService;
+import com.ruoyi.flow.service.IApprovalFlowConfigService;
 
 /**
  * 账款信息Service业务层处理
@@ -63,10 +61,7 @@ public class ContractAccountServiceImpl implements IContractAccountService
     private BizContractContentMapper bizContractContentMapper;
 
     @Autowired
-    private ISysUserService sysUserService;
-
-    @Autowired
-    private ISysDeptService sysDeptService;
+    private IApprovalFlowConfigService approvalFlowConfigService;
 
     @Override
     public ContractAccount selectContractAccountById(Long id)
@@ -124,24 +119,20 @@ public class ContractAccountServiceImpl implements IContractAccountService
         {
             throw new ServiceException("该账款已审批通过，无需重复提交");
         }
+        List<String> assignees = approvalFlowConfigService.resolveAssignees("account");
         String currentUser = SecurityUtils.getUsername();
-        SysUser user = sysUserService.selectUserByUserName(currentUser);
-        String directLeader = ApprovalFlowUtils.resolveDirectLeaderUserName(user, sysDeptService, sysUserService);
-        String normalizedApprover = normalizeAssignee(approver, "审批人");
-        String normalizedHandler = normalizeAssignee(handler, "办理人");
-        ensureDistinctFlowUsers(currentUser, directLeader, normalizedApprover, normalizedHandler);
         entity.setStatus("approving");
-        entity.setDirectLeader(directLeader);
-        entity.setApprover(normalizedApprover);
-        entity.setHandler(normalizedHandler);
-        entity.setCurrentApprovalNode("directLeader");
-        entity.setRemark(mergeRemark(entity.getRemark(), "审批申请", buildApplyRemark(applyType, remark, directLeader, normalizedApprover, normalizedHandler)));
+        entity.setDirectLeader(getFlowAssignee(assignees, 0));
+        entity.setApprover(getFlowAssignee(assignees, 1));
+        entity.setHandler(getFlowAssignee(assignees, 2));
+        entity.setCurrentApprovalNode("node1");
+        entity.setRemark(mergeRemark(entity.getRemark(), "审批申请", buildApplyRemark(applyType, remark, assignees)));
         entity.setUpdateBy(currentUser);
         entity.setUpdateTime(DateUtils.getNowDate());
         return contractAccountMapper.updateContractAccount(entity);
     }
 
-    @Override
+@Override
     @Transactional(rollbackFor = Exception.class)
     public int handleApproval(Long id, String action, String remark)
     {
@@ -154,36 +145,29 @@ public class ContractAccountServiceImpl implements IContractAccountService
         {
             throw new ServiceException("当前账款不在审批中，无法执行审批操作");
         }
-        String currentNode = ApprovalFlowUtils.normalizeNode(entity.getCurrentApprovalNode());
+        String currentNode = StringUtils.trimToEmpty(entity.getCurrentApprovalNode());
         String currentUser = SecurityUtils.getUsername();
         validateCurrentNodeOperator(entity, currentNode, currentUser);
         if ("reject".equals(action))
         {
             entity.setStatus("rejected");
             entity.setCurrentApprovalNode("rejected");
-            entity.setRemark(mergeRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark(currentNode, action, remark, null)));
+            entity.setRemark(mergeRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark("account", currentNode, action, remark, null)));
         }
         else if ("agree".equals(action))
         {
-            if ("directLeader".equals(currentNode))
+            String nextNode = nextNodeKey(currentNode);
+            String nextUser = getNodeAssignee(entity, nextNode);
+            if (StringUtils.isNotBlank(nextNode) && StringUtils.isNotBlank(nextUser))
             {
-                entity.setCurrentApprovalNode("approver");
-                entity.setRemark(mergeRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark(currentNode, action, remark, entity.getApprover())));
-            }
-            else if ("approver".equals(currentNode))
-            {
-                entity.setCurrentApprovalNode("handler");
-                entity.setRemark(mergeRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark(currentNode, action, remark, entity.getHandler())));
-            }
-            else if ("handler".equals(currentNode))
-            {
-                entity.setStatus("approved");
-                entity.setCurrentApprovalNode("finished");
-                entity.setRemark(mergeRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark(currentNode, action, remark, null)));
+                entity.setCurrentApprovalNode(nextNode);
+                entity.setRemark(mergeRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark("account", currentNode, action, remark, nextUser)));
             }
             else
             {
-                throw new ServiceException("当前审批节点无效");
+                entity.setStatus("approved");
+                entity.setCurrentApprovalNode("finished");
+                entity.setRemark(mergeRemark(entity.getRemark(), "审批结果", buildNodeApprovalRemark("account", currentNode, action, remark, null)));
             }
         }
         else
@@ -195,7 +179,7 @@ public class ContractAccountServiceImpl implements IContractAccountService
         return contractAccountMapper.updateContractAccount(entity);
     }
 
-    @Override
+@Override
     @Transactional(rollbackFor = Exception.class)
     public int importData(MultipartFile file)
     {
@@ -495,17 +479,11 @@ public class ContractAccountServiceImpl implements IContractAccountService
         }
     }
 
-    private String buildApplyRemark(String applyType, String remark, String directLeader, String approver, String handler)
+    private String buildApplyRemark(String applyType, String remark, List<String> assignees)
     {
-        String currentUser = SecurityUtils.getUsername();
-        SysUser user = sysUserService.selectUserByUserName(currentUser);
-        String applicantName = user != null ? user.getNickName() : currentUser;
         String typeName = "pay".equals(applyType) ? "付款" : "收款";
         StringBuilder sb = new StringBuilder();
-        sb.append(typeName).append("申请，申请人：").append(applicantName);
-        sb.append("，直接主管：").append(resolveDisplayName(directLeader));
-        sb.append("，审批人：").append(resolveDisplayName(approver));
-        sb.append("，办理人：").append(resolveDisplayName(handler));
+        sb.append(typeName).append("申请，流程：").append(buildFlowSummary("account", assignees));
         if (StringUtils.isNotBlank(remark))
         {
             sb.append("，说明：").append(remark.trim());
@@ -513,15 +491,12 @@ public class ContractAccountServiceImpl implements IContractAccountService
         return sb.toString();
     }
 
-    private String buildNodeApprovalRemark(String node, String action, String remark, String nextUser)
+    private String buildNodeApprovalRemark(String businessType, String node, String action, String remark, String nextUser)
     {
-        String currentUser = SecurityUtils.getUsername();
-        SysUser user = sysUserService.selectUserByUserName(currentUser);
-        String approverName = user != null ? user.getNickName() : currentUser;
-        String nodeName = getNodeName(node);
+        String nodeName = getNodeName(businessType, node);
         String actionName = "agree".equals(action) ? "审批通过" : "审批驳回";
         StringBuilder sb = new StringBuilder();
-        sb.append(nodeName).append(actionName).append("，处理人：").append(approverName);
+        sb.append(nodeName).append(actionName);
         if (StringUtils.isNotBlank(remark))
         {
             sb.append("，意见：").append(remark.trim());
@@ -533,58 +508,12 @@ public class ContractAccountServiceImpl implements IContractAccountService
         return sb.toString();
     }
 
-    private String normalizeAssignee(String userName, String roleName)
-    {
-        if (StringUtils.isBlank(userName))
-        {
-            throw new ServiceException(roleName + "不能为空");
-        }
-        SysUser user = sysUserService.selectUserByUserName(userName.trim());
-        if (user == null)
-        {
-            throw new ServiceException(roleName + "不存在：" + userName);
-        }
-        return user.getUserName();
-    }
-
-    private void ensureDistinctFlowUsers(String applicant, String directLeader, String approver, String handler)
-    {
-        if (StringUtils.equalsAny(applicant, approver, handler))
-        {
-            throw new ServiceException("审批人和办理人不能与申请人相同");
-        }
-        if (StringUtils.equals(directLeader, approver))
-        {
-            throw new ServiceException("审批人不能与直接主管相同");
-        }
-        if (StringUtils.equalsAny(handler, directLeader, approver))
-        {
-            throw new ServiceException("办理人不能与直接主管或审批人相同");
-        }
-    }
-
     private void validateCurrentNodeOperator(ContractAccount entity, String currentNode, String currentUser)
     {
-        String expectedUser = null;
-        if ("directLeader".equals(currentNode))
-        {
-            expectedUser = entity.getDirectLeader();
-        }
-        else if ("approver".equals(currentNode))
-        {
-            expectedUser = entity.getApprover();
-        }
-        else if ("handler".equals(currentNode))
-        {
-            expectedUser = entity.getHandler();
-        }
-        else
-        {
-            throw new ServiceException("当前审批节点无效");
-        }
+        String expectedUser = getNodeAssignee(entity, currentNode);
         if (StringUtils.isBlank(expectedUser))
         {
-            throw new ServiceException(getNodeName(currentNode) + "未配置处理人");
+            throw new ServiceException(getNodeName("account", currentNode) + "未配置处理人");
         }
         if (!StringUtils.equals(expectedUser, currentUser))
         {
@@ -592,34 +521,59 @@ public class ContractAccountServiceImpl implements IContractAccountService
         }
     }
 
-    private String getNodeName(String node)
+    private String getNodeName(String businessType, String node)
     {
-        if ("directLeader".equals(node))
-        {
-            return "直接主管";
-        }
-        if ("approver".equals(node))
-        {
-            return "审批人";
-        }
-        if ("handler".equals(node))
-        {
-            return "办理人";
-        }
-        if ("finished".equals(node))
-        {
-            return "已完成";
-        }
-        if ("rejected".equals(node))
-        {
-            return "已驳回";
-        }
-        return "审批节点";
+        return approvalFlowConfigService.getNodeName(businessType, node);
     }
 
     private String resolveDisplayName(String userName)
     {
-        return ApprovalFlowUtils.resolveDisplayNameByUserName(userName, sysUserService);
+        return StringUtils.defaultIfBlank(userName, "-");
+    }
+
+    private String buildFlowSummary(String businessType, List<String> assignees)
+    {
+        List<String> parts = new ArrayList<>();
+        for (int i = 0; i < assignees.size(); i++)
+        {
+            parts.add(getNodeName(businessType, "node" + (i + 1)) + "(" + resolveDisplayName(assignees.get(i)) + ")");
+        }
+        return String.join(" → ", parts);
+    }
+
+    private String getFlowAssignee(List<String> assignees, int index)
+    {
+        return index < assignees.size() ? assignees.get(index) : null;
+    }
+
+    private String nextNodeKey(String currentNode)
+    {
+        if ("node1".equals(currentNode))
+        {
+            return "node2";
+        }
+        if ("node2".equals(currentNode))
+        {
+            return "node3";
+        }
+        return null;
+    }
+
+    private String getNodeAssignee(ContractAccount entity, String nodeKey)
+    {
+        if ("node1".equals(nodeKey))
+        {
+            return entity.getDirectLeader();
+        }
+        if ("node2".equals(nodeKey))
+        {
+            return entity.getApprover();
+        }
+        if ("node3".equals(nodeKey))
+        {
+            return entity.getHandler();
+        }
+        return null;
     }
 
     private String mergeRemark(String oldRemark, String prefix, String content)
