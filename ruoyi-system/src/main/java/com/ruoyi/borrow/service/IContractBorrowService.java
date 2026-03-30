@@ -63,12 +63,13 @@ public interface IContractBorrowService
      * 提交借阅审批
      *
      * @param id 借阅ID
-     * @param approver 审批人
-     * @param handler 办理人
+     * @param directLeader 直接主管（兼容参数，实际按审批流配置自动匹配）
+     * @param approver 审批人（兼容参数，实际按审批流配置自动匹配）
+     * @param handler 办理人（兼容参数，实际按审批流配置自动匹配）
      * @param remark 审批说明
      * @return 结果
      */
-    public int submitApproval(Long id, String approver, String handler, String remark);
+    public int submitApproval(Long id, String directLeader, String approver, String handler, String remark);
 
     /**
      * 审批借阅申请

@@ -79,7 +79,7 @@ public class ContractBorrowServiceImpl implements IContractBorrowService
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int submitApproval(Long id, String approver, String handler, String remark)
+    public int submitApproval(Long id, String directLeader, String approver, String handler, String remark)
     {
         ContractBorrow entity = getRequired(id);
         if ("approved".equals(entity.getApprovalStatus()))
