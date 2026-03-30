@@ -31,6 +31,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="untaxedAmount" column="untaxed_amount" />
         <result property="project" column="project" />
         <result property="amountType" column="amount_type" />
+        <result property="invoiceBizType" column="invoice_biz_type" />
         <result property="relatedContractName" column="related_contract_name" />
         <result property="relatedContractNumber" column="related_contract_number" />
         <result property="approvalStatus" column="approval_status" />
@@ -62,7 +63,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                coalesce(li.invoice_content, c.content) as invoice_content,
                ifnull(li.untaxed_amount, (ifnull(li.invoice_amount, 0) - ifnull(li.tax_amount, 0))) as untaxed_amount,
                c.project,
-               c.amount_type
+               coalesce(li.amount_type, c.amount_type) as amount_type,
+               li.invoice_biz_type
         from contract_invoice li
         left join biz_contract_content c on li.contract_id = c.id
     </sql>
@@ -91,9 +93,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="initiator != null and initiator != ''"> and coalesce(c.submitter, c.owner, li.create_by) like concat('%', #{initiator}, '%')</if>
             <if test="applyTime != null"> and c.apply_time = #{applyTime}</if>
             <if test="department != null and department != ''"> and c.department like concat('%', #{department}, '%')</if>
-            <if test="invoiceContent != null and invoiceContent != ''"> and c.content like concat('%', #{invoiceContent}, '%')</if>
+            <if test="invoiceContent != null and invoiceContent != ''"> and coalesce(li.invoice_content, c.content) like concat('%', #{invoiceContent}, '%')</if>
             <if test="untaxedAmount != null"> and (ifnull(li.invoice_amount, 0) - ifnull(li.tax_amount, 0)) = #{untaxedAmount}</if>
             <if test="project != null and project != ''"> and c.project like concat('%', #{project}, '%')</if>
+            <if test="invoiceBizType != null and invoiceBizType != ''"> and li.invoice_biz_type = #{invoiceBizType}</if>
             <if test="relatedContractName != null and relatedContractName != ''"> and li.related_contract_name like concat('%', #{relatedContractName}, '%')</if>
             <if test="relatedContractNumber != null and relatedContractNumber != ''"> and li.related_contract_number like concat('%', #{relatedContractNumber}, '%')</if>
             <if test="approvalStatus != null and approvalStatus != ''"> and li.approval_status = #{approvalStatus}</if>
@@ -117,6 +120,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="invoiceNumber != null">invoice_number,</if>
             <if test="invoiceDate != null">invoice_date,</if>
             <if test="invoiceAmount != null">invoice_amount,</if>
+            <if test="amountType != null">amount_type,</if>
+            <if test="invoiceBizType != null and invoiceBizType != ''">invoice_biz_type,</if>
             <if test="invoiceType != null">invoice_type,</if>
             <if test="invoiceStatus != null">invoice_status,</if>
             <if test="taxRate != null">tax_rate,</if>
@@ -153,6 +158,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="invoiceNumber != null">#{invoiceNumber},</if>
             <if test="invoiceDate != null">#{invoiceDate},</if>
             <if test="invoiceAmount != null">#{invoiceAmount},</if>
+            <if test="amountType != null">#{amountType},</if>
+            <if test="invoiceBizType != null and invoiceBizType != ''">#{invoiceBizType},</if>
             <if test="invoiceType != null">#{invoiceType},</if>
             <if test="invoiceStatus != null">#{invoiceStatus},</if>
             <if test="taxRate != null">#{taxRate},</if>
@@ -193,6 +200,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="invoiceNumber != null">invoice_number = #{invoiceNumber},</if>
             <if test="invoiceDate != null">invoice_date = #{invoiceDate},</if>
             <if test="invoiceAmount != null">invoice_amount = #{invoiceAmount},</if>
+            <if test="amountType != null">amount_type = #{amountType},</if>
+            <if test="invoiceBizType != null and invoiceBizType != ''">invoice_biz_type = #{invoiceBizType},</if>
             <if test="invoiceType != null">invoice_type = #{invoiceType},</if>
             <if test="invoiceStatus != null">invoice_status = #{invoiceStatus},</if>
             <if test="taxRate != null">tax_rate = #{taxRate},</if>
@@ -207,7 +216,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="sellerTaxNo != null">seller_tax_no = #{sellerTaxNo},</if>
             <if test="relatedContractName != null">related_contract_name = #{relatedContractName},</if>
             <if test="relatedContractNumber != null">related_contract_number = #{relatedContractNumber},</if>
-            <if test="invoiceBizType != null">invoice_biz_type = #{invoiceBizType},</if>
             <if test="approvalStatus != null">approval_status = #{approvalStatus},</if>
             direct_leader = #{directLeader},
             approver = #{approver},

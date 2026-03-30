@@ -79,7 +79,6 @@
         <template slot-scope="scope">
           <div class="invoice-type-wrap">
             <el-tag size="small" effect="plain" :type="getInvoiceBizTypeByRow(scope.row).tagType">{{ getInvoiceBizTypeByRow(scope.row).label }}</el-tag>
-            <span class="invoice-type-raw">{{ getInvoiceBizTypeByRow(scope.row).rawLabel }}</span>
           </div>
         </template>
       </el-table-column>
@@ -367,8 +366,9 @@ export default {
   methods: {
     getInvoiceBizType,
     getInvoiceBizTypeByRow(row) {
-      const amountType = row && row.amountType ? row.amountType : ((row && row.invoiceBizType) === 'output' ? '支出' : (row && row.invoiceBizType) === 'input' ? '收入' : '')
-      return getInvoiceBizType(amountType)
+      if (row && row.invoiceBizType === 'output') return getInvoiceBizType('支出')
+      if (row && row.invoiceBizType === 'input') return getInvoiceBizType('收入')
+      return getInvoiceBizType(row && row.amountType ? row.amountType : '')
     },
     syncAmountTypeByBizType(form) {
       if (!form) return
