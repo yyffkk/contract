@@ -62,25 +62,16 @@
       <el-col :xs="24" :md="12" :xl="8">
         <el-card shadow="never" class="chart-card">
           <div slot="header" class="chart-header">
-            <span>年度收付款结构</span>
+            <span>合同总额收入 / 支出占比</span>
             <span class="chart-header-note">{{ selectedYear }} 年</span>
           </div>
-          <div ref="cashFlowChart" class="chart-box"></div>
+          <div ref="contractStructureChart" class="chart-box"></div>
         </el-card>
       </el-col>
       <el-col :xs="24" :md="12" :xl="8">
         <el-card shadow="never" class="chart-card">
           <div slot="header" class="chart-header">
-            <span>年度进销项开票结构</span>
-            <span class="chart-header-note">{{ selectedYear }} 年</span>
-          </div>
-          <div ref="invoiceChart" class="chart-box"></div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :md="12" :xl="8">
-        <el-card shadow="never" class="chart-card">
-          <div slot="header" class="chart-header">
-            <span>收款执行进度</span>
+            <span>收款进度饼图</span>
             <span class="chart-header-note">相对年度合同总额（收入）</span>
           </div>
           <div ref="receiveProgressChart" class="chart-box"></div>
@@ -89,7 +80,7 @@
       <el-col :xs="24" :md="12" :xl="8">
         <el-card shadow="never" class="chart-card">
           <div slot="header" class="chart-header">
-            <span>付款执行进度</span>
+            <span>付款进度饼图</span>
             <span class="chart-header-note">相对年度合同总额（支出）</span>
           </div>
           <div ref="payProgressChart" class="chart-box"></div>
@@ -98,10 +89,19 @@
       <el-col :xs="24" :md="12" :xl="8">
         <el-card shadow="never" class="chart-card">
           <div slot="header" class="chart-header">
-            <span>开票执行进度</span>
-            <span class="chart-header-note">相对年度合同总额</span>
+            <span>进项发票进度饼图</span>
+            <span class="chart-header-note">相对年度合同总额（收入）</span>
           </div>
-          <div ref="invoiceProgressChart" class="chart-box"></div>
+          <div ref="inputInvoiceProgressChart" class="chart-box"></div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :md="12" :xl="8">
+        <el-card shadow="never" class="chart-card">
+          <div slot="header" class="chart-header">
+            <span>销项发票进度饼图</span>
+            <span class="chart-header-note">相对年度合同总额（支出）</span>
+          </div>
+          <div ref="outputInvoiceProgressChart" class="chart-box"></div>
         </el-card>
       </el-col>
       <el-col :xs="24" :md="12" :xl="8">
@@ -446,56 +446,61 @@ export default {
       }
     },
     renderCharts() {
-      const cashFlowChart = this.getChartInstance('cashFlowChart')
-      const invoiceChart = this.getChartInstance('invoiceChart')
+      const contractStructureChart = this.getChartInstance('contractStructureChart')
       const receiveProgressChart = this.getChartInstance('receiveProgressChart')
       const payProgressChart = this.getChartInstance('payProgressChart')
-      const invoiceProgressChart = this.getChartInstance('invoiceProgressChart')
-      if (!cashFlowChart || !invoiceChart || !receiveProgressChart || !payProgressChart || !invoiceProgressChart) return
+      const inputInvoiceProgressChart = this.getChartInstance('inputInvoiceProgressChart')
+      const outputInvoiceProgressChart = this.getChartInstance('outputInvoiceProgressChart')
+      if (!contractStructureChart || !receiveProgressChart || !payProgressChart || !inputInvoiceProgressChart || !outputInvoiceProgressChart) return
 
-      cashFlowChart.setOption(this.createDonutOption(
-        '收付款',
-        this.metrics.yearReceiveAmount,
-        this.metrics.yearPayAmount,
-        '收款',
-        '付款',
-        ['#3ecf8e', '#ff7a7a']
-      ))
+      const receivePending = Math.max(this.toNumber(this.metrics.contractIncomeAmount) - this.toNumber(this.metrics.yearReceiveAmount), 0)
+      const payPending = Math.max(this.toNumber(this.metrics.contractExpenseAmount) - this.toNumber(this.metrics.yearPayAmount), 0)
+      const inputInvoicePending = Math.max(this.toNumber(this.metrics.contractIncomeAmount) - this.toNumber(this.metrics.yearInputInvoiceAmount), 0)
+      const outputInvoicePending = Math.max(this.toNumber(this.metrics.contractExpenseAmount) - this.toNumber(this.metrics.yearOutputInvoiceAmount), 0)
 
-      invoiceChart.setOption(this.createDonutOption(
-        '进销项',
-        this.metrics.yearOutputInvoiceAmount,
-        this.metrics.yearInputInvoiceAmount,
-        '销项开票',
-        '进项开票',
-        ['#8b5cf6', '#f59e0b']
+      contractStructureChart.setOption(this.createDonutOption(
+        '合同结构',
+        this.metrics.contractIncomeAmount,
+        this.metrics.contractExpenseAmount,
+        '收入合同',
+        '支出合同',
+        ['#3b82f6', '#0f766e']
       ))
 
       receiveProgressChart.setOption(this.createDonutOption(
         '收款进度',
-        this.metrics.receivedAmount,
-        this.metrics.pendingReceiveAmount,
-        '已收',
-        '待收',
+        this.metrics.yearReceiveAmount,
+        receivePending,
+        '已收款',
+        '未收款',
         ['#22c55e', '#60a5fa']
       ))
 
       payProgressChart.setOption(this.createDonutOption(
         '付款进度',
-        this.metrics.paidAmount,
-        this.metrics.pendingPayAmount,
-        '已付',
-        '待付',
+        this.metrics.yearPayAmount,
+        payPending,
+        '已付款',
+        '未付款',
         ['#fb923c', '#f87171']
       ))
 
-      invoiceProgressChart.setOption(this.createDonutOption(
-        '开票进度',
-        this.metrics.issuedAmount,
-        this.metrics.pendingIssuedAmount,
+      inputInvoiceProgressChart.setOption(this.createDonutOption(
+        '进项发票',
+        this.metrics.yearInputInvoiceAmount,
+        inputInvoicePending,
         '已开票',
-        '待开票',
-        ['#7c3aed', '#14b8a6']
+        '未开票',
+        ['#f59e0b', '#fde68a']
+      ))
+
+      outputInvoiceProgressChart.setOption(this.createDonutOption(
+        '销项发票',
+        this.metrics.yearOutputInvoiceAmount,
+        outputInvoicePending,
+        '已开票',
+        '未开票',
+        ['#8b5cf6', '#c4b5fd']
       ))
     },
     handleResize() {
