@@ -2,7 +2,7 @@
   <div class="instrument-page">
     <div class="hero-section">
       <div class="hero-left">
-        <div class="hero-title">经营仪表盘</div>
+        <div class="hero-title">仪表盘</div>
         <div class="hero-desc">按年份汇总合同、收付款、进销项开票情况，用更直观的图形看业务执行进度</div>
       </div>
       <div class="hero-right">
@@ -15,10 +15,17 @@
 
     <el-row :gutter="16" class="metric-row">
       <el-col :xs="24" :sm="12" :lg="4">
-        <div class="metric-card contract">
-          <div class="metric-label">年度合同总额</div>
-          <div class="metric-value">¥ {{ formatMoney(metrics.contractTotalAmount) }}</div>
-          <div class="metric-sub">按合同申请/创建日期归属年份</div>
+        <div class="metric-card contract-income">
+          <div class="metric-label">年度合同总额（收入）</div>
+          <div class="metric-value">¥ {{ formatMoney(metrics.contractIncomeAmount) }}</div>
+          <div class="metric-sub">合同类型：收入</div>
+        </div>
+      </el-col>
+      <el-col :xs="24" :sm="12" :lg="4">
+        <div class="metric-card contract-expense">
+          <div class="metric-label">年度合同总额（支出）</div>
+          <div class="metric-value">¥ {{ formatMoney(metrics.contractExpenseAmount) }}</div>
+          <div class="metric-sub">合同类型：支出</div>
         </div>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="4">
@@ -37,23 +44,16 @@
       </el-col>
       <el-col :xs="24" :sm="12" :lg="4">
         <div class="metric-card output-invoice">
-          <div class="metric-label">年度销项开票</div>
+          <div class="metric-label">年度开票金额（支出）</div>
           <div class="metric-value">¥ {{ formatMoney(metrics.yearOutputInvoiceAmount) }}</div>
           <div class="metric-sub">发票分类：销项 / 支出</div>
         </div>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="4">
         <div class="metric-card input-invoice">
-          <div class="metric-label">年度进项开票</div>
+          <div class="metric-label">年度开票金额（收入）</div>
           <div class="metric-value">¥ {{ formatMoney(metrics.yearInputInvoiceAmount) }}</div>
           <div class="metric-sub">发票分类：进项 / 收入</div>
-        </div>
-      </el-col>
-      <el-col :xs="24" :sm="12" :lg="4">
-        <div class="metric-card invoice-total">
-          <div class="metric-label">年度开票总额</div>
-          <div class="metric-value">¥ {{ formatMoney(metrics.yearInvoiceAmount) }}</div>
-          <div class="metric-sub">进项 + 销项</div>
         </div>
       </el-col>
     </el-row>
@@ -81,7 +81,7 @@
         <el-card shadow="never" class="chart-card">
           <div slot="header" class="chart-header">
             <span>收款执行进度</span>
-            <span class="chart-header-note">相对年度合同总额</span>
+            <span class="chart-header-note">相对年度合同总额（收入）</span>
           </div>
           <div ref="receiveProgressChart" class="chart-box"></div>
         </el-card>
@@ -90,7 +90,7 @@
         <el-card shadow="never" class="chart-card">
           <div slot="header" class="chart-header">
             <span>付款执行进度</span>
-            <span class="chart-header-note">相对年度合同总额</span>
+            <span class="chart-header-note">相对年度合同总额（支出）</span>
           </div>
           <div ref="payProgressChart" class="chart-box"></div>
         </el-card>
@@ -132,8 +132,12 @@
               <strong>{{ formatPercent(metrics.paidRatio) }}</strong>
             </div>
             <div class="summary-item">
-              <span>已开票占比</span>
-              <strong>{{ formatPercent(metrics.issuedRatio) }}</strong>
+              <span>收入开票覆盖率</span>
+              <strong>{{ formatPercent(metrics.incomeInvoiceRatio) }}</strong>
+            </div>
+            <div class="summary-item">
+              <span>支出开票覆盖率</span>
+              <strong>{{ formatPercent(metrics.expenseInvoiceRatio) }}</strong>
             </div>
           </div>
         </el-card>
@@ -146,11 +150,11 @@
         <span class="chart-header-note">当前年份：{{ selectedYear }}</span>
       </div>
       <div class="detail-list">
-        <div class="detail-item">1. 合同总额：按合同申请时间 / 创建时间归属到所选年份后汇总。</div>
+        <div class="detail-item">1. 合同总额：按合同申请时间 / 创建时间归属到所选年份后汇总，并拆分为收入合同总额、支出合同总额。</div>
         <div class="detail-item">2. 收款 / 付款：按账款日期归属年份，收入计收款，支出计付款。</div>
         <div class="detail-item">3. 发票：按发票日期归属年份，支出计销项，收入计进项（按你当前业务口径）。</div>
-        <div class="detail-item">4. 待收 / 已收、待付 / 已付、待开票 / 已开票：按合同列表中的金额字段汇总，并用年度合同总额作为分母。</div>
-        <div class="detail-item">5. 如果你后面要把口径改成“按合同生效时间”或“按审批通过时间”，我可以再帮你切。</div>
+        <div class="detail-item">4. 年度数据摘要中：已收占比 = 年度收款金额 / 年度合同总额（收入）；已付占比 = 年度付款金额 / 年度合同总额（支出）。</div>
+        <div class="detail-item">5. 收入开票覆盖率 = 年度开票金额（收入） / 年度合同总额（收入）；支出开票覆盖率 = 年度开票金额（支出） / 年度合同总额（支出）。</div>
       </div>
     </el-card>
   </div>
@@ -165,11 +169,12 @@ import { getInvoiceBizType } from '@/utils/invoiceType'
 
 const createMetrics = () => ({
   contractTotalAmount: 0,
+  contractIncomeAmount: 0,
+  contractExpenseAmount: 0,
   yearReceiveAmount: 0,
   yearPayAmount: 0,
   yearInputInvoiceAmount: 0,
   yearOutputInvoiceAmount: 0,
-  yearInvoiceAmount: 0,
   receivedAmount: 0,
   pendingReceiveAmount: 0,
   paidAmount: 0,
@@ -182,6 +187,8 @@ const createMetrics = () => ({
   pendingPayRatio: 0,
   issuedRatio: 0,
   pendingIssuedRatio: 0,
+  incomeInvoiceRatio: 0,
+  expenseInvoiceRatio: 0,
   contractCount: 0,
   accountCount: 0,
   invoiceCount: 0
@@ -231,6 +238,12 @@ export default {
         const yearInvoiceRows = invoiceRows.filter(item => this.getYear(item.invoiceDate || item.createTime || item.applyTime || item.updateTime) === this.selectedYear)
 
         const contractTotalAmount = this.sumBy(yearContractRows, 'totalAmount')
+        const contractIncomeAmount = yearContractRows
+          .filter(item => item.amountType === '收入')
+          .reduce((sum, item) => sum + this.toNumber(item.totalAmount), 0)
+        const contractExpenseAmount = yearContractRows
+          .filter(item => item.amountType === '支出')
+          .reduce((sum, item) => sum + this.toNumber(item.totalAmount), 0)
         const receivedAmount = this.sumBy(yearContractRows, 'receivedPaid')
         const pendingReceiveAmount = this.sumBy(yearContractRows, 'pendingReceivedPaid')
         const paidAmount = this.sumBy(yearContractRows, 'otherPaymentAmount')
@@ -256,23 +269,26 @@ export default {
 
         this.metrics = {
           contractTotalAmount,
+          contractIncomeAmount,
+          contractExpenseAmount,
           yearReceiveAmount,
           yearPayAmount,
           yearInputInvoiceAmount,
           yearOutputInvoiceAmount,
-          yearInvoiceAmount: yearInputInvoiceAmount + yearOutputInvoiceAmount,
           receivedAmount,
           pendingReceiveAmount,
           paidAmount,
           pendingPayAmount,
           issuedAmount,
           pendingIssuedAmount,
-          receivedRatio: this.calcRatio(receivedAmount, contractTotalAmount),
-          pendingReceiveRatio: this.calcRatio(pendingReceiveAmount, contractTotalAmount),
-          paidRatio: this.calcRatio(paidAmount, contractTotalAmount),
-          pendingPayRatio: this.calcRatio(pendingPayAmount, contractTotalAmount),
+          receivedRatio: this.calcRatio(yearReceiveAmount, contractIncomeAmount),
+          pendingReceiveRatio: this.calcRatio(pendingReceiveAmount, contractIncomeAmount),
+          paidRatio: this.calcRatio(yearPayAmount, contractExpenseAmount),
+          pendingPayRatio: this.calcRatio(pendingPayAmount, contractExpenseAmount),
           issuedRatio: this.calcRatio(issuedAmount, contractTotalAmount),
           pendingIssuedRatio: this.calcRatio(pendingIssuedAmount, contractTotalAmount),
+          incomeInvoiceRatio: this.calcRatio(yearInputInvoiceAmount, contractIncomeAmount),
+          expenseInvoiceRatio: this.calcRatio(yearOutputInvoiceAmount, contractExpenseAmount),
           contractCount: yearContractRows.length,
           accountCount: yearAccountRows.length,
           invoiceCount: yearInvoiceRows.length
@@ -547,12 +563,12 @@ export default {
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.8);
 }
-.metric-card.contract { border-top: 4px solid #3b82f6; }
+.metric-card.contract-income { border-top: 4px solid #3b82f6; }
+.metric-card.contract-expense { border-top: 4px solid #0f766e; }
 .metric-card.receive { border-top: 4px solid #22c55e; }
 .metric-card.pay { border-top: 4px solid #ef4444; }
 .metric-card.output-invoice { border-top: 4px solid #8b5cf6; }
 .metric-card.input-invoice { border-top: 4px solid #f59e0b; }
-.metric-card.invoice-total { border-top: 4px solid #14b8a6; }
 .metric-label {
   font-size: 14px;
   color: #606266;
