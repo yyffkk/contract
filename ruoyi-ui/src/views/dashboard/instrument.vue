@@ -2,7 +2,7 @@
   <div class="instrument-page">
     <div class="hero-section">
       <div class="hero-left">
-        <div class="hero-title">仪表盘</div>
+        <div class="hero-title">履约台账</div>
         <div class="hero-desc">按年份汇总合同、收付款、进销项开票情况，用更直观的图形看业务执行进度</div>
       </div>
       <div class="hero-right">
@@ -124,6 +124,10 @@
               <strong>{{ metrics.invoiceCount }}</strong>
             </div>
             <div class="summary-item">
+              <span>未开票数量</span>
+              <strong>{{ metrics.unissuedInvoiceCount }}</strong>
+            </div>
+            <div class="summary-item">
               <span>已收占比</span>
               <strong>{{ formatPercent(metrics.receivedRatio) }}</strong>
             </div>
@@ -175,6 +179,9 @@ const createMetrics = () => ({
   yearPayAmount: 0,
   yearInputInvoiceAmount: 0,
   yearOutputInvoiceAmount: 0,
+  inputInvoiceCount: 0,
+  outputInvoiceCount: 0,
+  unissuedInvoiceCount: 0,
   receivedAmount: 0,
   pendingReceiveAmount: 0,
   paidAmount: 0,
@@ -259,13 +266,21 @@ export default {
           .filter(item => item.amountType === 'expense')
           .reduce((sum, item) => sum + this.toNumber(item.amount), 0)
 
-        const yearOutputInvoiceAmount = yearInvoiceRows
+        const outputInvoiceRows = yearInvoiceRows
           .filter(item => (item.invoiceBizType || this.getInvoiceBizType(item.amountType).key) === 'output')
+        const inputInvoiceRows = yearInvoiceRows
+          .filter(item => (item.invoiceBizType || this.getInvoiceBizType(item.amountType).key) === 'input')
+
+        const yearOutputInvoiceAmount = outputInvoiceRows
           .reduce((sum, item) => sum + this.toNumber(item.invoiceAmount), 0)
 
-        const yearInputInvoiceAmount = yearInvoiceRows
-          .filter(item => (item.invoiceBizType || this.getInvoiceBizType(item.amountType).key) === 'input')
+        const yearInputInvoiceAmount = inputInvoiceRows
           .reduce((sum, item) => sum + this.toNumber(item.invoiceAmount), 0)
+
+        const outputInvoiceCount = outputInvoiceRows.length
+        const inputInvoiceCount = inputInvoiceRows.length
+        const contractCount = yearContractRows.length
+        const unissuedInvoiceCount = Math.max(contractCount - outputInvoiceCount - inputInvoiceCount, 0)
 
         this.metrics = {
           contractTotalAmount,
@@ -275,6 +290,9 @@ export default {
           yearPayAmount,
           yearInputInvoiceAmount,
           yearOutputInvoiceAmount,
+          inputInvoiceCount,
+          outputInvoiceCount,
+          unissuedInvoiceCount,
           receivedAmount,
           pendingReceiveAmount,
           paidAmount,
@@ -289,7 +307,7 @@ export default {
           pendingIssuedRatio: this.calcRatio(pendingIssuedAmount, contractTotalAmount),
           incomeInvoiceRatio: this.calcRatio(yearInputInvoiceAmount, contractIncomeAmount),
           expenseInvoiceRatio: this.calcRatio(yearOutputInvoiceAmount, contractExpenseAmount),
-          contractCount: yearContractRows.length,
+          contractCount,
           accountCount: yearAccountRows.length,
           invoiceCount: yearInvoiceRows.length
         }
