@@ -3256,25 +3256,26 @@ export default {
       const statusValue = String(data.status || "").toLowerCase();
       const archived = signStatus === "5" || statusValue === "archived";
       const signing = ["2", "3", "4"].includes(signStatus);
-      const currentNodeName = archived ? "归档完成" : this.getApprovalNodeDisplayName(data.currentNode, data);
+      const rejected = ["7", "6"].includes(signStatus) || ["rejected", "reject"].includes(statusValue);
+      const approved = ["2", "3", "4", "5"].includes(signStatus) || ["approved", "signed", "archived"].includes(statusValue);
       const statusLabel = this.getCurrentDetailStatusText(data);
       const startOwner = data.submitter || data.owner || data.createBy || "发起人";
-      const latestTime = this.parseTime(data.updateTime || data.approvePassTime || data.applyTime || data.createTime, '{y}-{m}-{d} {h}:{i}') || "待更新";
+      const signOwner = data.signUserName || data.signer || data.owner || data.submitter || "待分配";
+      const archiveOwner = data.archiveBy || data.archiveUserName || data.fileOwner || data.owner || "待分配";
       const applyTime = this.parseTime(data.applyTime || data.createTime, '{y}-{m}-{d} {h}:{i}') || "待提交";
       const approveTime = this.parseTime(data.approvePassTime || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待审批";
       const signTime = this.parseTime(data.signDate || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待处理";
       const archiveTime = this.parseTime(data.archiveTime || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待归档";
-      const rejected = ["7", "6"].includes(signStatus) || ["rejected", "reject"].includes(statusValue);
-      const approved = ["2", "3", "4", "5"].includes(signStatus) || ["approved", "signed", "archived"].includes(statusValue);
+      const currentNodeName = archived ? "归档完成" : (signing ? "等待归档" : "等待签署");
       const steps = [
-        { title: "发起申请", description: startOwner },
-        { title: "审批处理", description: currentNodeName },
-        { title: "签署办理", description: signing || archived ? this.getSignStatusLabel(signStatus) : "待进入" },
-        { title: "归档完成", description: archived ? "流程闭环" : "待完成" }
+        { title: "发起审批", description: startOwner },
+        { title: "等待签署", description: signOwner },
+        { title: "等待归档", description: archiveOwner },
+        { title: "归档完成", description: archiveOwner }
       ];
-      let activeStep = 1;
+      let activeStep = 2;
       let processStatus = "process";
-      let stageText = "审批中";
+      let stageText = "待签署";
       let tagType = "warning";
       if (rejected) {
         activeStep = 1;
@@ -3289,64 +3290,59 @@ export default {
       } else if (signing) {
         activeStep = 3;
         processStatus = "process";
-        stageText = this.getSignStatusLabel(signStatus);
+        stageText = "待归档";
         tagType = "primary";
       } else if (approved) {
         activeStep = 2;
+        stageText = "待签署";
       }
       const nodes = [
         {
-          title: "发起申请",
+          title: "发起审批",
           subtitle: "申请已创建并进入流程",
           owner: startOwner,
           time: applyTime,
-          description: data.description || "已提交合同审批申请，等待进入审批节点。",
+          description: data.description || "已提交合同审批申请。",
           state: "done",
           stateText: "已完成",
           tagType: "success"
         },
         {
-          title: currentNodeName,
-          subtitle: rejected ? "当前节点已驳回" : (approved ? "核心审批节点已处理" : "当前卡在该审批节点"),
-          owner: data.currentApprover || data.approver || data.owner || "待系统匹配",
-          time: rejected || approved ? approveTime : latestTime,
-          description: rejected ? "该节点未通过，请回看审批意见或补充材料后重新推进。" : (approved ? "审批节点已完成，流程继续向后流转。" : "当前流程仍停留在此节点，请优先处理。"),
-          state: rejected ? "rejected" : (approved ? "done" : "current"),
-          stateText: rejected ? "已驳回" : (approved ? "已完成" : "进行中"),
-          tagType: rejected ? "danger" : (approved ? "success" : "warning")
+          title: "等待签署",
+          subtitle: rejected ? "流程已驳回，暂未进入签署" : "审批完成后进入签署环节",
+          owner: signOwner,
+          time: approved ? approveTime : "待审批完成",
+          description: rejected ? "由于审批被驳回，签署流程未启动。" : (approved ? "合同已到签署节点，请签署负责人处理。" : "当前仍在审批中，审批完成后进入签署。"),
+          state: rejected ? "pending" : (approved ? "done" : "current"),
+          stateText: rejected ? "未开始" : (approved ? "已完成" : "进行中"),
+          tagType: rejected ? "info" : (approved ? "success" : "warning")
         },
         {
-          title: "签署办理",
-          subtitle: "审批通过后进入签署与用印",
-          owner: data.owner || data.submitter || "业务负责人",
-          time: signing || archived ? signTime : "待审批完成",
-          description: signing || archived ? ("当前签署状态：" + this.getSignStatusLabel(signStatus)) : "该节点尚未开始，审批完成后自动进入。",
+          title: "等待归档",
+          subtitle: "签署结束后进入归档环节",
+          owner: archiveOwner,
+          time: signing || archived ? signTime : "待签署完成",
+          description: signing || archived ? "签署已完成，等待归档处理。" : "该节点尚未开始，签署完成后自动进入。",
           state: signing ? "current" : (archived ? "done" : "pending"),
           stateText: signing ? "处理中" : (archived ? "已完成" : "待处理"),
           tagType: archived ? "success" : (signing ? "primary" : "info")
         },
         {
           title: "归档完成",
-          subtitle: "签署结束后闭环归档",
-          owner: data.archiveBy || "档案管理员",
-          time: archived ? archiveTime : "待签署完成",
-          description: archived ? "合同已归档，审批流程闭环完成。" : "归档节点尚未完成。",
+          subtitle: "归档结束后流程闭环",
+          owner: archiveOwner,
+          time: archived ? archiveTime : "待归档完成",
+          description: archived ? "合同已归档，审批流程闭环完成。" : "归档尚未完成。",
           state: archived ? "done" : "pending",
           stateText: archived ? "已完成" : "待处理",
           tagType: archived ? "success" : "info"
         }
       ];
-      if (rejected) {
-        nodes[2].state = "pending";
-        nodes[2].stateText = "未开始";
-        nodes[2].tagType = "info";
-        nodes[2].description = "由于审批被驳回，签署流程尚未启动。";
-      }
       const timeline = [
-        { title: "提交申请", desc: startOwner + " 已发起合同审批。", time: applyTime, type: "primary", hollow: false },
-        { title: rejected ? "审批驳回" : (approved ? "审批推进" : "当前卡点"), desc: rejected ? (currentNodeName + " 已驳回，请尽快处理。") : (approved ? (currentNodeName + " 已处理完成，流程继续流转。") : (currentNodeName + " 正在处理中。")), time: latestTime, type: rejected ? "danger" : (approved ? "success" : "warning"), hollow: false },
-        { title: signing || archived ? "签署办理" : "等待签署", desc: signing || archived ? ("签署环节状态：" + this.getSignStatusLabel(signStatus)) : "审批完成后将自动进入签署节点。", time: signing || archived ? signTime : "待审批完成", type: signing || archived ? "primary" : "info", hollow: !signing && !archived },
-        { title: archived ? "归档完成" : "等待归档", desc: archived ? "流程全部结束，合同已归档。" : "归档尚未完成。", time: archived ? archiveTime : "待签署完成", type: archived ? "success" : "info", hollow: !archived }
+        { title: "发起审批", desc: startOwner + " 已发起合同审批。", time: applyTime, type: "primary", hollow: false },
+        { title: "等待签署", desc: rejected ? "审批未通过，暂不进入签署。" : (approved ? (signOwner + " 负责签署处理。") : "审批完成后进入签署。"), time: approved ? approveTime : "待审批完成", type: rejected ? "danger" : (approved ? "success" : "warning"), hollow: !approved },
+        { title: "等待归档", desc: signing || archived ? (archiveOwner + " 负责归档处理。") : "签署完成后进入归档。", time: signing || archived ? signTime : "待签署完成", type: signing || archived ? "primary" : "info", hollow: !signing && !archived },
+        { title: "归档完成", desc: archived ? "流程全部结束，合同已归档。" : "归档完成后流程闭环。", time: archived ? archiveTime : "待归档完成", type: archived ? "success" : "info", hollow: !archived }
       ];
       return {
         summary: {
@@ -3355,7 +3351,7 @@ export default {
           finishedCount: nodes.filter(node => node.state === "done").length,
           stageText,
           tagType,
-          description: rejected ? ("流程在【" + currentNodeName + "】被驳回。") : (archived ? "审批、签署、归档都已完成。" : ("当前流程推进到【" + currentNodeName + "】。"))
+          description: rejected ? "流程已驳回，请回退处理。" : (archived ? "当前流程已到【归档完成】。" : ("当前流程推进到【" + currentNodeName + "】。"))
         },
         activeStep,
         processStatus,
