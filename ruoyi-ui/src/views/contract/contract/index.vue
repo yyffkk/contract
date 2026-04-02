@@ -3252,111 +3252,116 @@ export default {
 
     buildApprovalFlowView(record, options = {}) {
       const data = record || {};
-      const signStatus = String(data.signStatus || "");
-      const statusValue = String(data.status || "").toLowerCase();
-      const archived = signStatus === "5" || statusValue === "archived";
-      const signing = ["2", "3", "4"].includes(signStatus);
-      const rejected = ["7", "6"].includes(signStatus) || ["rejected", "reject"].includes(statusValue);
-      const approved = ["2", "3", "4", "5"].includes(signStatus) || ["approved", "signed", "archived"].includes(statusValue);
       const statusLabel = this.getCurrentDetailStatusText(data);
-      const startOwner = data.submitter || data.owner || data.createBy || "发起人";
-      const signOwner = data.signUserName || data.signer || data.owner || data.submitter || "待分配";
-      const archiveOwner = data.archiveBy || data.archiveUserName || data.fileOwner || data.owner || "待分配";
-      const applyTime = this.parseTime(data.applyTime || data.createTime, '{y}-{m}-{d} {h}:{i}') || "待提交";
-      const approveTime = this.parseTime(data.approvePassTime || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待审批";
-      const signTime = this.parseTime(data.signDate || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待处理";
-      const archiveTime = this.parseTime(data.archiveTime || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待归档";
-      const currentNodeName = archived ? "归档完成" : (signing ? "等待归档" : "等待签署");
-      const steps = [
-        { title: "发起审批", description: startOwner },
-        { title: "等待签署", description: signOwner },
-        { title: "等待归档", description: archiveOwner },
-        { title: "归档完成", description: archiveOwner }
-      ];
-      let activeStep = 2;
-      let processStatus = "process";
-      let stageText = "待签署";
-      let tagType = "warning";
-      if (rejected) {
-        activeStep = 1;
-        processStatus = "error";
-        stageText = statusLabel || "已驳回";
-        tagType = "danger";
-      } else if (archived) {
-        activeStep = 4;
-        processStatus = "success";
-        stageText = "已完成";
-        tagType = "success";
-      } else if (signing) {
-        activeStep = 3;
-        processStatus = "process";
-        stageText = "待归档";
-        tagType = "primary";
-      } else if (approved) {
-        activeStep = 2;
-        stageText = "待签署";
-      }
-      const nodes = [
+      const rawLogs = Array.isArray(data.operateLogs) ? data.operateLogs : [];
+      const normalizedLogs = rawLogs.map(item => ({
+        action: String(item.action || "").trim(),
+        detail: item.detail || "",
+        operator: item.operator || item.createBy || "待确认",
+        operateTime: this.parseTime(item.operateTime || item.createTime || item.updateTime, '{y}-{m}-{d} {h}:{i}') || "待更新"
+      }));
+      const findLog = (action) => normalizedLogs.find(item => item.action === action);
+      const createLog = findLog("新建合同");
+      const approveLog = findLog("审批合同");
+      const signLog = findLog("签署合同");
+      const archiveLog = findLog("合同归档");
+      const finishLog = findLog("合同完结");
+      const stageDefs = [
         {
+          key: "create",
+          action: "新建合同",
           title: "发起审批",
-          subtitle: "申请已创建并进入流程",
-          owner: startOwner,
-          time: applyTime,
-          description: data.description || "已提交合同审批申请。",
-          state: "done",
-          stateText: "已完成",
-          tagType: "success"
+          subtitle: "对应操作日志：新建合同",
+          log: createLog,
+          fallbackOwner: data.submitter || data.owner || data.createBy || "待确认",
+          fallbackTime: this.parseTime(data.applyTime || data.createTime, '{y}-{m}-{d} {h}:{i}') || "待提交",
+          pendingDesc: "合同已创建，等待进入下一节点。"
         },
         {
-          title: "等待签署",
-          subtitle: rejected ? "流程已驳回，暂未进入签署" : "审批完成后进入签署环节",
-          owner: signOwner,
-          time: approved ? approveTime : "待审批完成",
-          description: rejected ? "由于审批被驳回，签署流程未启动。" : (approved ? "合同已到签署节点，请签署负责人处理。" : "当前仍在审批中，审批完成后进入签署。"),
-          state: rejected ? "pending" : (approved ? "done" : "current"),
-          stateText: rejected ? "未开始" : (approved ? "已完成" : "进行中"),
-          tagType: rejected ? "info" : (approved ? "success" : "warning")
+          key: "approve",
+          action: "审批合同",
+          title: "审批合同",
+          subtitle: "对应操作日志：审批合同",
+          log: approveLog,
+          fallbackOwner: data.currentApprover || data.approver || "待确认",
+          fallbackTime: this.parseTime(data.approvePassTime || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待审批",
+          pendingDesc: "等待审批处理。"
         },
         {
-          title: "等待归档",
-          subtitle: "签署结束后进入归档环节",
-          owner: archiveOwner,
-          time: signing || archived ? signTime : "待签署完成",
-          description: signing || archived ? "签署已完成，等待归档处理。" : "该节点尚未开始，签署完成后自动进入。",
-          state: signing ? "current" : (archived ? "done" : "pending"),
-          stateText: signing ? "处理中" : (archived ? "已完成" : "待处理"),
-          tagType: archived ? "success" : (signing ? "primary" : "info")
+          key: "sign",
+          action: "签署合同",
+          title: "签署办理",
+          subtitle: "对应操作日志：签署合同",
+          log: signLog,
+          fallbackOwner: data.signUserName || data.signer || data.owner || "待确认",
+          fallbackTime: this.parseTime(data.signDate || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待签署",
+          pendingDesc: "等待签署办理。"
         },
         {
-          title: "归档完成",
-          subtitle: "归档结束后流程闭环",
-          owner: archiveOwner,
-          time: archived ? archiveTime : "待归档完成",
-          description: archived ? "合同已归档，审批流程闭环完成。" : "归档尚未完成。",
-          state: archived ? "done" : "pending",
-          stateText: archived ? "已完成" : "待处理",
-          tagType: archived ? "success" : "info"
+          key: "archive",
+          action: "合同归档",
+          title: "归档确认",
+          subtitle: "对应操作日志：合同归档",
+          log: archiveLog,
+          fallbackOwner: data.archiveBy || data.archiveUserName || data.archiver || "待确认",
+          fallbackTime: this.parseTime(data.archiveTime || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待归档",
+          pendingDesc: "等待归档确认。"
+        },
+        {
+          key: "finish",
+          action: "合同完结",
+          title: "合同完结",
+          subtitle: "对应操作日志：合同完结",
+          log: finishLog,
+          fallbackOwner: data.archiveBy || data.archiveUserName || data.archiver || "待确认",
+          fallbackTime: this.parseTime(data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待完结",
+          pendingDesc: "等待合同完结。"
         }
       ];
-      const timeline = [
-        { title: "发起审批", desc: startOwner + " 已发起合同审批。", time: applyTime, type: "primary", hollow: false },
-        { title: "等待签署", desc: rejected ? "审批未通过，暂不进入签署。" : (approved ? (signOwner + " 负责签署处理。") : "审批完成后进入签署。"), time: approved ? approveTime : "待审批完成", type: rejected ? "danger" : (approved ? "success" : "warning"), hollow: !approved },
-        { title: "等待归档", desc: signing || archived ? (archiveOwner + " 负责归档处理。") : "签署完成后进入归档。", time: signing || archived ? signTime : "待签署完成", type: signing || archived ? "primary" : "info", hollow: !signing && !archived },
-        { title: "归档完成", desc: archived ? "流程全部结束，合同已归档。" : "归档完成后流程闭环。", time: archived ? archiveTime : "待归档完成", type: archived ? "success" : "info", hollow: !archived }
-      ];
+      const completedIndexes = stageDefs.map((item, index) => item.log ? index : -1).filter(index => index >= 0);
+      const lastCompletedIndex = completedIndexes.length ? completedIndexes[completedIndexes.length - 1] : 0;
+      const currentIndex = Math.min(lastCompletedIndex, stageDefs.length - 1);
+      const currentNodeName = stageDefs[currentIndex].title;
+      const finishedCount = completedIndexes.length;
+      const allFinished = !!finishLog;
+      const steps = stageDefs.map(item => ({
+        title: item.title,
+        description: item.log ? item.log.operator : item.fallbackOwner
+      }));
+      const nodes = stageDefs.map((item, index) => {
+        const isDone = !!item.log;
+        const isCurrent = !allFinished && index === currentIndex;
+        return {
+          title: item.title,
+          subtitle: item.subtitle,
+          owner: item.log ? item.log.operator : item.fallbackOwner,
+          time: item.log ? item.log.operateTime : item.fallbackTime,
+          description: item.log ? (item.log.detail || (item.title + "已处理。")) : item.pendingDesc,
+          state: isDone ? "done" : (isCurrent ? "current" : "pending"),
+          stateText: isDone ? "已完成" : (isCurrent ? "进行中" : "待处理"),
+          tagType: isDone ? "success" : (isCurrent ? "warning" : "info")
+        };
+      });
+      const timeline = stageDefs.map(item => ({
+        title: item.title,
+        desc: item.log ? ((item.log.operator || "待确认") + "：" + (item.log.detail || "已处理")) : item.pendingDesc,
+        time: item.log ? item.log.operateTime : item.fallbackTime,
+        type: item.log ? "success" : "info",
+        hollow: !item.log
+      }));
       return {
         summary: {
           statusLabel,
           currentNodeName,
-          finishedCount: nodes.filter(node => node.state === "done").length,
-          stageText,
-          tagType,
-          description: rejected ? "流程已驳回，请回退处理。" : (archived ? "当前流程已到【归档完成】。" : ("当前流程推进到【" + currentNodeName + "】。"))
+          finishedCount,
+          stageText: allFinished ? "已完成" : currentNodeName,
+          tagType: allFinished ? "success" : "warning",
+          description: allFinished ? "合同流程已完结。" : ("当前流程节点：" + currentNodeName)
         },
-        activeStep,
-        processStatus,
+        activeStep: currentIndex + 1,
+        processStatus: allFinished ? "success" : "process",
         steps,
-        nodes: options.forDrawer ? nodes.slice(0, 3) : nodes,
+        nodes: options.forDrawer ? nodes.slice(0, 4) : nodes,
         timeline
       };
     },
