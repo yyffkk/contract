@@ -1444,6 +1444,7 @@
                 </el-tag>
               </div>
             </div>
+            <div class="approval-flow-hero__glow"></div>
           </div>
 
           <el-card shadow="never" class="detail-block approval-step-card">
@@ -4535,6 +4536,8 @@ export default {
 }
 
 .approval-flow-hero {
+  position: relative;
+  overflow: hidden;
   display: flex;
   justify-content: space-between;
   gap: 16px;
@@ -4543,6 +4546,17 @@ export default {
   background: linear-gradient(135deg, #172033 0%, #243b63 55%, #305b97 100%);
   color: #fff;
   box-shadow: 0 18px 40px rgba(23, 32, 51, 0.18);
+}
+
+.approval-flow-hero__glow {
+  position: absolute;
+  right: -80px;
+  top: -60px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.02) 62%, transparent 72%);
+  pointer-events: none;
 }
 
 .approval-flow-hero__label {
@@ -4606,6 +4620,28 @@ export default {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
   gap: 16px;
+}
+
+.approval-step-card,
+.approval-node-card,
+.approval-timeline-card {
+  border-radius: 18px;
+  border: 1px solid #e9eef6;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+}
+
+.approval-step-card ::v-deep .el-card__body,
+.approval-node-card ::v-deep .el-card__body,
+.approval-timeline-card ::v-deep .el-card__body {
+  padding: 20px;
+}
+
+.approval-step-card ::v-deep .el-step__title {
+  font-weight: 600;
+}
+
+.approval-step-card ::v-deep .el-step__description {
+  line-height: 1.5;
 }
 
 .approval-node-list,
@@ -4753,6 +4789,53 @@ export default {
 
 .approval-timeline-item__desc {
   margin-top: 6px;
+}
+
+@media (max-width: 1200px) {
+  .approval-flow-hero,
+  .process-card__summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .approval-flow-hero__meta {
+    min-width: 0;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .approval-flow-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .approval-flow-hero {
+    padding: 18px;
+  }
+
+  .approval-flow-hero__title {
+    font-size: 22px;
+  }
+
+  .approval-flow-hero__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .approval-node-item,
+  .process-node-item {
+    padding: 14px;
+  }
+
+  .approval-node-item__top,
+  .process-node-item__top,
+  .process-card__summary {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .process-card__summary-side {
+    align-items: flex-start;
+  }
 }
 
 .remark-box {
