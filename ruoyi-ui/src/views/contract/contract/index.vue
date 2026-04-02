@@ -3254,7 +3254,9 @@ export default {
       const data = record || {};
       const signStatus = String(data.signStatus || "");
       const statusValue = String(data.status || "").toLowerCase();
-      const currentNodeName = this.getApprovalNodeDisplayName(data.currentNode, data);
+      const archived = signStatus === "5" || statusValue === "archived";
+      const signing = ["2", "3", "4"].includes(signStatus);
+      const currentNodeName = archived ? "归档完成" : this.getApprovalNodeDisplayName(data.currentNode, data);
       const statusLabel = this.getCurrentDetailStatusText(data);
       const startOwner = data.submitter || data.owner || data.createBy || "发起人";
       const latestTime = this.parseTime(data.updateTime || data.approvePassTime || data.applyTime || data.createTime, '{y}-{m}-{d} {h}:{i}') || "待更新";
@@ -3264,8 +3266,6 @@ export default {
       const archiveTime = this.parseTime(data.archiveTime || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待归档";
       const rejected = ["7", "6"].includes(signStatus) || ["rejected", "reject"].includes(statusValue);
       const approved = ["2", "3", "4", "5"].includes(signStatus) || ["approved", "signed", "archived"].includes(statusValue);
-      const archived = signStatus === "5" || statusValue === "archived";
-      const signing = ["2", "3", "4"].includes(signStatus);
       const steps = [
         { title: "发起申请", description: startOwner },
         { title: "审批处理", description: currentNodeName },
