@@ -43,17 +43,17 @@
         </div>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="4">
-        <div class="metric-card output-invoice">
-          <div class="metric-label">年度开票金额（支出）</div>
-          <div class="metric-value">¥ {{ formatMoney(metrics.yearOutputInvoiceAmount) }}</div>
-          <div class="metric-sub">发票分类：销项 / 支出</div>
-        </div>
-      </el-col>
-      <el-col :xs="24" :sm="12" :lg="4">
         <div class="metric-card input-invoice">
           <div class="metric-label">年度开票金额（收入）</div>
           <div class="metric-value">¥ {{ formatMoney(metrics.yearInputInvoiceAmount) }}</div>
           <div class="metric-sub">发票分类：进项 / 收入</div>
+        </div>
+      </el-col>
+      <el-col :xs="24" :sm="12" :lg="4">
+        <div class="metric-card output-invoice">
+          <div class="metric-label">年度开票金额（支出）</div>
+          <div class="metric-value">¥ {{ formatMoney(metrics.yearOutputInvoiceAmount) }}</div>
+          <div class="metric-sub">发票分类：销项 / 支出</div>
         </div>
       </el-col>
     </el-row>
