@@ -1244,7 +1244,7 @@
         <el-tabs v-model="detailTab" type="card" class="detail-tabs">
           <el-tab-pane label="详情" name="detail"></el-tab-pane>
           <el-tab-pane label="履约" name="performance"></el-tab-pane>
-          <el-tab-pane label="操作记录" name="log"></el-tab-pane>
+          <el-tab-pane label="审批流程" name="log"></el-tab-pane>
         </el-tabs>
 
         <div v-if="detailTab === 'detail'" class="detail-overview-page">
@@ -1421,26 +1421,92 @@
           </el-card>
         </div>
 
-        <div v-if="detailTab === 'log'">
-          <el-card shadow="never" class="detail-block">
-            <div v-if="currentDetail.operateLogs && currentDetail.operateLogs.length > 0">
-              <div v-for="(log, index) in currentDetail.operateLogs" :key="index" class="log-item">
-                <div class="log-left">
-                  <div class="log-avatar">
-                    {{ (log.operator && log.operator.slice(0, 1)) || '操' }}
-                  </div>
-                  <div class="log-main">
-                    <div class="log-operator">{{ log.operator }}</div>
-                    <div class="log-action">{{ log.action }}</div>
-                  </div>
-                </div>
-                <div class="log-time">{{ log.operateTime || log.time }}</div>
+        <div v-if="detailTab === 'log'" class="approval-flow-page">
+          <div class="approval-flow-hero">
+            <div>
+              <div class="approval-flow-hero__label">审批流程总览</div>
+              <div class="approval-flow-hero__title">{{ detailApprovalFlow.summary.statusLabel }}</div>
+              <div class="approval-flow-hero__desc">{{ detailApprovalFlow.summary.description }}</div>
+            </div>
+            <div class="approval-flow-hero__meta">
+              <div class="hero-metric-card">
+                <span>当前节点</span>
+                <strong>{{ detailApprovalFlow.summary.currentNodeName }}</strong>
+              </div>
+              <div class="hero-metric-card">
+                <span>完成进度</span>
+                <strong>{{ detailApprovalFlow.summary.finishedCount }}/{{ detailApprovalFlow.steps.length }}</strong>
+              </div>
+              <div class="hero-metric-card emphasis">
+                <span>当前状态</span>
+                <el-tag :type="detailApprovalFlow.summary.tagType" effect="dark" size="small">
+                  {{ detailApprovalFlow.summary.stageText }}
+                </el-tag>
               </div>
             </div>
-            <div v-else class="empty-panel small">
-              <p>暂无操作记录</p>
+          </div>
+
+          <el-card shadow="never" class="detail-block approval-step-card">
+            <div slot="header" class="detail-block-header">
+              <span class="detail-block-title">阶段概览</span>
+              <span class="approval-step-card__hint">一眼看清流程走到哪一步</span>
             </div>
+            <el-steps :active="detailApprovalFlow.activeStep" :process-status="detailApprovalFlow.processStatus" finish-status="success" align-center>
+              <el-step v-for="(step, index) in detailApprovalFlow.steps" :key="'detail-step-' + index" :title="step.title" :description="step.description"></el-step>
+            </el-steps>
           </el-card>
+
+          <div class="approval-flow-grid">
+            <el-card shadow="never" class="detail-block approval-node-card">
+              <div slot="header" class="detail-block-header">
+                <span class="detail-block-title">节点明细</span>
+                <span class="approval-node-card__hint">已完成 / 进行中 / 卡住状态全部展开</span>
+              </div>
+              <div class="approval-node-list">
+                <div
+                  v-for="(node, index) in detailApprovalFlow.nodes"
+                  :key="'detail-node-' + index"
+                  class="approval-node-item"
+                  :class="['is-' + node.state]"
+                >
+                  <div class="approval-node-item__index">{{ index + 1 }}</div>
+                  <div class="approval-node-item__content">
+                    <div class="approval-node-item__top">
+                      <div>
+                        <div class="approval-node-item__title">{{ node.title }}</div>
+                        <div class="approval-node-item__subtitle">{{ node.subtitle }}</div>
+                      </div>
+                      <el-tag :type="node.tagType" size="small" effect="plain">{{ node.stateText }}</el-tag>
+                    </div>
+                    <div class="approval-node-item__meta">
+                      <span>处理人：{{ node.owner }}</span>
+                      <span>时间：{{ node.time }}</span>
+                    </div>
+                    <div class="approval-node-item__desc">{{ node.description }}</div>
+                  </div>
+                </div>
+              </div>
+            </el-card>
+
+            <el-card shadow="never" class="detail-block approval-timeline-card">
+              <div slot="header" class="detail-block-header">
+                <span class="detail-block-title">关键进展</span>
+                <span class="approval-timeline-card__hint">保留有效节点，不再直接堆原始操作日志</span>
+              </div>
+              <el-timeline>
+                <el-timeline-item
+                  v-for="(item, index) in detailApprovalFlow.timeline"
+                  :key="'detail-timeline-' + index"
+                  :timestamp="item.time"
+                  :type="item.type"
+                  :hollow="item.hollow"
+                >
+                  <div class="approval-timeline-item__title">{{ item.title }}</div>
+                  <div class="approval-timeline-item__desc">{{ item.desc }}</div>
+                </el-timeline-item>
+              </el-timeline>
+            </el-card>
+          </div>
         </div>
       </div>
 
@@ -1545,41 +1611,47 @@
 
         <div class="approve-section">
           <div class="section-title">审批流程</div>
-          <div class="process-card">
-            <el-steps :active="2" finish-status="success" align-center>
-              <el-step title="发起申请"></el-step>
-              <el-step title="当前审批"></el-step>
-              <el-step title="抄送归档"></el-step>
+          <div class="process-card process-card--premium">
+            <div class="process-card__summary">
+              <div class="process-card__summary-main">
+                <span class="process-card__eyebrow">当前进度</span>
+                <strong>{{ approveDrawerFlow.summary.currentNodeName }}</strong>
+                <p>{{ approveDrawerFlow.summary.description }}</p>
+              </div>
+              <div class="process-card__summary-side">
+                <span>完成 {{ approveDrawerFlow.summary.finishedCount }}/{{ approveDrawerFlow.steps.length }}</span>
+                <el-tag :type="approveDrawerFlow.summary.tagType" effect="dark" size="small">
+                  {{ approveDrawerFlow.summary.stageText }}
+                </el-tag>
+              </div>
+            </div>
+
+            <el-steps :active="approveDrawerFlow.activeStep" :process-status="approveDrawerFlow.processStatus" finish-status="success" align-center>
+              <el-step v-for="(step, index) in approveDrawerFlow.steps" :key="'approve-step-' + index" :title="step.title" :description="step.description"></el-step>
             </el-steps>
 
-            <div class="process-timeline">
-              <div class="timeline-item done">
-                <div class="timeline-dot"></div>
-                <div class="timeline-content">
-                  <div class="timeline-title">发起申请</div>
-                  <div class="timeline-desc">
-                    {{ currentApproveData.submitter || currentApproveData.owner || '我' }}
+            <div class="process-node-list">
+              <div
+                v-for="(node, index) in approveDrawerFlow.nodes"
+                :key="'approve-node-' + index"
+                class="process-node-item"
+                :class="['is-' + node.state]"
+              >
+                <div class="process-node-item__badge">{{ index + 1 }}</div>
+                <div class="process-node-item__body">
+                  <div class="process-node-item__top">
+                    <div>
+                      <div class="process-node-item__title">{{ node.title }}</div>
+                      <div class="process-node-item__subtitle">{{ node.subtitle }}</div>
+                    </div>
+                    <el-tag :type="node.tagType" effect="plain" size="small">{{ node.stateText }}</el-tag>
                   </div>
+                  <div class="process-node-item__meta">
+                    <span>{{ node.owner }}</span>
+                    <span>{{ node.time }}</span>
+                  </div>
+                  <div class="process-node-item__desc">{{ node.description }}</div>
                 </div>
-                <div class="timeline-time">已发起</div>
-              </div>
-
-              <div class="timeline-item current">
-                <div class="timeline-dot"></div>
-                <div class="timeline-content">
-                  <div class="timeline-title">待你审批</div>
-                  <div class="timeline-desc">请确认合同信息后进行审批</div>
-                </div>
-                <div class="timeline-time">进行中</div>
-              </div>
-
-              <div class="timeline-item">
-                <div class="timeline-dot"></div>
-                <div class="timeline-content">
-                  <div class="timeline-title">抄送节点</div>
-                  <div class="timeline-desc">审批结束后自动通知相关人员</div>
-                </div>
-                <div class="timeline-time">待处理</div>
               </div>
             </div>
           </div>
@@ -2199,6 +2271,12 @@ export default {
     },
     editParsedAttachments() {
       return this.normalizeFileList(this.editForm.attachments);
+    },
+    detailApprovalFlow() {
+      return this.buildApprovalFlowView(this.currentDetail, { forDrawer: false });
+    },
+    approveDrawerFlow() {
+      return this.buildApprovalFlowView(this.currentApproveData, { forDrawer: true });
     }
   },
   created() {
@@ -3169,6 +3247,139 @@ export default {
         "3": "已归还"
       };
       return map[status] || (status || "—");
+    },
+
+    buildApprovalFlowView(record, options = {}) {
+      const data = record || {};
+      const signStatus = String(data.signStatus || "");
+      const statusValue = String(data.status || "").toLowerCase();
+      const currentNodeName = this.getApprovalNodeDisplayName(data.currentNode, data);
+      const statusLabel = this.getCurrentDetailStatusText(data);
+      const startOwner = data.submitter || data.owner || data.createBy || "发起人";
+      const latestTime = this.parseTime(data.updateTime || data.approvePassTime || data.applyTime || data.createTime, '{y}-{m}-{d} {h}:{i}') || "待更新";
+      const applyTime = this.parseTime(data.applyTime || data.createTime, '{y}-{m}-{d} {h}:{i}') || "待提交";
+      const approveTime = this.parseTime(data.approvePassTime || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待审批";
+      const signTime = this.parseTime(data.signDate || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待处理";
+      const archiveTime = this.parseTime(data.archiveTime || data.updateTime, '{y}-{m}-{d} {h}:{i}') || "待归档";
+      const rejected = ["7", "6"].includes(signStatus) || ["rejected", "reject"].includes(statusValue);
+      const approved = ["2", "3", "4", "5"].includes(signStatus) || ["approved", "signed", "archived"].includes(statusValue);
+      const archived = signStatus === "5" || statusValue === "archived";
+      const signing = ["2", "3", "4"].includes(signStatus);
+      const steps = [
+        { title: "发起申请", description: startOwner },
+        { title: "审批处理", description: currentNodeName },
+        { title: "签署办理", description: signing || archived ? this.getSignStatusLabel(signStatus) : "待进入" },
+        { title: "归档完成", description: archived ? "流程闭环" : "待完成" }
+      ];
+      let activeStep = 1;
+      let processStatus = "process";
+      let stageText = "审批中";
+      let tagType = "warning";
+      if (rejected) {
+        activeStep = 1;
+        processStatus = "error";
+        stageText = statusLabel || "已驳回";
+        tagType = "danger";
+      } else if (archived) {
+        activeStep = 4;
+        processStatus = "success";
+        stageText = "已完成";
+        tagType = "success";
+      } else if (signing) {
+        activeStep = 3;
+        processStatus = "process";
+        stageText = this.getSignStatusLabel(signStatus);
+        tagType = "primary";
+      } else if (approved) {
+        activeStep = 2;
+      }
+      const nodes = [
+        {
+          title: "发起申请",
+          subtitle: "申请已创建并进入流程",
+          owner: startOwner,
+          time: applyTime,
+          description: data.description || "已提交合同审批申请，等待进入审批节点。",
+          state: "done",
+          stateText: "已完成",
+          tagType: "success"
+        },
+        {
+          title: currentNodeName,
+          subtitle: rejected ? "当前节点已驳回" : (approved ? "核心审批节点已处理" : "当前卡在该审批节点"),
+          owner: data.currentApprover || data.approver || data.owner || "待系统匹配",
+          time: rejected || approved ? approveTime : latestTime,
+          description: rejected ? "该节点未通过，请回看审批意见或补充材料后重新推进。" : (approved ? "审批节点已完成，流程继续向后流转。" : "当前流程仍停留在此节点，请优先处理。"),
+          state: rejected ? "rejected" : (approved ? "done" : "current"),
+          stateText: rejected ? "已驳回" : (approved ? "已完成" : "进行中"),
+          tagType: rejected ? "danger" : (approved ? "success" : "warning")
+        },
+        {
+          title: "签署办理",
+          subtitle: "审批通过后进入签署与用印",
+          owner: data.owner || data.submitter || "业务负责人",
+          time: signing || archived ? signTime : "待审批完成",
+          description: signing || archived ? ("当前签署状态：" + this.getSignStatusLabel(signStatus)) : "该节点尚未开始，审批完成后自动进入。",
+          state: signing ? "current" : (archived ? "done" : "pending"),
+          stateText: signing ? "处理中" : (archived ? "已完成" : "待处理"),
+          tagType: archived ? "success" : (signing ? "primary" : "info")
+        },
+        {
+          title: "归档完成",
+          subtitle: "签署结束后闭环归档",
+          owner: data.archiveBy || "档案管理员",
+          time: archived ? archiveTime : "待签署完成",
+          description: archived ? "合同已归档，审批流程闭环完成。" : "归档节点尚未完成。",
+          state: archived ? "done" : "pending",
+          stateText: archived ? "已完成" : "待处理",
+          tagType: archived ? "success" : "info"
+        }
+      ];
+      if (rejected) {
+        nodes[2].state = "pending";
+        nodes[2].stateText = "未开始";
+        nodes[2].tagType = "info";
+        nodes[2].description = "由于审批被驳回，签署流程尚未启动。";
+      }
+      const timeline = [
+        { title: "提交申请", desc: startOwner + " 已发起合同审批。", time: applyTime, type: "primary", hollow: false },
+        { title: rejected ? "审批驳回" : (approved ? "审批推进" : "当前卡点"), desc: rejected ? (currentNodeName + " 已驳回，请尽快处理。") : (approved ? (currentNodeName + " 已处理完成，流程继续流转。") : (currentNodeName + " 正在处理中。")), time: latestTime, type: rejected ? "danger" : (approved ? "success" : "warning"), hollow: false },
+        { title: signing || archived ? "签署办理" : "等待签署", desc: signing || archived ? ("签署环节状态：" + this.getSignStatusLabel(signStatus)) : "审批完成后将自动进入签署节点。", time: signing || archived ? signTime : "待审批完成", type: signing || archived ? "primary" : "info", hollow: !signing && !archived },
+        { title: archived ? "归档完成" : "等待归档", desc: archived ? "流程全部结束，合同已归档。" : "归档尚未完成。", time: archived ? archiveTime : "待签署完成", type: archived ? "success" : "info", hollow: !archived }
+      ];
+      return {
+        summary: {
+          statusLabel,
+          currentNodeName,
+          finishedCount: nodes.filter(node => node.state === "done").length,
+          stageText,
+          tagType,
+          description: rejected ? ("流程在【" + currentNodeName + "】被驳回。") : (archived ? "审批、签署、归档都已完成。" : ("当前流程推进到【" + currentNodeName + "】。"))
+        },
+        activeStep,
+        processStatus,
+        steps,
+        nodes: options.forDrawer ? nodes.slice(0, 3) : nodes,
+        timeline
+      };
+    },
+
+    getApprovalNodeDisplayName(currentNode, record = {}) {
+      const raw = currentNode || record.nodeName || record.currentStep;
+      const normalized = String(raw || "").trim();
+      const preset = {
+        node1: "直属负责人审批",
+        node2: "法务审批",
+        node3: "总经理审批",
+        submit: "发起申请",
+        sign: "签署办理",
+        archive: "归档完成",
+        finished: "流程完成",
+        rejected: "驳回节点"
+      };
+      if (preset[normalized]) return preset[normalized];
+      if (normalized) return normalized;
+      return this.getSignStatusLabel(record.signStatus) === "审批中" ? "待审批节点" : "签署办理";
     },
 
     copyText(text) {
@@ -4315,6 +4526,233 @@ export default {
   ::v-deep .el-descriptions-item__content {
     color: #303133;
   }
+}
+
+.approval-flow-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.approval-flow-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #172033 0%, #243b63 55%, #305b97 100%);
+  color: #fff;
+  box-shadow: 0 18px 40px rgba(23, 32, 51, 0.18);
+}
+
+.approval-flow-hero__label {
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin-bottom: 10px;
+}
+
+.approval-flow-hero__title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.approval-flow-hero__desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.approval-flow-hero__meta {
+  min-width: 300px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.hero-metric-card {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.hero-metric-card span {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 8px;
+}
+
+.hero-metric-card strong {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.hero-metric-card.emphasis {
+  background: rgba(64, 158, 255, 0.18);
+}
+
+.approval-step-card__hint,
+.approval-node-card__hint,
+.approval-timeline-card__hint {
+  font-size: 12px;
+  color: #909399;
+}
+
+.approval-flow-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 16px;
+}
+
+.approval-node-list,
+.process-node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.approval-node-item,
+.process-node-item {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid #e8edf5;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  transition: all 0.2s ease;
+}
+
+.approval-node-item.is-current,
+.process-node-item.is-current {
+  border-color: rgba(230, 162, 60, 0.5);
+  box-shadow: 0 12px 28px rgba(230, 162, 60, 0.12);
+}
+
+.approval-node-item.is-done,
+.process-node-item.is-done {
+  border-color: rgba(103, 194, 58, 0.35);
+}
+
+.approval-node-item.is-rejected,
+.process-node-item.is-rejected {
+  border-color: rgba(245, 108, 108, 0.35);
+  background: linear-gradient(180deg, #fff8f8 0%, #fff 100%);
+}
+
+.approval-node-item__index,
+.process-node-item__badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #1f2d3d;
+  background: #eef3fb;
+}
+
+.approval-node-item__content,
+.process-node-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.approval-node-item__top,
+.process-node-item__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.approval-node-item__title,
+.process-node-item__title,
+.approval-timeline-item__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #303133;
+}
+
+.approval-node-item__subtitle,
+.process-node-item__subtitle,
+.approval-timeline-item__desc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.6;
+}
+
+.approval-node-item__meta,
+.process-node-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #606266;
+}
+
+.approval-node-item__desc,
+.process-node-item__desc {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #303133;
+}
+
+.process-card--premium {
+  padding: 4px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f9ff 100%);
+}
+
+.process-card__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 18px;
+  border-radius: 18px;
+  background: #f5f9ff;
+}
+
+.process-card__eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  color: #7b8ba7;
+  margin-bottom: 6px;
+}
+
+.process-card__summary-main strong {
+  display: block;
+  font-size: 20px;
+  color: #1f2d3d;
+  margin-bottom: 6px;
+}
+
+.process-card__summary-main p,
+.process-card__summary-side span {
+  margin: 0;
+  font-size: 12px;
+  color: #606266;
+}
+
+.process-card__summary-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.approval-timeline-item__desc {
+  margin-top: 6px;
 }
 
 .remark-box {
